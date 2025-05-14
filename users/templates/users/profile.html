@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - DjangoMart{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Profile Section (left column) -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <!-- Profile picture placeholder - discussed in our last chat -->
+                    <img src="https://via.placeholder.com/150" class="rounded-circle mb-3" alt="Profile Picture">
+                    <h4>{{ user.username }}</h4>
+                    <p class="text-muted">{{ user.email }}</p>
+
+                    <!-- Add profile picture upload form (future implementation) -->
+                    <button class="btn btn-outline-primary btn-sm mt-2" disabled title="Coming soon - as discussed">
+                        Upload Profile Picture
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders Section (right column) -->
+        <div class="col-md-8">
+            <h2>My Orders</h2>
+            {% if orders %}
+                <div class="list-group">
+                    {% for order in orders %}
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">Order #{{ order.id }}</h5>
+                            <small>{{ order.created|date:"F j, Y" }}</small>
+                        </div>
+                        <p class="mb-1">
+                            <!-- Expanded order status - improved from our last version -->
+                            <span class="badge bg-{% if order.paid %}success{% else %}warning{% endif %}">
+                                {% if order.paid %}Paid{% else %}Pending Payment{% endif %}
+                            </span>
+                            • Total: ${{ order.get_total_cost|floatformat:2 }}
+                        </p>
+                        <small class="text-muted">Click to view details (coming soon)</small>
+                    </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    You haven't placed any orders yet.
+                    <a href="{% url 'products:list' %}" class="alert-link">Browse our products</a> to get started!
+                </div>
+            {% endif %}
+
+            <!-- Added this section based on our discussion about future features -->
+            <div class="mt-4 p-3 bg-light rounded">
+                <h4>Coming Soon</h4>
+                <ul>
+                    <li>Order details page</li>
+                    <li>Profile customization</li>
+                    <li>Wishlist functionality</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

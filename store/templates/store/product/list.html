@@ -1,0 +1,127 @@
+{% extends "store/base.html" %}
+{% load humanize %}
+
+{% block title %}{% if category %}{{ category.name }} - {% endif %}Products - DjangoMart{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <div class="row">
+        <!-- Categories Sidebar -->
+        <div class="col-lg-3">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h3 class="h4 mb-3">Categories</h3>
+                    <div class="list-group">
+                        <a href="{% url 'store:product_list' %}"
+                           class="list-group-item list-group-item-action {% if not category %}active{% endif %}">
+                            All Categories
+                        </a>
+                        {% for c in categories %}
+                        <a href="{{ c.get_absolute_url }}"
+                           class="list-group-item list-group-item-action {% if category.slug == c.slug %}active{% endif %}">
+                            {{ c.name }}
+                            {% if c.description %}
+                            <small class="text-muted d-block mt-1">{{ c.description|truncatechars:40 }}</small>
+                            {% endif %}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Main Content -->
+        <div class="col-lg-9">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">
+                            {% if category %}{{ category.name }}{% else %}All Products{% endif %}
+                        </h1>
+                        <span class="badge bg-primary rounded-pill">{{ products.paginator.count }}</span>
+                    </div>
+
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                        {% for product in products %}
+                        <div class="col">
+                            <div class="card h-100 shadow-sm">
+                                <a href="{{ product.get_absolute_url }}">
+                                    <img src="{{ product.image.url }}"
+                                         class="card-img-top"
+                                         alt="{{ product.name }}"
+                                         style="height: 200px; object-fit: cover;">
+                                </a>
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <a href="{{ product.get_absolute_url }}" class="text-decoration-none">
+                                            {{ product.name }}
+                                        </a>
+                                    </h5>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <p class="card-text text-primary mb-0">
+                                            ${{ product.price|floatformat:2|intcomma }}
+                                        </p>
+                                        <span class="badge bg-secondary">
+                                            {{ product.category }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <a href="{{ product.get_absolute_url }}" class="btn btn-outline-primary w-100">
+                                        <i class="bi bi-eye me-2"></i>View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12">
+                            <div class="alert alert-info text-center py-5">
+                                <i class="bi bi-info-circle display-6 d-block mb-3"></i>
+                                No products found in this category
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if products.paginator.num_pages > 1 %}
+                    <nav class="mt-5">
+                        <ul class="pagination justify-content-center">
+                            {% if products.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1">&laquo;&laquo;</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ products.previous_page_number }}">&laquo;</a>
+                            </li>
+                            {% endif %}
+
+                            {% for num in products.paginator.page_range %}
+                                {% if products.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                                {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if products.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ products.next_page_number }}">&raquo;</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ products.paginator.num_pages }}">&raquo;&raquo;</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
