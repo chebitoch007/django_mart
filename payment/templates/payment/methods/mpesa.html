@@ -1,0 +1,11 @@
+<div class="mpesa-payment">
+    <input type="tel"
+           class="phone-input"
+           placeholder="2547XXXXXXXX"
+           pattern="2547\d{8}"
+           required>
+    <button class="payment-btn"
+            data-process-url="{% url 'payment:initiate_mpesa' order.id %}">
+        Pay with M-Pesa
+    </button>
+</div>

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="payment-container">
+    <h2>Complete Your Payment</h2>
+    <div class="order-summary">
+        <p>Order #{{ order.id }}</p>
+        <p>Total: ${{ total_amount }}</p>
+    </div>
+
+    <div class="payment-methods">
+        <!-- Stripe -->
+        <div class="payment-method">
+            <h3>Credit/Debit Card (Stripe)</h3>
+            <form id="stripe-form">
+                <div id="card-element"></div>
+                <button id="stripe-button">Pay with Stripe</button>
+            </form>
+        </div>
+
+        <!-- PayPal -->
+        <div class="payment-method">
+            <h3>Pay with PayPal</h3>
+            <div id="paypal-button-container"></div>
+        </div>
+
+        <!-- M-Pesa -->
+        <div class="payment-method">
+            <h3>M-Pesa Mobile Payment</h3>
+            <input type="tel" id="mpesa-phone" placeholder="2547XXXXXXXX">
+            <button onclick="initiateMpesaPayment()">Pay with M-Pesa</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD"></script>
+<script>
+    // Stripe Integration
+    const stripe = Stripe('{{ stripe_key }}');
+    const elements = stripe.elements();
+    const cardElement = elements.create('card');
+    cardElement.mount('#card-element');
+
+    // PayPal Integration
+    paypal.Buttons({
+        createOrder: function(data, actions) {
+            return fetch("{% url 'payment:create_paypal_order' order.id %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            }).then(function(res) {
+                return res.json();
+            }).then(function(data) {
+                return data.id;
+            });
+        },
+        onApprove: function(data, actions) {
+            return fetch("{% url 'payment:capture_paypal_order' order.id %}?orderID=" + data.orderID, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            }).then(function(res) {
+                window.location.href = "{% url 'payment:success' %}";
+            });
+        }
+    }).render('#paypal-button-container');
+
+    // M-Pesa Integration
+    function initiateMpesaPayment() {
+        const phone = document.getElementById('mpesa-phone').value;
+        fetch("{% url 'payment:initiate_mpesa' order.id %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ phone_number: phone })
+        }).then(response => {
+            if (response.ok) {
+                alert('Check your phone to complete the payment');
+            } else {
+                alert('Payment initiation failed');
+            }
+        });
+    }
+</script>
+{% endblock %}

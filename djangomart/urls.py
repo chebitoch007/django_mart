@@ -1,14 +1,10 @@
 from django.contrib import admin
 from django.urls import path, include
-from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('store.urls', namespace='store')),
-    path('cart/', include('cart.urls', namespace='cart')),  # Add this line
-    path('accounts/', include('django.contrib.auth.urls')),  # For auth views
-    path('users/', include('users.urls', namespace='users')),
-    # If you have a users app
+    path('', include('store.urls')),  # Home and products
+    path('accounts/', include('django.contrib.auth.urls')),  # Auth (login/logout)
+    path('accounts/', include('users.urls')),  # Registration
+    path('cart/', include('cart.urls')),  # Cart functionality
 ]
-
-
