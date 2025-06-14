@@ -1,0 +1,110 @@
+{% extends "store/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-b from-gray-900 to-dark-secondary min-h-screen">
+    <!-- Messages -->
+    {% if messages %}
+    <div class="mb-6 space-y-3 max-w-2xl mx-auto">
+        {% for message in messages %}
+        <div class="alert bg-primary/20 text-primary border border-primary/30 px-6 py-4 rounded-xl flex items-center backdrop-blur-sm">
+            <i class="fas fa-gamepad mr-3"></i>
+            {{ message }}
+            <button class="ml-auto text-primary/50 hover:text-primary transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="max-w-md mx-auto bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden border border-gray-700/30 relative">
+        <!-- Glowing effect -->
+        <div class="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent -z-10"></div>
+
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-primary to-primary-dark px-6 py-6">
+            <h2 class="orbitron text-3xl text-center text-white drop-shadow-lg">
+                <i class="fas fa-space-shuttle mr-3"></i>Login
+            </h2>
+        </div>
+
+        <!-- Form -->
+        <div class="p-8 space-y-8">
+            <form method="post" class="space-y-8">
+                {% csrf_token %}
+
+                <!-- Username/Email -->
+                <div class="group relative">
+                    <label class="block text-neon-blue orbitron mb-3 text-lg">Email/Username</label>
+                    <div class="relative">
+                        <input type="text"
+                               name="username"
+                               class="w-full bg-gray-800/50 border-2 border-gray-700 rounded-xl py-4 px-6 text-white focus:border-primary focus:ring-4 focus:ring-primary/30 placeholder-gray-500 transition-all"
+                               placeholder="Enter email/username"
+                               required
+                               autofocus>
+                        <i class="fas fa-user-astronaut absolute right-6 top-5 text-gray-500 text-xl"></i>
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div class="group">
+                    <label class="block text-neon-blue orbitron mb-3 text-lg">Repeat Password</label>
+                    <div class="relative">
+                        <input type="password"
+                               name="password"
+                               class="w-full bg-gray-800/50 border-2 border-gray-700 rounded-xl py-4 px-6 text-white focus:border-primary focus:ring-4 focus:ring-primary/30 placeholder-gray-500 transition-all"
+                               placeholder="••••••••"
+                               required>
+                        <button type="button" class="password-toggle absolute right-6 top-5 text-gray-500 hover:text-primary text-xl transition-colors">
+                            <i class="fas fa-eye-slash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Remember & Forgot -->
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center space-x-3">
+                        <input type="checkbox"
+                               class="rounded-lg bg-gray-800 border-2 border-gray-700 text-primary focus:ring-primary/40 h-5 w-5">
+                        <span class="text-gray-400 orbitron-condensed">Remember Password</span>
+                    </label>
+                    <a href="{% url 'users:password_reset' %}" class="text-sm text-primary hover:text-primary-light orbitron-condensed">
+                        Reset Password
+                    </a>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" class="w-full bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-white py-4 rounded-xl orbitron text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-primary/20">
+                    <i class="fas fa-sign-in-alt mr-3"></i>Login
+                </button>
+
+                <!-- Registration Link -->
+                <p class="text-center text-gray-400 orbitron-condensed mt-6">
+                    Don't have an account?
+                    <a href="{% url 'users:register' %}" class="text-primary hover:text-primary-light underline underline-offset-4">
+                        Register
+                    </a>
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.password-toggle').forEach(button => {
+    button.addEventListener('click', () => {
+        const input = button.previousElementSibling;
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        button.innerHTML = isPassword ?
+            '<i class="fas fa-eye"></i>' :
+            '<i class="fas fa-eye-slash"></i>';
+    });
+});
+</script>
+{% endblock %}

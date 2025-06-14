@@ -1,0 +1,15 @@
+<!-- logout.html -->
+{% extends "store/base.html" %}
+{% block content %}
+  <h2>Logged Out</h2>
+  <p>You have been successfully logged out.</p>
+  <a href="{% url 'users:login' %}" class="btn btn-primary">Log In Again</a>
+{% endblock %}
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}

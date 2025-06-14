@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Payment Pending</h3>
+        </div>
+
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>Order Details</h4>
+                    <dl class="row">
+                        <dt class="col-sm-4">Order ID</dt>
+                        <dd class="col-sm-8">{{ order.id }}</dd>
+
+                        <dt class="col-sm-4">Total Amount</dt>
+                        <dd class="col-sm-8">{{ payment.formatted_amount }}</dd>
+
+                        <dt class="col-sm-4">Payment Method</dt>
+                        <dd class="col-sm-8">{{ payment.get_method_display }}</dd>
+                    </dl>
+                </div>
+
+                <div class="col-md-6">
+                    <h4>Payment Instructions</h4>
+                    {% if payment.method == 'CASH' %}
+                    <div class="alert alert-info">
+                        <h5>Cash on Delivery</h5>
+                        <p>Please prepare exact cash for delivery</p>
+                        <p>Our agent will collect {{ payment.formatted_amount }}</p>
+                        <a href="{% url 'cash-payment' order.pk %}"
+                           class="btn btn-success">
+                            Confirm Cash Received
+                        </a>
+                    </div>
+                    {% elif payment.method == 'MOBILE_MONEY' %}
+                    <div class="alert alert-warning">
+                        <h5>Mobile Money Payment</h5>
+                        <p>Send {{ payment.formatted_amount }} to:</p>
+                        <p class="h4">Paybill: 123456</p>
+                        <p class="h5">Account: {{ order.id }}</p>
+                        <p class="text-muted mt-2">
+                            Valid for {{ payment_window }} hours
+                        </p>
+                        <a href="{% url 'verify-mobile' order.pk %}"
+                           class="btn btn-primary">
+                            I've Made Payment
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <div class="progress">
+                    <div class="progress-bar progress-bar-striped bg-warning"
+                         role="progressbar"
+                         style="width: 100%"
+                         aria-valuenow="100"
+                         aria-valuemin="0"
+                         aria-valuemax="100">
+                        Expires in: <span id="countdown-timer"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Countdown timer
+    const deadline = new Date("{{ payment.payment_deadline|date:'c' }}").getTime();
+
+    const timer = setInterval(function() {
+        const now = new Date().getTime();
+        const remaining = deadline - now;
+
+        const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+        document.getElementById("countdown-timer").innerHTML =
+            `${hours}h ${minutes}m ${seconds}s`;
+
+        if (remaining < 0) {
+            clearInterval(timer);
+            window.location.reload();
+        }
+    }, 1000);
+</script>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends 'store/base.html' %}
+{% block content %}
+<section class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-4">Shipping Policy</h1>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h3>Shipping Options</h3>
+                    <ul>
+                        <li><strong>Standard Shipping:</strong> 5-7 business days ($4.99)</li>
+                        <li><strong>Express Shipping:</strong> 2-3 business days ($9.99)</li>
+                        <li><strong>Overnight Shipping:</strong> Next business day ($19.99)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h3>International Shipping</h3>
+                    <p>We ship to over 50 countries worldwide. International shipping typically takes 10-20 business days and costs vary by destination.</p>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3>Processing Time</h3>
+                    <p>Orders are processed within 1-2 business days. During peak seasons, processing may take up to 3 business days.</p>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <p>For more information, see our <a href="{% url 'faq' %}">FAQs</a> or <a href="{% url 'contact' %}">contact us</a>.</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

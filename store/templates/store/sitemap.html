@@ -1,0 +1,75 @@
+{% extends 'store/base.html' %}
+{% block content %}
+<section class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-4">Sitemap</h1>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h3>Main Pages</h3>
+                    <ul class="sitemap-list">
+                        <li><a href="{% url 'store:home' %}">Home</a></li>
+                        <li><a href="{% url 'store:product_list' %}">All Products</a></li>
+                        <li><a href="{% url 'store:categories' %}">Categories</a></li>
+                        <li><a href="{% url 'cart:cart_detail' %}">Shopping Cart</a></li>
+                        <li><a href="{% url 'orders:checkout' %}">Checkout</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h3>Support</h3>
+                    <ul class="sitemap-list">
+                        <li><a href="{% url 'store:contact' %}">Contact Us</a></li>
+                        <li><a href="{% url 'store:faq' %}">FAQs</a></li>
+                        <li><a href="{% url 'store:shipping' %}">Shipping Policy</a></li>
+                        <li><a href="{% url 'store:returns' %}">Return Policy</a></li>
+                        <li><a href="{% url 'store:warranty' %}">Warranty</a></li>
+                        <li><a href="{% url 'store:tracking' %}">Track Order</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3>Legal</h3>
+                    <ul class="sitemap-list">
+                        <li><a href="{% url 'store:privacy' %}">Privacy Policy</a></li>
+                        <li><a href="{% url 'store:terms' %}">Terms of Service</a></li>
+                        <li><a href="{% url 'store:cookies' %}">Cookie Policy</a></li>
+                        <li><a href="{% url 'store:accessibility' %}">Accessibility</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .sitemap-list {
+        list-style-type: none;
+        padding-left: 0;
+    }
+
+    .sitemap-list li {
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .sitemap-list li:last-child {
+        border-bottom: none;
+    }
+
+    .sitemap-list a {
+        text-decoration: none;
+        color: #0d6efd;
+        font-size: 1.1rem;
+    }
+
+    .sitemap-list a:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}

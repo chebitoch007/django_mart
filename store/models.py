@@ -3,8 +3,7 @@ from django.urls import reverse
 from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
-from django.utils import timezone
-
+import secrets
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -16,13 +15,20 @@ class Category(models.Model):
     meta_description = models.CharField(max_length=200, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='children'
+    )
+
+    def __str__(self):
+        return self.name
 
     class Meta:
         verbose_name_plural = "Categories"
         ordering = ['name']
-
-
-
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -32,14 +38,20 @@ class Category(models.Model):
     def get_absolute_url(self):
         return reverse('store:product_list_by_category', args=[self.slug])
 
-    def __str__(self):
-        return self.name
+    @property
+    def product_count(self):
+        return self.products.count()
+
 
 
 class Product(models.Model):
+    category = models.ForeignKey(
+        Category,
+        related_name='products',
+        on_delete=models.CASCADE
+    )
     id = models.AutoField(primary_key=True)
     slug = models.SlugField(max_length=200, unique=True)
-    category = models.ForeignKey(Category, related_name='products', on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     description = models.TextField()
     short_description = models.CharField(max_length=300, blank=True)
@@ -88,8 +100,20 @@ class Product(models.Model):
             self.review_count = reviews.count()
             self.save()
 
+    def get_discount_percentage(self):
+        """Calculate discount percentage if applicable"""
+        if self.discount_price and self.price and self.price > 0:
+            return round((self.price - self.discount_price) / self.price * 100)
+        return 0
+
     def __str__(self):
         return self.name
+
+
+
+    @property
+    def on_sale(self):
+        return bool(self.discount_price and self.discount_price < self.price)
 
 
 class ProductImage(models.Model):
@@ -132,3 +156,24 @@ def get_discount_percentage(self):
     if self.discount_price and self.price:
         return round((self.price - self.discount_price) / self.price * 100)
     return 0
+
+
+
+class NewsletterSubscription(models.Model):
+    email = models.EmailField(unique=True)
+    confirmed = models.BooleanField(default=False)
+    confirmation_token = models.CharField(max_length=64)
+    unsubscribe_token = models.CharField(max_length=64)
+    confirmation_sent = models.DateTimeField()
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    unsubscribed = models.BooleanField(default=False)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    source_url = models.URLField(null=True, blank=True)
+
+    def generate_tokens(self):
+        self.confirmation_token = secrets.token_urlsafe(32)
+        self.unsubscribe_token = secrets.token_urlsafe(32)
+
+    def __str__(self):
+        return f"{self.email} ({'confirmed' if self.confirmed else 'pending'})"

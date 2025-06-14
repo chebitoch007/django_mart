@@ -1,0 +1,59 @@
+{% extends 'store/base.html' %}
+{% block content %}
+<section class="container my-5">
+    <div class="row">
+        <div class="col-lg-6 mx-auto">
+            <h1 class="mb-4">Track Your Order</h1>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label">Order Number</label>
+                            <input type="text" class="form-control" placeholder="Enter your order number" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" class="form-control" placeholder="Enter your email" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Track Order</button>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <h5>Tracking Information</h5>
+                    <div class="tracking-progress mt-4">
+                        <div class="progress-step completed">
+                            <div class="step-icon">✓</div>
+                            <div class="step-label">Order Placed</div>
+                            <div class="step-date">May 30</div>
+                        </div>
+                        <div class="progress-step completed">
+                            <div class="step-icon">✓</div>
+                            <div class="step-label">Processing</div>
+                            <div class="step-date">May 30</div>
+                        </div>
+                        <div class="progress-step active">
+                            <div class="step-icon">3</div>
+                            <div class="step-label">Shipped</div>
+                            <div class="step-date">Expected: Jun 1</div>
+                        </div>
+                        <div class="progress-step">
+                            <div class="step-icon">4</div>
+                            <div class="step-label">In Transit</div>
+                        </div>
+                        <div class="progress-step">
+                            <div class="step-icon">5</div>
+                            <div class="step-label">Delivered</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 text-center">
+                <p>Having trouble? <a href="{% url 'contact' %}">Contact our support team</a></p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

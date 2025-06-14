@@ -1,0 +1,41 @@
+{% extends 'store/base.html' %}
+{% block content %}
+<section class="container my-5">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <h1 class="mb-4">Contact Us</h1>
+            <p>Have questions? We're here to help!</p>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Message</label>
+                            <textarea class="form-control" rows="5" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Message</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="mt-5">
+                <h4>Other Ways to Reach Us</h4>
+                <ul>
+                    <li>Email: support@djangomart.com</li>
+                    <li>Phone: +1 (555) 123-4567</li>
+                    <li>Address: 123 E-commerce Street, Web City</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

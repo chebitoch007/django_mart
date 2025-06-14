@@ -19,10 +19,11 @@ def cart_add(request, product_id):
     cart, created = Cart.objects.get_or_create(user=request.user)
     form = CartAddProductForm(request.POST or None)
 
+
     if request.method == 'POST' and form.is_valid():
         quantity = form.cleaned_data['quantity']
         cart.add_product(product, quantity)
-        return redirect('cart:detail')
+        return redirect('cart:cart_detail')
 
     # Handle GET requests or invalid forms
     return redirect(product.get_absolute_url())

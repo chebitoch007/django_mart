@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Your Order History</h1>
+        <a href="{% url 'product_list' %}" class="btn btn-outline-primary">
+            Continue Shopping &rarr;
+        </a>
+    </div>
+
+    {% if orders %}
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Recent Orders</h5>
+        </div>
+        <div class="list-group list-group-flush">
+            {% for order in orders %}
+            <a href="{% url 'orders:order_detail' order.pk %}"
+               class="list-group-item list-group-item-action d-flex gap-3 py-3">
+                <div class="d-flex w-100 justify-content-between">
+                    <div>
+                        <h6 class="mb-1">Order #{{ order.id }}</h6>
+                        <p class="mb-0 small text-muted">
+                            {{ order.items.count }} item{{ order.items.count|pluralize }} •
+                            {{ order.created|date:"M j, Y" }}
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge {% if order.status == 'PAID' %}bg-success{% else %}bg-warning{% endif %}">
+                            {% if order.status == 'PAID' %}Paid{% else %}Pending{% endif %}
+                        </span>
+                        <p class="mb-0 h6 mt-1">{{ order.get_total_cost }} {{ order.currency }}</p>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="card shadow-sm text-center py-5">
+        <div class="card-body">
+            <i class="bi bi-cart-x fs-1 text-muted mb-3"></i>
+            <h5 class="card-title">No Orders Found</h5>
+            <p class="card-text text-muted">You haven't placed any orders yet.</p>
+            <a href="{% url 'product_list' %}" class="btn btn-primary">
+                Start Shopping
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

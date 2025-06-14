@@ -1,79 +1,81 @@
+<!-- Optimized Navbar -->
+<nav class="bg-dark shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <!-- Left Section -->
+            <div class="flex items-center">
+                <a href="{% url 'home' %}" class="orbitron text-2xl font-bold text-primary hover:text-primary-light transition-colors">
+                    <i class="fas fa-gamepad mr-2"></i>DjangoMart
+                </a>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-    <div class="container">
-        <!-- Brand/Logo -->
-        <a class="navbar-brand fw-bold" href="{% url 'home' %}">
-            <i class="bi bi-shop me-2"></i>DjangoMart
-        </a>
+                <!-- Desktop Navigation -->
+                <div class="hidden md:ml-6 md:flex md:space-x-4">
+                    <a href="{% url 'store:product_list' %}" class="nav-link">
+                        <i class="fas fa-home mr-1"></i> Home
+                    </a>
+                    <div class="relative group">
+                        <button class="nav-link">
+                            <i class="fas fa-th-large mr-1"></i> Categories
+                            <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                        </button>
+                        <div class="nav-dropdown">
+                            {% for category in categories %}
+                            <a href="{% url 'store:product_list_by_category' category.slug %}" class="nav-dropdown-item">
+                                {{ category.name }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <!-- Mobile Menu -->
+<div class="md:hidden bg-dark shadow-lg" x-data="mobileMenu">
+    <!-- Mobile menu HTML from the previous answer -->
+</div>
 
-        <!-- Mobile Toggle Button -->
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <!-- Navbar Items -->
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'store:product_list' %}">
-                        <i class="bi bi-house-door me-1"></i> Home
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'store:categories' %}">
-                        <i class="bi bi-grid me-1"></i> Categories
-                    </a>
-                </li>
-            </ul>
-
-            <!-- Right-aligned items -->
-            <ul class="navbar-nav ms-auto">
-                {% if user.is_authenticated %}
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-circle me-1"></i> {{ user.username }}
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                        <li><a class="dropdown-item" href="{% url 'profile' %}">
-                            <i class="bi bi-person me-1"></i> Profile
-                        </a></li>
-                        <li><a class="dropdown-item" href="{% url 'orders:order_history' %}">
-                            <i class="bi bi-receipt me-1"></i> My Orders
-                        </a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'logout' %}">
-                            <i class="bi bi-box-arrow-right me-1"></i> Logout
-                        </a></li>
-                    </ul>
-                </li>
-                {% else %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'login' %}">
-                        <i class="bi bi-box-arrow-in-right me-1"></i> Login
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'register' %}">
-                        <i class="bi bi-person-plus me-1"></i> Register
-                    </a>
-                </li>
-                {% endif %}
-
-                <!-- Cart Button -->
-                <li class="nav-item ms-2">
-                    <a href="{% url 'cart:detail' %}" class="btn btn-outline-light position-relative">
-                        <i class="bi bi-cart3"></i>
+            <!-- Right Section -->
+            <div class="flex items-center space-x-4">
+                <!-- Cart -->
+                <a href="{% url 'cart:detail' %}" class="relative text-gray-300 hover:text-primary transition-colors">
+                    <i class="fas fa-shopping-cart text-xl"></i>
+                    <span class="cart-badge">
                         {% with cart|length as cart_items %}
-                            {% if cart_items > 0 %}
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                {{ cart_items }}
-                                <span class="visually-hidden">items in cart</span>
-                            </span>
-                            {% endif %}
+                            {{ cart_items|default:"0" }}
                         {% endwith %}
+                    </span>
+                </a>
+
+                <!-- User Account -->
+                {% if user.is_authenticated %}
+                <div class="relative group">
+                    <button class="text-gray-300 hover:text-primary transition-colors">
+                        <i class="fas fa-user-circle text-xl"></i>
+                    </button>
+                    <div class="nav-dropdown w-48">
+                        <a href="{% url 'profile' %}" class="nav-dropdown-item">
+                            <i class="fas fa-user mr-2"></i>Profile
+                        </a>
+                        <a href="{% url 'orders:order_history' %}" class="nav-dropdown-item">
+                            <i class="fas fa-receipt mr-2"></i>Orders
+                        </a>
+                        <div class="border-t border-gray-700 my-2"></div>
+                        <a href="{% url 'logout' %}" class="nav-dropdown-item text-red-400 hover:text-red-300">
+                            <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="flex space-x-3">
+                    <a href="{% url 'login' %}" class="nav-link">
+                        <i class="fas fa-sign-in-alt mr-1"></i> Login
                     </a>
-                </li>
-            </ul>
+                    <a href="{% url 'register' %}" class="nav-link">
+                        <i class="fas fa-user-plus mr-1"></i> Register
+                    </a>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </nav>
+

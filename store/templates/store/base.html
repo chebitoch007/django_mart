@@ -1,116 +1,972 @@
 <!DOCTYPE html>
-<html lang="en">
+{% load static %}
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}DjangoMart{% endblock %}</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <meta name="description" content="Premium e-commerce platform offering quality products with fast delivery">
+    <title>{% block title %}DjangoMart - Premium Shopping Experience{% endblock %}</title>
+
+    <!-- Performance Optimizations -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap" as="style">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Inlined Critical CSS -->
     <style>
-        .cart-badge {
-            font-size: 0.7rem;
+        :root {
+            --color-primary: #2563eb;
+            --color-primary-dark: #1d4ed8;
+            --color-accent: #f97316;
+            --color-accent-dark: #ea580c;
+            --color-secondary: #8b5cf6;
+            --color-dark: #0f172a;
+            --color-light: #f8fafc;
+            --color-success: #10b981;
+            --color-danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.6;
+            background-color: #f8fafc;
+            color: #1a202c;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1, h2, h3, h4, h5, h6,
+        .navbar-brand,
+        .footer-logo {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* ===== NAVIGATION ===== */
+        .amazon-nav {
+            background: linear-gradient(135deg, var(--color-dark) 0%, #1e293b 100%);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-height: 70px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .amazon-nav.scrolled {
+            min-height: 60px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-top-row {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .nav-logo {
+            font-size: 1.8rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-right: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-logo span {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-location {
+            display: flex;
+            align-items: center;
+            color: #cbd5e1;
+            padding: 0.5rem;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-right: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .nav-location:hover {
+            border-color: #cbd5e1;
+        }
+
+        .search-container {
+            flex-grow: 1;
+            display: flex;
+            max-width: 900px;
+            margin-right: 1rem;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .search-select {
+            background-color: #e2e8f0;
+            border: none;
+            padding: 0 1rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            border-right: 1px solid #cbd5e1;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.8rem 1.2rem;
+            border: none;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .search-button {
+            background-color: var(--color-accent);
+            border: none;
+            color: white;
+            padding: 0 1.5rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .search-button:hover {
+            background-color: var(--color-accent-dark);
+        }
+
+        .nav-right {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            min-width: 220px;
+            justify-content: flex-end;
+        }
+
+        .nav-link-box {
+            display: flex;
+            flex-direction: column;
+            padding: 0.5rem;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-link-box:hover {
+            border-color: #cbd5e1;
+        }
+
+        .nav-link-top {
+            font-size: 0.75rem;
+            color: #cbd5e1;
+        }
+
+        .nav-link-bottom {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .cart-box {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            color: white;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .cart-box:hover {
+            border-color: #cbd5e1;
+        }
+
+        .cart-count {
             position: absolute;
-            top: -5px;
-            right: -10px;
+            top: -3px;
+            right: 2px;
+            background-color: var(--color-accent);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: bold;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+        }
+
+        /* Bottom Navigation */
+        .nav-bottom-row {
+            background: rgba(15, 23, 42, 0.95);
+            padding: 0.4rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .nav-bottom-row::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hamburger-menu {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.8rem;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .hamburger-menu:hover {
+            border-color: #cbd5e1;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: nowrap;
+        }
+
+        .nav-link-item {
+            padding: 0.5rem 0.8rem;
+            color: white;
+            font-size: 0.9rem;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .nav-link-item:hover {
+            border-color: #cbd5e1;
+            background: rgba(255,255,255,0.05);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        main {
+            flex-grow: 1;
+            padding-top: 20px;
+        }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 80px 0 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #f59e0b);
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+
+        .footer-column {
+            margin-bottom: 30px;
+        }
+
+        .footer-column h3 {
+            font-size: 1.4rem;
+            margin-bottom: 25px;
+            position: relative;
+            padding-bottom: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .footer-column h3::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: #3b82f6;
+            border-radius: 2px;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 25px;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .footer-logo i {
+            color: #3b82f6;
+            margin-right: 12px;
+            font-size: 2.4rem;
+        }
+
+        .footer-logo span {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-description {
+            font-size: 1rem;
+            line-height: 1.8;
+            margin-bottom: 25px;
+            color: #94a3b8;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .social-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .social-icon:hover {
+            transform: translateY(-5px);
+        }
+
+        .social-icon.facebook:hover {
+            background: #3b5998;
+            box-shadow: 0 5px 15px rgba(59, 89, 152, 0.4);
+        }
+
+        /* X icon styles */
+        .social-icon.x:hover {
+            background: #000;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .social-icon.instagram:hover {
+            background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+            box-shadow: 0 5px 15px rgba(220, 39, 67, 0.4);
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-link {
+            display: block;
+            padding: 10px 0;
+            color: #94a3b8;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            padding-left: 24px;
+        }
+
+        .footer-link:hover {
+            color: #3b82f6;
+            transform: translateX(5px);
+        }
+
+        .footer-link::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: #3b82f6;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .footer-link:hover::before {
+            opacity: 1;
+        }
+
+        .newsletter-form {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .newsletter-input {
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .newsletter-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .newsletter-button {
+            position: absolute;
+            right: 6px;
+            top: 6px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .newsletter-button:hover {
+            background: var(--color-primary-dark);
+        }
+
+        .form-disclaimer {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            line-height: 1.7;
+        }
+
+        .copyright-section {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 35px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .copyright-text {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin-bottom: 25px;
+        }
+
+        .payment-icons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .payment-icon {
+            width: 60px;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.4rem;
+            transition: all 0.3s ease;
+        }
+
+        .payment-icon:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-3px);
+        }
+
+        .footer-links-bottom {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .footer-link-bottom {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link-bottom:hover {
+            color: #3b82f6;
+        }
+
+        /* ===== RESPONSIVE DESIGN ===== */
+        @media (max-width: 1024px) {
+            .nav-location, .nav-link-box:not(:last-child) {
+                display: none;
+            }
+
+            .nav-logo {
+                min-width: auto;
+                margin-right: 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-top-row {
+                padding: 0.8rem;
+            }
+
+            .search-container {
+                order: 3;
+                margin-top: 0.8rem;
+                margin-right: 0;
+                min-width: 100%;
+                margin-left: 0;
+            }
+
+            .nav-right {
+                margin-left: auto;
+                min-width: auto;
+            }
+
+            .nav-bottom-row {
+                padding: 0.4rem 1rem;
+            }
+
+            .hamburger-menu span {
+                display: none;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .footer-column {
+                margin-bottom: 20px;
+            }
+
+            .footer-links-bottom {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* X logo styling */
+        .x-logo {
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+            position: relative;
+        }
+
+        .x-logo::before,
+        .x-logo::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 0.15em;
+            background-color: currentColor;
+            border-radius: 0.1em;
+        }
+
+        .x-logo::before {
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+        .x-logo::after {
+            transform: translate(-50%, -50%) rotate(-45deg);
+        }
+
+        /* Performance optimizations */
+        .lazy {
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .lazy.loaded {
+            opacity: 1;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Premium hover effects */
+        .premium-hover {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .premium-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Gradient text */
+        .gradient-text {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
     </style>
+
+    {% block extra_css %}{% endblock %}
 </head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-        <div class="container">
-            <!-- Brand with icon -->
-            <a class="navbar-brand fw-bold" href="{% url 'store:product_list' %}">
-                <i class="bi bi-shop me-2"></i>DjangoMart
+
+<body class="flex flex-col min-h-screen">
+    <!-- Enhanced Navigation -->
+    <header class="amazon-nav sticky top-0 z-50">
+        <!-- Top Row -->
+        <div class="nav-top-row">
+            <a href="{% url 'store:home' %}" class="nav-logo premium-hover">
+                <i class="fas fa-shopping-bag"></i>
+                <span>DjangoMart</span>
             </a>
 
-            <!-- Mobile toggle button -->
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            <div class="nav-location premium-hover">
+                <i class="fas fa-map-marker-alt mr-1"></i>
+                <div>
+                    <div class="nav-link-top">Deliver to</div>
+                    <div class="nav-link-bottom">Nairobi, Kenya</div>
+                </div>
+            </div>
 
-            <!-- Navbar content -->
-            <div class="collapse navbar-collapse" id="navbarContent">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'store:product_list' %}">
-                            <i class="bi bi-house-door me-1"></i> Home
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-grid me-1"></i> Categories
-                        </a>
-                    </li>
-                </ul>
+            <form class="search-container" action="{% url 'store:product_search' %}" method="GET">
+                <select class="search-select" name="category">
+                    <option value="">All Categories</option>
+                    {% for category in categories|slice:":5" %}
+                    <option value="{{ category.slug }}">{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+                <input
+                    type="text"
+                    class="search-input"
+                    name="q"
+                    placeholder="Search for products..."
+                    value="{{ request.GET.q }}"
+                >
+                <button type="submit" class="search-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
 
-                <!-- Right-aligned items -->
-                <ul class="navbar-nav ms-auto">
-                    <!-- Cart with badge -->
-                    <li class="nav-item position-relative me-2">
-                        <a href="{% url 'cart:detail' %}" class="nav-link btn btn-outline-light position-relative">
-                            <i class="bi bi-cart3"></i>
-                            {% with total_items=cart|length %}
-                                {% if total_items > 0 %}
-                                <span class="badge rounded-pill bg-danger cart-badge">
-                                    {{ total_items }}
-                                </span>
-                                {% endif %}
-                            {% endwith %}
-                        </a>
-                    </li>
+            <div class="nav-right">
+                {% if user.is_authenticated %}
+                <a href="{% url 'users:account' %}" class="nav-link-box premium-hover">
+                    <div class="nav-link-top">Hello, {{ user.first_name|default:user.username }}</div>
+                    <div class="nav-link-bottom">Account & Lists</div>
+                </a>
+                {% else %}
+                <a href="{% url 'users:login' %}" class="nav-link-box premium-hover">
+                    <div class="nav-link-top">Hello, Sign in</div>
+                    <div class="nav-link-bottom">Account & Lists</div>
+                </a>
+                {% endif %}
 
-                    <!-- Authentication -->
-                    {% if user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle me-1"></i> {{ user.username }}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" href="#">
-                                <i class="bi bi-person me-1"></i> Profile
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'logout' %}">
-                                <i class="bi bi-box-arrow-right me-1"></i> Logout
-                            </a></li>
-                        </ul>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'login' %}">
-                            <i class="bi bi-box-arrow-in-right me-1"></i> Login
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'users:register' %}">
-                            <i class="bi bi-person-plus me-1"></i> Register
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
+                <a href="{% url 'orders:order_history' %}" class="nav-link-box premium-hover">
+                    <div class="nav-link-top">Returns</div>
+                    <div class="nav-link-bottom">& Orders</div>
+                </a>
+
+                <a href="{% url 'cart:cart_detail' %}" class="cart-box premium-hover">
+                    <i class="fas fa-shopping-cart text-xl"></i>
+                    <div class="ml-1">
+                        <div class="nav-link-bottom">Cart</div>
+                    </div>
+                    <div class="cart-count">
+                        {% with total_items=cart|length %}
+                            {% if total_items > 0 %}
+                                {{ total_items }}
+                            {% else %}
+                                0
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                </a>
             </div>
         </div>
-    </nav>
 
-    <!-- Main content -->
-    <main class="container my-4">
-        {% if messages %}
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <!-- Bottom Row -->
+        <div class="nav-bottom-row">
+            <div class="hamburger-menu premium-hover">
+                <i class="fas fa-bars mr-2"></i>
+                <span>All</span>
             </div>
-            {% endfor %}
-        {% endif %}
 
+            <div class="nav-links">
+                <a href="{% url 'store:product_list' %}?on_sale=true" class="nav-link-item premium-hover">Today's Deals</a>
+                <a href="{% url 'store:product_list' %}?sort=-created" class="nav-link-item premium-hover">New Releases</a>
+                <a href="{% url 'store:product_list' %}?sort=-review_count" class="nav-link-item premium-hover">Best Sellers</a>
+                {% for category in categories|slice:":6" %}
+                <a href="{{ category.get_absolute_url }}" class="nav-link-item premium-hover">{{ category.name }}</a>
+                {% endfor %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow">
         {% block content %}
+        <!-- Content will be overridden by child templates -->
         {% endblock %}
     </main>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Premium Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <!-- Brand Section -->
+                <div class="footer-column">
+                    <a href="{% url 'store:home' %}" class="footer-logo">
+                        <i class="fas fa-shopping-bag"></i>
+                        <span>DjangoMart</span>
+                    </a>
+                    <p class="brand-description">
+                        Premium products for discerning shoppers. Discover exceptional quality at competitive prices with fast delivery.
+                    </p>
+                    <div class="social-icons">
+                        <a href="#" class="social-icon facebook" aria-label="Facebook">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="social-icon x" aria-label="X (formerly Twitter)">
+                            <span class="x-logo"></span>
+                        </a>
+                        <a href="#" class="social-icon instagram" aria-label="Instagram">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="footer-column">
+                    <h3>Shop</h3>
+                    <ul class="footer-links">
+                        {% for category in categories|slice:":6" %}
+                        <li><a href="{{ category.get_absolute_url }}" class="footer-link">{{ category.name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Support -->
+                <div class="footer-column">
+                    <h3>Support</h3>
+                    <ul class="footer-links">
+                        <li><a href="{% url 'store:contact' %}" class="footer-link">Contact Us</a></li>
+                        <li><a href="{% url 'store:faq' %}" class="footer-link">FAQs</a></li>
+                        <li><a href="{% url 'store:shipping' %}" class="footer-link">Shipping Policy</a></li>
+                        <li><a href="{% url 'store:returns' %}" class="footer-link">Return Policy</a></li>
+                        <li><a href="{% url 'store:warranty' %}" class="footer-link">Warranty</a></li>
+                        <li><a href="{% url 'store:tracking' %}" class="footer-link">Track Order</a></li>
+                    </ul>
+                </div>
+
+                <!-- Newsletter -->
+                <div class="footer-column">
+                    <h3>Stay Updated</h3>
+                    <form class="newsletter-form" action="{% url 'store:subscribe' %}" method="POST">
+                        {% csrf_token %}
+                        <label>
+                            <input
+                                type="email"
+                                name="email"
+                                placeholder="Your email address"
+                                class="newsletter-input"
+                                required
+                            >
+                        </label>
+                        <button type="submit" class="newsletter-button">Subscribe</button>
+                    </form>
+                    <p class="form-disclaimer">
+                        Subscribe to our newsletter for exclusive offers, new product announcements, and shopping tips.
+                    </p>
+                </div>
+            </div>
+
+            <div class="copyright-section">
+                <p class="copyright-text">
+                    © 2025 DjangoMart. All rights reserved. Proudly serving customers worldwide.
+                </p>
+
+                <div class="payment-icons">
+                    <div class="payment-icon">
+                        <i class="fab fa-cc-visa"></i>
+                    </div>
+                    <div class="payment-icon">
+                        <i class="fab fa-cc-mastercard"></i>
+                    </div>
+                    <div class="payment-icon">
+                        <i class="fab fa-cc-paypal"></i>
+                    </div>
+                    <div class="payment-icon">
+                        <i class="fab fa-cc-apple-pay"></i>
+                    </div>
+                    <div class="payment-icon">
+                        <i class="fab fa-cc-amazon-pay"></i>
+                    </div>
+                </div>
+
+                <div class="footer-links-bottom">
+                    <a href="{% url 'store:privacy' %}" class="footer-link-bottom">Privacy Policy</a>
+                    <a href="{% url 'store:terms' %}" class="footer-link-bottom">Terms of Service</a>
+                    <a href="{% url 'store:cookies' %}" class="footer-link-bottom">Cookie Policy</a>
+                    <a href="{% url 'store:accessibility' %}" class="footer-link-bottom">Accessibility</a>
+                    <a href="{% url 'store:sitemap' %}" class="footer-link-bottom">Sitemap</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.amazon-nav');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Add to cart animation
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.add-to-cart')) {
+                const cartCount = document.querySelector('.cart-count');
+                let currentCount = parseInt(cartCount.textContent) || 0;
+                cartCount.textContent = currentCount + 1;
+
+                // Animation effect
+                cartCount.style.transform = 'scale(1.5)';
+                setTimeout(() => {
+                    cartCount.style.transform = 'scale(1)';
+                }, 300);
+            }
+        });
+
+        // Lazy loading images
+        document.addEventListener('DOMContentLoaded', function() {
+            const lazyImages = [].slice.call(document.querySelectorAll('img.lazy'));
+
+            if ('IntersectionObserver' in window) {
+                const lazyImageObserver = new IntersectionObserver(function(entries) {
+                    entries.forEach(function(entry) {
+                        if (entry.isIntersecting) {
+                            const lazyImage = entry.target;
+                            lazyImage.src = lazyImage.dataset.src;
+                            lazyImage.classList.add('loaded');
+                            lazyImageObserver.unobserve(lazyImage);
+                        }
+                    });
+                });
+
+                lazyImages.forEach(function(lazyImage) {
+                    lazyImageObserver.observe(lazyImage);
+                });
+            } else {
+                // Fallback for older browsers
+                lazyImages.forEach(function(lazyImage) {
+                    lazyImage.src = lazyImage.dataset.src;
+                    lazyImage.classList.add('loaded');
+                });
+            }
+        });
+
+        // Newsletter form submission feedback
+        const newsletterForms = document.querySelectorAll('.newsletter-form');
+        newsletterForms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const input = this.querySelector('input[type="email"]');
+                const button = this.querySelector('button');
+
+                if (input.value) {
+                    const originalText = button.textContent;
+                    button.textContent = 'Subscribed!';
+                    button.style.backgroundColor = '#10b981';
+
+                    // Simulate form submission
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.style.backgroundColor = '';
+                        input.value = '';
+                    }, 2000);
+                }
+            });
+        });
+    </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

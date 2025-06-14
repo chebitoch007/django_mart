@@ -1,191 +1,99 @@
-import json
-import stripe
-import requests
-import base64
-from datetime import datetime
+from django.views.generic import DetailView, FormView, TemplateView
+from django.shortcuts import redirect, get_object_or_404, render
+from django.contrib import messages
+from django.db import transaction
 from django.conf import settings
-from django.views.generic import TemplateView
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse, HttpResponse
-from django.shortcuts import get_object_or_404
+from .models import Payment
 from orders.models import Order
-from .models import PaymentTransaction
-
-stripe.api_key = settings.STRIPE_SECRET_KEY
+from .forms import MobileMoneyVerificationForm
 
 
-class PaymentView(TemplateView):
-    template_name = 'payment/payment.html'
+class PaymentPendingView(DetailView):
+    model = Order
+    template_name = 'payment/payment_pending.html'
+    context_object_name = 'order'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        order = get_object_or_404(Order, id=self.kwargs['order_id'])
-
-        context.update({
-            'order': order,
-            'stripe_key': settings.STRIPE_PUBLISHABLE_KEY,
-            'paypal_client_id': settings.PAYPAL_CLIENT_ID,
-            'mpesa_shortcode': settings.MPESA_SHORTCODE,
-            'total_amount': order.get_total_cost()
-        })
+        order = self.object
+        context['payment'] = order.payment
+        context['payment_window'] = settings.PAYMENT_SETTINGS.get('PAYMENT_WINDOW_HOURS', 48)
         return context
 
 
-# Stripe Integration
-@csrf_exempt
-def stripe_webhook(request):
+class CashPaymentCompleteView(DetailView):
+    model = Order
+    template_name = 'payment/payment_complete.html'
 
-# Your existing Stripe webhook code
-# ...
+    @transaction.atomic
+    def get(self, request, *args, **kwargs):
+        order = self.get_object()
+        payment = order.payment
 
-# PayPal Integration
-def get_paypal_access_token():
-    auth = (settings.PAYPAL_CLIENT_ID, settings.PAYPAL_SECRET)
-    data = {'grant_type': 'client_credentials'}
-    response = requests.post(
-        f"https://api-m.{'sandbox' if settings.PAYPAL_ENVIRONMENT == 'sandbox' else ''}.paypal.com/v1/oauth2/token",
-        auth=auth,
-        data=data
-    )
-    return response.json().get('access_token')
+        if payment.is_paid:
+            messages.warning(request, "Payment already completed")
+            return redirect('payment-status', pk=order.pk)
 
-
-@csrf_exempt
-def create_paypal_order(request, order_id):
-    order = get_object_or_404(Order, id=order_id)
-    access_token = get_paypal_access_token()
-
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {access_token}'
-    }
-
-    payload = {
-        "intent": "CAPTURE",
-        "purchase_units": [{
-            "reference_id": str(order.id),
-            "amount": {
-                "currency_code": "USD",
-                "value": str(order.get_total_cost())
-            }
-        }]
-    }
-
-    response = requests.post(
-        f"https://api-m.{'sandbox' if settings.PAYPAL_ENVIRONMENT == 'sandbox' else ''}.paypal.com/v2/checkout/orders",
-        json=payload,
-        headers=headers
-    )
-
-    return JsonResponse(response.json())
+        payment.mark_as_paid()
+        messages.success(request, "Cash payment confirmed successfully")
+        return super().get(request, *args, **kwargs)
 
 
-@csrf_exempt
-def capture_paypal_order(request, order_id):
-    order = get_object_or_404(Order, id=order_id)
-    data = json.loads(request.body)
-    paypal_order_id = data.get('orderID')
+class MobileMoneyVerifyView(FormView):
+    form_class = MobileMoneyVerificationForm
+    template_name = 'payment/mobile_money_verify.html'
 
-    access_token = get_paypal_access_token()
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {access_token}'
-    }
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['order'] = get_object_or_404(Order, pk=self.kwargs['pk'])
+        return context
 
-    response = requests.post(
-        f"https://api-m.{'sandbox' if settings.PAYPAL_ENVIRONMENT == 'sandbox' else ''}.paypal.com/v2/checkout/orders/{paypal_order_id}/capture",
-        headers=headers
-    )
+    @transaction.atomic
+    def form_valid(self, form):
+        order = get_object_or_404(Order, pk=self.kwargs['pk'])
+        payment = order.payment
+        code = form.cleaned_data['verification_code']
 
-    if response.status_code == 201:
-        order.paid = True
-        order.save()
-        PaymentTransaction.objects.create(
-            order=order,
-            payment_method='PayPal',
-            transaction_id=paypal_order_id,
-            amount=order.get_total_cost(),
-            status='completed'
-        )
-        return JsonResponse({'status': 'success'})
+        if payment.is_paid:
+            messages.warning(self.request, "Payment already completed")
+            return redirect('payment-status', pk=order.pk)
 
-    return JsonResponse({'status': 'failed'}, status=400)
+        if not payment.verify_code(code):
+            messages.error(self.request, "Invalid verification code")
+            return self.form_invalid(form)
+
+        payment.mark_as_paid()
+        messages.success(self.request, "Mobile payment verified successfully")
+        return redirect('payment-complete', pk=order.pk)
 
 
-# M-Pesa Integration
-def generate_mpesa_password():
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    data = f"{settings.MPESA_SHORTCODE}{settings.MPESA_PASSKEY}{timestamp}"
-    return base64.b64encode(data.encode()).decode()
+class PaymentCompleteView(TemplateView):
+    template_name = 'payment/payment_complete.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['order'] = get_object_or_404(Order, pk=self.kwargs['pk'])
+        return context
 
 
-def get_mpesa_access_token():
-    response = requests.get(
-        'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
-        auth=(settings.MPESA_CONSUMER_KEY, settings.MPESA_CONSUMER_SECRET)
-    )
-    return response.json().get('access_token')
+def mobile_money_verification(request, payment_id):
+    payment = get_object_or_404(Payment, id=payment_id)
 
+    if not payment.is_active:
+        messages.error(request, "This payment link has expired")
+        return redirect('payment-expired')
 
-@csrf_exempt
-def initiate_mpesa_payment(request, order_id):
-    order = get_object_or_404(Order, id=order_id)
-    data = json.loads(request.body)
+    if request.method == 'POST':
+        form = MobileMoneyVerificationForm(request.POST)
+        if form.is_valid():
+            if payment.verify_code(form.cleaned_data['verification_code']):
+                return redirect('payment-complete', pk=payment.order.pk)
+            messages.error(request, "Invalid verification code")
+    else:
+        form = MobileMoneyVerificationForm()
 
-    access_token = get_mpesa_access_token()
-    headers = {
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json'
-    }
-
-    payload = {
-        "BusinessShortCode": settings.MPESA_SHORTCODE,
-        "Password": generate_mpesa_password(),
-        "Timestamp": datetime.now().strftime("%Y%m%d%H%M%S"),
-        "TransactionType": "CustomerPayBillOnline",
-        "Amount": str(order.get_total_cost()),
-        "PartyA": data.get('phone_number'),
-        "PartyB": settings.MPESA_SHORTCODE,
-        "PhoneNumber": data.get('phone_number'),
-        "CallBackURL": settings.MPESA_CALLBACK_URL,
-        "AccountReference": f"ORDER_{order.id}",
-        "TransactionDesc": f"Payment for order {order.id}"
-    }
-
-    response = requests.post(
-        'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
-        json=payload,
-        headers=headers
-    )
-
-    if response.status_code == 200:
-        return JsonResponse(response.json())
-
-    return JsonResponse({'error': 'Payment initiation failed'}, status=400)
-
-
-@csrf_exempt
-def mpesa_callback(request):
-    data = json.loads(request.body)
-    result_code = data.get('Body', {}).get('stkCallback', {}).get('ResultCode')
-
-    if result_code == 0:
-        metadata = data['Body']['stkCallback']['CallbackMetadata']['Item']
-        amount = next(item['Value'] for item in metadata if item['Name'] == 'Amount')
-        mpesa_code = next(item['Value'] for item in metadata if item['Name'] == 'MpesaReceiptNumber')
-        account_ref = data['Body']['stkCallback']['AccountReference']
-        order_id = account_ref.split('_')[1]
-
-        order = Order.objects.get(id=order_id)
-        order.paid = True
-        order.save()
-
-        PaymentTransaction.objects.create(
-            order=order,
-            payment_method='M-Pesa',
-            transaction_id=mpesa_code,
-            amount=amount,
-            status='completed'
-        )
-
-    return HttpResponse(status=200)
+    return render(request, 'payment/verify.html', {
+        'form': form,
+        'payment': payment,
+        'expires_in': payment.time_remaining
+    })

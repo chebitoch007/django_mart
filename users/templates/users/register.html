@@ -1,97 +1,403 @@
-{% extends "base.html" %}
+{% extends "store/base.html" %}
+{% load static i18n %}
 
-{% block title %}Register - DjangoMart{% endblock %}
+{% block title %}{% trans "Create Account" %}{% endblock %}
+
+{% block head %}
+<meta name="description" content="{% trans 'Create a secure account to start shopping on our e-commerce platform. Enjoy personalized features and fast checkout.' %}">
+{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-6 col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h2 class="h4 mb-0"><i class="bi bi-person-plus me-2"></i> Create Your Account</h2>
-                </div>
-                <div class="card-body p-4">
-                    <form method="post" class="needs-validation" novalidate>
-                        {% csrf_token %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-xl w-full space-y-8 bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-800">
+    <!-- Decorative elements -->
+    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-accent"></div>
 
-                        {% if form.non_field_errors %}
-                            <div class="alert alert-danger">
-                                {% for error in form.non_field_errors %}
-                                    {{ error }}
-                                {% endfor %}
-                            </div>
-                        {% endif %}
+    <div class="relative p-8">
+      <!-- Branding -->
+      <div class="flex justify-center mb-8">
+        <a href="{% url 'store:home' %}" class="flex items-center space-x-2">
+          <img src="{% static 'images/logo.svg' %}" alt="Logo" class="h-12 w-auto">
+          <span class="orbitron text-2xl text-white font-bold tracking-wide">SHOPPING</span>
+        </a>
+      </div>
 
-                        {% for field in form %}
-                            <div class="mb-3">
-                                <label for="{{ field.id_for_label }}" class="form-label">
-                                    {{ field.label }}
-                                    {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
-                                </label>
-
-                                {{ field }}
-
-                                {% if field.help_text %}
-                                    <div class="form-text">{{ field.help_text }}</div>
-                                {% endif %}
-
-                                {% for error in field.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ error }}
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% endfor %}
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="bi bi-person-check me-2"></i> Register
-                            </button>
-                        </div>
-                    </form>
-
-                    <div class="mt-4 pt-3 border-top text-center">
-                        <p class="mb-0">Already have an account?
-                            <a href="{% url 'login' %}" class="fw-bold text-primary">
-                                <i class="bi bi-box-arrow-in-right"></i> Login here
-                            </a>
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-4 text-center text-muted">
-                <small>By registering, you agree to our
-                    <a href="#" class="text-decoration-none">Terms of Service</a> and
-                    <a href="#" class="text-decoration-none">Privacy Policy</a>
-                </small>
-            </div>
+      <!-- Card -->
+      <div class="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 shadow-xl">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-gray-900 to-gray-800 px-8 py-6 border-b border-gray-700">
+          <h2 class="orbitron text-2xl text-center text-white">
+            <i class="fas fa-user-astronaut text-primary mr-2"></i>
+            {% trans "Create Your Account" %}
+          </h2>
+          <p class="text-gray-400 text-center mt-2">
+            {% trans "Join thousands of happy customers shopping with us" %}
+          </p>
         </div>
+
+        <!-- Form -->
+        <div class="px-8 py-6">
+          <form id="registration-form" method="post" class="space-y-6" novalidate>
+            {% csrf_token %}
+
+            <!-- Real-time validation alerts -->
+            <div id="form-errors" class="hidden bg-red-900/50 border border-red-700 rounded-lg p-4 mb-4">
+              <h3 class="orbitron text-red-300 flex items-center">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                {% trans "Please correct the errors below" %}
+              </h3>
+              <ul id="error-list" class="mt-2 text-red-300 text-sm space-y-1"></ul>
+            </div>
+
+            <!-- Form Fields -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Username -->
+              <div class="col-span-1">
+                <label for="id_username" class="block text-gray-300 orbitron mb-2">
+                  {% trans "Username" %} <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                    <i class="fas fa-user"></i>
+                  </span>
+                  <input type="text" name="username" id="id_username" autocomplete="username" required
+                         class="w-full bg-gray-800 border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-white focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all duration-300"
+                         aria-describedby="username-help">
+                </div>
+                <p id="username-help" class="mt-1 text-xs text-gray-500">
+                  {% trans "Letters, numbers and @/./+/-/_ only" %}
+                </p>
+              </div>
+
+              <!-- Phone -->
+              <div class="col-span-1">
+                <label for="id_phone_number" class="block text-gray-300 orbitron mb-2">
+                  {% trans "Phone Number" %} <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                    <i class="fas fa-mobile-alt"></i>
+                  </span>
+                  <input type="tel" name="phone_number" id="id_phone_number" required
+                         class="w-full bg-gray-800 border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-white focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all duration-300"
+                         placeholder="+2547XXXXXXXX"
+                         data-mask="+254000000000"
+                         aria-describedby="phone-help">
+                </div>
+                <p id="phone-help" class="mt-1 text-xs text-gray-500">
+                  {% trans "Kenyan format: +2547XXXXXXXX" %}
+                </p>
+              </div>
+
+              <!-- Email -->
+              <div class="col-span-full">
+                <label for="id_email" class="block text-gray-300 orbitron mb-2">
+                  {% trans "Email Address" %} <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                    <i class="fas fa-envelope"></i>
+                  </span>
+                  <input type="email" name="email" id="id_email" autocomplete="email" required
+                         class="w-full bg-gray-800 border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-white focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                </div>
+              </div>
+
+              <!-- Password -->
+              <div class="col-span-full">
+                <label for="id_password1" class="block text-gray-300 orbitron mb-2">
+                  {% trans "Password" %} <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                    <i class="fas fa-lock"></i>
+                  </span>
+                  <input type="password" name="password1" id="id_password1" autocomplete="new-password" required
+                         class="w-full bg-gray-800 border border-gray-700 rounded-lg py-3 pl-10 pr-12 text-white focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all duration-300"
+                         aria-describedby="password-requirements">
+                  <button type="button" class="password-toggle absolute right-4 top-3.5 text-gray-500 hover:text-primary transition-colors">
+                    <i class="fas fa-eye-slash"></i>
+                  </button>
+                </div>
+
+                <!-- Password Strength Meter -->
+                <div class="mt-2">
+                  <div class="h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                    <div id="password-strength-bar" class="h-full bg-red-500 w-0 transition-all duration-500"></div>
+                  </div>
+                  <p id="password-strength-text" class="mt-1 text-xs text-gray-500"></p>
+                </div>
+              </div>
+
+              <!-- Confirm Password -->
+              <div class="col-span-full">
+                <label for="id_password2" class="block text-gray-300 orbitron mb-2">
+                  {% trans "Confirm Password" %} <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                    <i class="fas fa-lock"></i>
+                  </span>
+                  <input type="password" name="password2" id="id_password2" autocomplete="new-password" required
+                         class="w-full bg-gray-800 border border-gray-700 rounded-lg py-3 pl-10 pr-12 text-white focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                  <button type="button" class="password-toggle absolute right-4 top-3.5 text-gray-500 hover:text-primary transition-colors">
+                    <i class="fas fa-eye-slash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Password Requirements -->
+            <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+              <h3 class="orbitron text-gray-300 mb-3">
+                <i class="fas fa-shield-alt text-primary mr-2"></i>
+                {% trans "Password Requirements" %}
+              </h3>
+              <ul class="text-gray-400 text-sm space-y-2">
+                <li class="flex items-center requirement" data-requirement="length">
+                  <i class="fas fa-circle text-xs mr-2 text-red-500"></i>
+                  <span>{% trans "Minimum 10 characters" %}</span>
+                </li>
+                <li class="flex items-center requirement" data-requirement="upper">
+                  <i class="fas fa-circle text-xs mr-2 text-red-500"></i>
+                  <span>{% trans "At least 1 uppercase letter" %}</span>
+                </li>
+                <li class="flex items-center requirement" data-requirement="lower">
+                  <i class="fas fa-circle text-xs mr-2 text-red-500"></i>
+                  <span>{% trans "At least 1 lowercase letter" %}</span>
+                </li>
+                <li class="flex items-center requirement" data-requirement="digit">
+                  <i class="fas fa-circle text-xs mr-2 text-red-500"></i>
+                  <span>{% trans "At least 1 number" %}</span>
+                </li>
+                <li class="flex items-center requirement" data-requirement="special">
+                  <i class="fas fa-circle text-xs mr-2 text-red-500"></i>
+                  <span>{% trans "At least 1 special character" %}</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Terms & Privacy -->
+            <div class="space-y-4">
+              <div class="flex items-start">
+                <div class="flex items-center h-5">
+                  <input id="accept_terms" name="accept_terms" type="checkbox" required
+                         class="h-4 w-4 rounded bg-gray-800 border-gray-700 text-primary focus:ring-primary">
+                </div>
+                <div class="ml-3 text-sm">
+                  <label for="accept_terms" class="text-gray-400">
+                    {% trans "I agree to the" %}
+                    <a href="{% url 'legal:terms' %}" target="_blank" rel="noopener noreferrer"
+                       class="text-primary hover:text-primary-light hover:underline">
+                      {% trans "Terms of Service" %}
+                    </a>
+                  </label>
+                </div>
+              </div>
+
+              <div class="flex items-start">
+                <div class="flex items-center h-5">
+                  <input id="accept_privacy" name="accept_privacy" type="checkbox" required
+                         class="h-4 w-4 rounded bg-gray-800 border-gray-700 text-primary focus:ring-primary">
+                </div>
+                <div class="ml-3 text-sm">
+                  <label for="accept_privacy" class="text-gray-400">
+                    {% trans "I agree to the" %}
+                    <a href="{% url 'legal:privacy' %}" target="_blank" rel="noopener noreferrer"
+                       class="text-primary hover:text-primary-light hover:underline">
+                      {% trans "Privacy Policy" %}
+                    </a>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- reCAPTCHA token field -->
+            {% if settings.RECAPTCHA_SITE_KEY %}
+              <input type="hidden" id="id_recaptcha" name="recaptcha">
+            {% endif %}
+
+            <!-- Submit Button -->
+            <button type="submit" id="submit-btn"
+                    class="w-full flex justify-center items-center bg-gradient-to-r from-primary to-primary-dark hover:from-primary/90 hover:to-primary-dark/90 text-white py-4 rounded-lg orbitron font-medium text-lg shadow-lg hover:shadow-primary/20 transition-all duration-300 transform hover:-translate-y-0.5">
+              <span id="btn-text">{% trans "Create Account" %}</span>
+              <i id="btn-spinner" class="fas fa-spinner fa-spin ml-2 hidden"></i>
+            </button>
+          </form>
+
+          <!-- Divider -->
+          <div class="relative my-6">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-700"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="px-4 bg-gray-800 text-gray-500 orbitron">
+                {% trans "Already have an account?" %}
+              </span>
+            </div>
+          </div>
+
+          <!-- Login Link -->
+          <div class="text-center">
+            <a href="{% url 'users:login' %}"
+               class="orbitron text-primary hover:text-primary-light hover:underline transition-colors">
+              <i class="fas fa-sign-in-alt mr-2"></i>
+              {% trans "Sign in to your account" %}
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Security Badges -->
+      <div class="mt-8 flex justify-center space-x-6">
+        <div class="flex items-center text-gray-500 text-sm">
+          <i class="fas fa-lock-shield text-green-500 mr-2"></i>
+          <span>{% trans "256-bit SSL Security" %}</span>
+        </div>
+        <div class="flex items-center text-gray-500 text-sm">
+          <i class="fas fa-shield-check text-blue-500 mr-2"></i>
+          <span>{% trans "GDPR Compliant" %}</span>
+        </div>
+      </div>
     </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<!-- Input masking library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.6/jquery.inputmask.min.js"></script>
+
 <script>
-// Enable Bootstrap form validation
-(function() {
-    'use strict'
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize input masking
+  $("[data-mask]").each(function() {
+    $(this).inputmask($(this).data('mask'));
+  });
 
-    // Fetch all the forms we want to apply custom Bootstrap validation styles to
-    var forms = document.querySelectorAll('.needs-validation')
+  // Password visibility toggle
+  document.querySelectorAll('.password-toggle').forEach(button => {
+    button.addEventListener('click', () => {
+      const input = button.previousElementSibling;
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      button.innerHTML = isPassword ?
+        '<i class="fas fa-eye"></i>' :
+        '<i class="fas fa-eye-slash"></i>';
+    });
+  });
 
-    // Loop over them and prevent submission
-    Array.prototype.slice.call(forms)
-        .forEach(function(form) {
-            form.addEventListener('submit', function(event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault()
-                    event.stopPropagation()
-                }
+  // Password strength checker
+  const passwordInput = document.getElementById('id_password1');
+  const strengthBar = document.getElementById('password-strength-bar');
+  const strengthText = document.getElementById('password-strength-text');
 
-                form.classList.add('was-validated')
-            }, false)
-        })
-})()
+  if (passwordInput) {
+    passwordInput.addEventListener('input', function() {
+      const password = this.value;
+      let strength = 0;
+      let fulfilledRequirements = [];
+
+      // Validate requirements
+      const requirements = {
+        length: password.length >= 10,
+        upper: /[A-Z]/.test(password),
+        lower: /[a-z]/.test(password),
+        digit: /[0-9]/.test(password),
+        special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+      };
+
+      // Update requirement indicators
+      Object.keys(requirements).forEach(req => {
+        const element = document.querySelector(`.requirement[data-requirement="${req}"] i`);
+        if (element) {
+          element.className = requirements[req] ?
+            "fas fa-check-circle text-xs mr-2 text-green-500" :
+            "fas fa-circle text-xs mr-2 text-red-500";
+        }
+
+        if (requirements[req]) {
+          strength += 20;
+          fulfilledRequirements.push(req);
+        }
+      });
+
+      // Update strength bar
+      strengthBar.style.width = `${strength}%`;
+
+      // Update strength text
+      if (password.length === 0) {
+        strengthText.textContent = "";
+        strengthBar.className = "h-full bg-gray-600 w-0";
+      } else if (strength < 40) {
+        strengthText.textContent = "{% trans 'Weak password' %}";
+        strengthBar.className = "h-full bg-red-500 w-0";
+      } else if (strength < 80) {
+        strengthText.textContent = "{% trans 'Medium strength' %}";
+        strengthBar.className = "h-full bg-yellow-500 w-0";
+      } else {
+        strengthText.textContent = "{% trans 'Strong password' %}";
+        strengthBar.className = "h-full bg-green-500 w-0";
+      }
+
+      // Animate width after class change
+      setTimeout(() => {
+        strengthBar.style.width = `${strength}%`;
+      }, 10);
+    });
+  }
+
+  // Form submission handling
+  const form = document.getElementById('registration-form');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      const submitBtn = document.getElementById('submit-btn');
+      const btnText = document.getElementById('btn-text');
+      const btnSpinner = document.getElementById('btn-spinner');
+
+      // Show loading state
+      submitBtn.disabled = true;
+      btnText.textContent = "{% trans 'Creating Account...' %}";
+      btnSpinner.classList.remove('hidden');
+      submitBtn.classList.remove('hover:-translate-y-0.5');
+    });
+  }
+
+  // reCAPTCHA integration
+  {% if settings.RECAPTCHA_SITE_KEY %}
+    grecaptcha.ready(function() {
+      grecaptcha.execute('{{ settings.RECAPTCHA_SITE_KEY }}', {action: 'register'})
+      .then(function(token) {
+        document.getElementById('id_recaptcha').value = token;
+      });
+    });
+  {% endif %}
+
+  // Display backend form errors
+  {% if form.errors %}
+    const errorContainer = document.getElementById('form-errors');
+    const errorList = document.getElementById('error-list');
+
+    if (errorContainer && errorList) {
+      errorContainer.classList.remove('hidden');
+
+      // Process errors
+      {% for field, errors in form.errors.items %}
+        {% for error in errors %}
+          const li = document.createElement('li');
+          li.className = 'flex items-start';
+          li.innerHTML = `
+            <i class="fas fa-times-circle text-red-500 mt-1 mr-2 flex-shrink-0"></i>
+            <span>${field}: {{ error|escapejs }}</span>
+          `;
+          errorList.appendChild(li);
+        {% endfor %}
+      {% endfor %}
+
+      // Scroll to errors
+      errorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  {% endif %}
+});
 </script>
 {% endblock %}

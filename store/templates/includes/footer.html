@@ -1,0 +1,108 @@
+<!-- Footer -->
+<footer class="bg-darker text-gray-300 mt-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <!-- About -->
+            <div class="space-y-4">
+                <h3 class="orbitron text-primary text-lg font-bold mb-4">DjangoMart</h3>
+                <p class="text-sm">Premium gaming gear for competitive players</p>
+                <div class="flex space-x-4">
+                    <a href="#" class="social-icon">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="social-icon">
+                        <i class="fab fa-discord"></i>
+                    </a>
+                    <a href="#" class="social-icon">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div>
+                <h4 class="orbitron text-primary text-lg font-bold mb-4">Quick Links</h4>
+                <ul class="space-y-2">
+                    <li><a href="{% url 'store:product_list' %}" class="footer-link">New Arrivals</a></li>
+                    <li><a href="{% url 'store:categories' %}" class="footer-link">Categories</a></li>
+                    <li><a href="{% url 'orders:order_history' %}" class="footer-link">Order Tracking</a></li>
+                </ul>
+            </div>
+
+            <!-- Legal -->
+            <div>
+                <h4 class="orbitron text-primary text-lg font-bold mb-4">Legal</h4>
+                <ul class="space-y-2">
+                    <li><a href="{% url 'privacy' %}" class="footer-link">Privacy Policy</a></li>
+                    <li><a href="{% url 'terms' %}" class="footer-link">Terms of Service</a></li>
+                    <li><a href="{% url 'return_policy' %}" class="footer-link">Return Policy</a></li>
+                </ul>
+            </div>
+
+            <!-- Newsletter -->
+            <div>
+                <h4 class="orbitron text-primary text-lg font-bold mb-4">Stay Updated</h4>
+                <form class="flex gap-2">
+                    <input type="email" placeholder="Your email" class="newsletter-input">
+                    <button type="submit" class="newsletter-button">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Bottom Bar -->
+        <div class="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+            <p class="text-sm text-gray-500">&copy; 2025 DjangoMart. All rights reserved</p>
+            <div class="flex space-x-6 mt-4 md:mt-0">
+                <img src="{% static 'images/visa.png' %}" class="payment-icon" alt="Visa">
+                <img src="{% static 'images/mastercard.png' %}" class="payment-icon" alt="Mastercard">
+                <img src="{% static 'images/paypal.png' %}" class="payment-icon" alt="PayPal">
+                <img src="{% static 'images/mpesa.png' %}" class="payment-icon" alt="mpesa">
+                <img src="{% static 'images/airtel.png' %}" class="payment-icon" alt="airtel-money">
+            </div>
+        </div>
+    </div>
+</footer>
+
+<style>
+    .nav-link {
+        @apply text-gray-300 hover:text-primary px-3 py-2 rounded-md transition-colors;
+    }
+
+    .nav-dropdown {
+        @apply absolute hidden group-hover:block bg-darker shadow-xl rounded-lg p-2 min-w-[200px] z-50;
+    }
+
+    .nav-dropdown-item {
+        @apply block px-4 py-2 text-gray-300 hover:bg-dark hover:text-primary rounded-md transition-colors;
+    }
+
+    .cart-badge {
+        @apply absolute -top-2 -right-3 bg-accent text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center;
+    }
+
+    .mobile-nav-link {
+        @apply block px-3 py-2 text-gray-300 hover:bg-dark hover:text-primary rounded-md;
+    }
+
+    .footer-link {
+        @apply text-gray-400 hover:text-primary transition-colors text-sm;
+    }
+
+    .social-icon {
+        @apply text-gray-400 hover:text-primary text-xl transition-colors;
+    }
+
+    .payment-icon {
+        @apply h-8 opacity-75 hover:opacity-100 transition-opacity;
+    }
+
+    .newsletter-input {
+        @apply flex-grow bg-dark border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-primary;
+    }
+
+    .newsletter-button {
+        @apply bg-primary hover:bg-primary-dark text-white rounded-lg px-4 py-2 transition-colors;
+    }
+</style>

@@ -5,82 +5,109 @@
 
 {% block content %}
 <div class="container py-5">
-    <div class="row">
-        <div class="col-lg-12">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Breadcrumb Navigation -->
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'store:product_list' %}">Home</a></li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'store:product_list' %}" class="text-decoration-none">
+                            <i class="bi bi-house-door me-1"></i>Home
+                        </a>
+                    </li>
                     <li class="breadcrumb-item active" aria-current="page">Shopping Cart</li>
                 </ol>
             </nav>
 
+            <!-- Cart Header -->
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="bi bi-cart3 me-2"></i>Your Shopping Cart</h2>
-                <span class="badge bg-primary rounded-pill">{{ cart.total_items }} item(s)</span>
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-cart3 text-primary me-2"></i>Your Shopping Cart
+                </h1>
+                <span class="badge bg-primary rounded-pill fs-6">{{ cart.total_items }} item{{ cart.total_items|pluralize }}</span>
             </div>
 
             {% if cart.items.exists %}
-            <div class="card shadow">
-                <div class="card-body p-0">
+            <!-- Cart Items Card -->
+            <div class="card border-0 shadow-lg">
+                <div class="card-body p-4">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light">
+                        <table class="table align-middle">
+                            <thead class="bg-light">
                                 <tr>
-                                    <th scope="col" style="width: 40%">Product</th>
-                                    <th scope="col" style="width: 15%">Quantity</th>
-                                    <th scope="col" style="width: 15%">Unit Price</th>
-                                    <th scope="col" style="width: 15%">Total</th>
-                                    <th scope="col" style="width: 15%">Actions</th>
+                                    <th scope="col" class="ps-4">Product</th>
+                                    <th scope="col">Quantity</th>
+                                    <th scope="col">Price</th>
+                                    <th scope="col">Total</th>
+                                    <th scope="col" class="pe-4"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for item in cart.items.all %}
-                                <tr>
-                                    <td>
+                                <tr class="{% if not item.product.available %}bg-light{% endif %}">
+                                    <td class="ps-4">
                                         <div class="d-flex align-items-center">
                                             <a href="{{ item.product.get_absolute_url }}" class="d-block me-3">
-                                                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}"
-                                                     class="img-fluid rounded" style="width: 60px; height: 60px; object-fit: cover;">
+                                                <img src="{{ item.product.image.url }}"
+                                                     alt="{{ item.product.name }}"
+                                                     class="img-fluid rounded-3 shadow-sm"
+                                                     style="width: 80px; height: 80px; object-fit: cover;">
                                             </a>
                                             <div>
-                                                <h6 class="mb-0">
-                                                    <a href="{{ item.product.get_absolute_url }}" class="text-decoration-none">
+                                                <h6 class="mb-1">
+                                                    <a href="{{ item.product.get_absolute_url }}"
+                                                       class="text-dark text-decoration-none">
                                                         {{ item.product.name }}
                                                     </a>
                                                 </h6>
-                                                <small class="text-muted">{{ item.product.category }}</small>
-                                                {% if not item.product.available %}
-                                                <div class="text-danger small mt-1">(Currently unavailable)</div>
-                                                {% endif %}
+                                                <div class="d-flex align-items-center">
+                                                    <span class="badge bg-secondary bg-opacity-10 text-secondary fs-7">
+                                                        {{ item.product.category }}
+                                                    </span>
+                                                    {% if not item.product.available %}
+                                                    <span class="badge bg-warning bg-opacity-15 text-warning fs-7 ms-2">
+                                                        <i class="bi bi-exclamation-circle me-1"></i>Unavailable
+                                                    </span>
+                                                    {% endif %}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
-                                        <form method="post" action="{% url 'cart:update' item.product.id %}">
+                                        <form method="post" action="{% url 'cart:cart_update' item.product.id %}" class="quantity-form">
                                             {% csrf_token %}
-                                            <div class="input-group">
-                                                <input type="number" name="quantity" value="{{ item.quantity }}"
-                                                       min="1" max="{{ item.product.stock }}"
-                                                       class="form-control form-control-sm"
-                                                       style="width: 70px;"
+                                            <div class="input-group input-group-sm" style="max-width: 120px;">
+                                                <button class="btn btn-outline-secondary decrement" type="button">
+                                                    <i class="bi bi-dash"></i>
+                                                </button>
+                                                <input type="number"
+                                                       name="quantity"
+                                                       value="{{ item.quantity }}"
+                                                       min="1"
+                                                       max="{{ item.product.stock }}"
+                                                       class="form-control text-center"
                                                        {% if not item.product.available %}disabled{% endif %}>
-                                                <button type="submit" class="btn btn-sm btn-outline-primary"
-                                                        {% if not item.product.available %}disabled{% endif %}>
-                                                    <i class="bi bi-arrow-clockwise"></i>
+                                                <button class="btn btn-outline-secondary increment" type="button">
+                                                    <i class="bi bi-plus"></i>
                                                 </button>
                                             </div>
+                                            {% if item.quantity > item.product.stock %}
+                                            <div class="text-danger small mt-1">
+                                                <i class="bi bi-exclamation-triangle me-1"></i>Exceeds stock
+                                            </div>
+                                            {% endif %}
                                         </form>
-                                        {% if item.quantity > item.product.stock %}
-                                        <div class="text-danger small mt-1">Exceeds available stock</div>
-                                        {% endif %}
                                     </td>
-                                    <td>${{ item.product.price|floatformat:2|intcomma }}</td>
-                                    <td>${{ item.total_price|floatformat:2|intcomma }}</td>
-                                    <td>
+                                    <td class="fw-semibold">${{ item.product.price|floatformat:2|intcomma }}</td>
+                                    <td class="fw-semibold">${{ item.total_price|floatformat:2|intcomma }}</td>
+                                    <td class="pe-4">
                                         <form method="post" action="{% url 'cart:remove' item.product.id %}">
                                             {% csrf_token %}
-                                            <button type="submit" class="btn btn-sm btn-danger">
-                                                <i class="bi bi-trash"></i> Remove
+                                            <button type="submit"
+                                                    class="btn btn-link text-danger p-0"
+                                                    data-bs-toggle="tooltip"
+                                                    title="Remove item">
+                                                <i class="bi bi-trash fs-5"></i>
                                             </button>
                                         </form>
                                     </td>
@@ -90,36 +117,52 @@
                         </table>
                     </div>
                 </div>
-                <div class="card-footer">
-                    <div class="row g-3">
+
+                <!-- Cart Summary -->
+                <div class="card-footer bg-white border-0 pt-4 pb-0">
+                    <div class="row g-4">
                         <div class="col-md-6">
-                            <a href="{% url 'store:product_list' %}" class="btn btn-outline-secondary w-100">
+                            <a href="{% url 'store:product_list' %}"
+                               class="btn btn-outline-dark w-100 py-2">
                                 <i class="bi bi-arrow-left me-2"></i>Continue Shopping
                             </a>
                         </div>
                         <div class="col-md-6">
-                            <div class="d-flex flex-column align-items-end">
-                                <div class="mb-2">
-                                    <h4 class="mb-0">Total: <span class="text-primary">${{ cart.total_price|floatformat:2|intcomma }}</span></h4>
+                            <div class="bg-light rounded-3 p-4">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Subtotal:</span>
+                                    <span class="fw-semibold">${{ cart.total_price|floatformat:2|intcomma }}</span>
                                 </div>
-                                <small class="text-muted">Shipping calculated at checkout</small>
+                                <div class="d-flex justify-content-between mb-3">
+                                    <span class="text-muted">Shipping:</span>
+                                    <span class="text-muted">Calculated at checkout</span>
+                                </div>
+                                <hr class="my-3">
+                                <div class="d-flex justify-content-between mb-4">
+                                    <span class="h5 mb-0">Total:</span>
+                                    <span class="h5 mb-0 text-primary">${{ cart.total_price|floatformat:2|intcomma }}</span>
+                                </div>
                                 <a href="{% url 'orders:checkout' %}"
-                                   class="btn btn-primary btn-lg mt-2 w-100 {% if not cart.items.all|length %}disabled{% endif %}">
-                                    <i class="bi bi-credit-card me-2"></i>Proceed to Checkout
+                                   class="btn btn-primary w-100 py-3 {% if not cart.items.all|length %}disabled{% endif %}">
+                                    Proceed to Checkout <i class="bi bi-chevron-right ms-2"></i>
                                 </a>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
             {% else %}
-            <div class="card shadow">
-                <div class="card-body text-center py-5">
-                    <i class="bi bi-cart-x display-4 text-muted mb-4"></i>
-                    <h3 class="mb-3">Your cart is empty</h3>
-                    <p class="text-muted mb-4">Start adding items to your cart!</p>
-                    <a href="{% url 'store:product_list' %}" class="btn btn-primary btn-lg">
-                        <i class="bi bi-arrow-left me-2"></i>Continue Shopping
+            <!-- Empty Cart State -->
+            <div class="card border-0 shadow-lg">
+                <div class="card-body text-center p-5">
+                    <div class="empty-state-icon mb-4">
+                        <i class="bi bi-cart-x display-3 text-light bg-danger rounded-circle p-4"></i>
+                    </div>
+                    <h2 class="h4 mb-3">Your Cart is Empty</h2>
+                    <p class="text-muted mb-4">Explore our products and find something special!</p>
+                    <a href="{% url 'store:product_list' %}" class="btn btn-primary btn-lg px-5">
+                        <i class="bi bi-bag me-2"></i>Start Shopping
                     </a>
                 </div>
             </div>
@@ -127,4 +170,31 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Quantity input controls
+document.querySelectorAll('.increment').forEach(button => {
+    button.addEventListener('click', () => {
+        const input = button.parentNode.querySelector('input[type=number]');
+        input.stepUp();
+        input.dispatchEvent(new Event('change'));
+    });
+});
+
+document.querySelectorAll('.decrement').forEach(button => {
+    button.addEventListener('click', () => {
+        const input = button.parentNode.querySelector('input[type=number]');
+        input.stepDown();
+        input.dispatchEvent(new Event('change'));
+    });
+});
+
+// Initialize Bootstrap tooltips
+const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+const tooltipList = tooltipTriggerList.map(tooltipTriggerEl => {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+})
+</script>
 {% endblock %}

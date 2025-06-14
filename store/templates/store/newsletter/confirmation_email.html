@@ -1,0 +1,26 @@
+{% extends "store/newsletter/emails/base_email.html" %}
+
+{% block title %}Confirm Your Subscription{% endblock %}
+
+{% block content %}
+<h2 style="color: #1e293b; margin-top: 0; margin-bottom: 20px;">
+    Confirm Your Subscription
+</h2>
+
+<p style="margin-bottom: 25px;">
+    Please click the button below to confirm your subscription to the DjangoMart newsletter:
+</p>
+
+<a href="{{ confirmation_url }}"
+   style="background-color: #3b82f6; color: white; padding: 12px 24px;
+          text-decoration: none; border-radius: 6px; display: inline-block;">
+    Confirm Subscription
+</a>
+
+<p style="margin-top: 25px; color: #64748b; font-size: 14px;">
+    If you didn't request this subscription, you can
+    <a href="{{ unsubscribe_url }}" style="color: #3b82f6; text-decoration: none;">
+        unsubscribe here
+    </a>.
+</p>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends 'store/base.html' %}
+{% block content %}
+<section class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-4">Product Warranty</h1>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h3>Standard Warranty</h3>
+                    <p>All products come with a 1-year manufacturer's warranty against defects in materials and workmanship.</p>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h3>What's Covered</h3>
+                    <ul>
+                        <li>Manufacturing defects</li>
+                        <li>Faulty materials</li>
+                        <li>Workmanship issues</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h3>What's Not Covered</h3>
+                    <ul>
+                        <li>Damage from misuse or accidents</li>
+                        <li>Normal wear and tear</li>
+                        <li>Unauthorized repairs or modifications</li>
+                        <li>Damage from improper maintenance</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3>Claim Process</h3>
+                    <p>To make a warranty claim, please <a href="{% url 'store:contact' %}">contact our support team</a> with your order number and description of the issue.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

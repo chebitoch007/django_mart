@@ -1,6 +1,7 @@
 from django.core.exceptions import ImproperlyConfigured
 from .models import Cart
 
+
 def cart(request):
     """
     Context processor that makes cart available in templates

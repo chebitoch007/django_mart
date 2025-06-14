@@ -1,0 +1,440 @@
+{% extends 'store/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Breadcrumb -->
+    <nav class="mb-6">
+        <ol class="flex flex-wrap items-center space-x-2 text-sm text-gray-500">
+            <li><a href="{% url 'store:home' %}" class="hover:text-primary transition-colors">Home</a></li>
+            <li class="text-gray-300">/</li>
+            <li class="text-primary font-medium">{% if category %}{{ category.name }}{% else %}All Products{% endif %}</li>
+        </ol>
+    </nav>
+
+    <!-- Category Navigation Bar -->
+    <div class="mb-8">
+        <h2 class="sr-only">Browse Categories</h2>
+        <div class="flex overflow-x-auto pb-2 space-x-3 hide-scrollbar">
+            <a href="{% url 'store:product_list' %}"
+               class="category-tag {% if not category %}bg-primary text-white{% else %}bg-gray-100 hover:bg-gray-200{% endif %}">
+                All Products
+            </a>
+            {% for cat in categories %}
+            <a href="{{ cat.get_absolute_url }}"
+               class="category-tag {% if cat == category %}bg-primary text-white{% else %}bg-gray-100 hover:bg-gray-200{% endif %}">
+                {{ cat.name }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div class="mb-4 md:mb-0">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                {% if category %}{{ category.name }}{% else %}All Products{% endif %}
+            </h1>
+            {% if category %}
+            <p class="text-gray-600 max-w-2xl">{{ category.description }}</p>
+            {% endif %}
+        </div>
+        <span class="bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-medium text-sm">
+            {{ products.paginator.count }} Products Available
+        </span>
+    </div>
+
+    <div class="lg:flex gap-8">
+        <!-- Filters Sidebar -->
+        <div class="lg:w-1/4 mb-8 lg:mb-0">
+            <div class="bg-white border rounded-xl p-6 shadow-sm">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-900">
+                        <i class="fas fa-filter mr-2 text-blue-500"></i>Filters
+                    </h2>
+                    <a href="?sort={{ request.GET.sort }}" class="text-sm text-blue-600 hover:underline">Reset All</a>
+                </div>
+
+                <!-- Sorting -->
+                <div class="mb-8">
+                    <h3 class="text-gray-700 font-bold mb-4 flex items-center">
+                        <i class="fas fa-sort mr-2 text-gray-500"></i>Sort By
+                    </h3>
+                    <div class="space-y-2">
+                        {% for sort_key, sort_name in sort_options.items %}
+                        <a href="?sort={{ sort_key }}"
+                           class="flex items-center justify-between px-4 py-3 rounded-lg border transition-all
+                                  {% if request.GET.sort == sort_key %}bg-blue-50 border-blue-200 text-blue-700 font-medium{% else %}border-gray-200 hover:bg-gray-50{% endif %}">
+                            <span>{{ sort_name }}</span>
+                            {% if request.GET.sort == sort_key %}
+                            <i class="fas fa-check text-blue-500"></i>
+                            {% else %}
+                            <i class="fas fa-chevron-right text-gray-400 text-sm"></i>
+                            {% endif %}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Price Filter -->
+                <div class="mb-8">
+                    <h3 class="text-gray-700 font-bold mb-4 flex items-center">
+                        <i class="fas fa-tag mr-2 text-gray-500"></i>Price Range
+                    </h3>
+                    <div class="relative pt-4 px-2">
+                        <input type="range"
+                               class="w-full range-slider"
+                               min="0"
+                               max="1000"
+                               value="{% if request.GET.max_price %}{{ request.GET.max_price }}{% else %}1000{% endif %}"
+                               id="priceRange">
+                        <div class="flex justify-between text-sm text-gray-600 mt-2">
+                            <span>0 KES</span>
+                            <span id="priceDisplay">{% if request.GET.max_price %}{{ request.GET.max_price }}{% else %}1000{% endif %} KES</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stock Filter -->
+                <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <input type="checkbox"
+                           id="inStock"
+                           class="form-checkbox h-5 w-5 text-blue-600"
+                           {% if request.GET.in_stock %}checked{% endif %}>
+                    <label for="inStock" class="text-gray-700 font-medium">In Stock Only</label>
+                </div>
+
+                <!-- Popular Categories -->
+                <div class="mt-8">
+                    <h3 class="text-gray-700 font-bold mb-4 flex items-center">
+                        <i class="fas fa-fire mr-2 text-orange-500"></i>Popular Categories
+                    </h3>
+                    <div class="space-y-3">
+                        {% for cat in categories|slice:":5" %}
+                        <a href="{{ cat.get_absolute_url }}"
+                           class="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all">
+                            <div class="flex items-center space-x-3">
+                                <img src="{{ cat.image.url }}" class="w-10 h-10 object-cover rounded-lg" alt="{{ cat.name }}">
+                                <span class="text-gray-700 font-medium">{{ cat.name }}</span>
+                            </div>
+                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold">
+                                {{ cat.product_count }}
+                            </span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="lg:w-3/4">
+            {% if products %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for product in products %}
+                <div class="product-card bg-white rounded-xl border border-gray-200 overflow-hidden transition-all hover:shadow-lg hover:border-blue-200">
+                    <div class="relative">
+                        <a href="{{ product.get_absolute_url }}" class="block overflow-hidden">
+                            <div class="relative aspect-square bg-gray-100">
+                                <img src="{{ product.image.url }}"
+                                     alt="{{ product.name }}"
+                                     class="w-full h-full object-contain transition-transform duration-300 hover:scale-105">
+                                {% if product.discount_price %}
+                                <span class="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                                    SAVE {{ product.get_discount_percentage }}%
+                                </span>
+                                {% endif %}
+                            </div>
+                        </a>
+
+                        <!-- Quick Actions -->
+                        <div class="absolute top-3 left-3 flex flex-col gap-2">
+                            <button class="wishlist-btn w-8 h-8 bg-white rounded-full shadow flex items-center justify-center">
+                                <i class="far fa-heart text-gray-600 hover:text-red-500"></i>
+                            </button>
+                            <button class="quick-view-btn w-8 h-8 bg-white rounded-full shadow flex items-center justify-center">
+                                <i class="fas fa-eye text-gray-600 hover:text-blue-600"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-4">
+                        <a href="{{ product.get_absolute_url }}" class="block">
+                            <h3 class="font-bold text-gray-900 hover:text-blue-600 transition-colors mb-1">
+                                {{ product.name|truncatechars:40 }}
+                            </h3>
+                        </a>
+
+                        <div class="flex items-center mb-2">
+                            <div class="flex text-yellow-400 mr-2 text-sm">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                            <span class="text-gray-500 text-sm">({{ product.review_count|default:"24" }})</span>
+                        </div>
+
+                        <div class="flex items-center justify-between mt-3 mb-4">
+                            <div class="space-y-1">
+                                <p class="text-lg text-blue-600 font-bold">
+                                    KES {{ product.get_display_price|intcomma }}
+                                </p>
+                                {% if product.discount_price %}
+                                <p class="text-gray-400 line-through text-sm">
+                                    KES {{ product.price|intcomma }}
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <button class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition-colors
+                                      {% if product.stock <= 0 %}opacity-50 cursor-not-allowed{% endif %}"
+                                {% if product.stock <= 0 %}disabled{% endif %}>
+                            {% if product.stock > 0 %}
+                            <i class="fas fa-cart-plus"></i> Add to Cart
+                            {% else %}
+                            <i class="fas fa-bell"></i> Notify When Available
+                            {% endif %}
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if products.paginator.num_pages > 1 %}
+            <div class="mt-12 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="text-gray-600 text-sm">
+                    Showing {{ products.start_index }} - {{ products.end_index }} of {{ products.paginator.count }} products
+                </div>
+                <nav class="inline-flex space-x-1">
+                    {% if products.has_previous %}
+                    <a href="?page={{ products.previous_page_number }}"
+                       class="pagination-item hover:bg-blue-100">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                    {% endif %}
+
+                    {% for num in products.paginator.page_range %}
+                        {% if num == products.number %}
+                        <span class="pagination-item bg-blue-600 text-white">{{ num }}</span>
+                        {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
+                        <a href="?page={{ num }}" class="pagination-item hover:bg-blue-100">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if products.has_next %}
+                    <a href="?page={{ products.next_page_number }}"
+                       class="pagination-item hover:bg-blue-100">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-16 bg-white rounded-xl border border-gray-200">
+                <div class="text-blue-500 text-6xl mb-4">
+                    <i class="fas fa-search"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">No Products Found</h3>
+                <p class="text-gray-600 max-w-md mx-auto mb-6">
+                    We couldn't find any products matching your filters. Try adjusting your criteria or browse our full collection.
+                </p>
+                <a href="{% url 'store:product_list' %}"
+                   class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+                    Browse All Products
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Featured Brands Section -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 bg-gray-50 rounded-xl mt-12">
+    <div class="text-center mb-10">
+        <h2 class="text-2xl font-bold text-gray-900">Shop By Brand</h2>
+        <p class="text-gray-600">Discover products from our trusted partners</p>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+        <a href="#" class="brand-card flex items-center justify-center p-6 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all">
+            <img src="https://cdn.worldvectorlogo.com/logos/samsung-2.svg" alt="Samsung" class="h-10 object-contain">
+        </a>
+        <a href="#" class="brand-card flex items-center justify-center p-6 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all">
+            <img src="https://cdn.worldvectorlogo.com/logos/apple-black.svg" alt="Apple" class="h-10 object-contain">
+        </a>
+        <a href="#" class="brand-card flex items-center justify-center p-6 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all">
+            <img src="https://cdn.worldvectorlogo.com/logos/sony-6.svg" alt="Sony" class="h-8 object-contain">
+        </a>
+        <a href="#" class="brand-card flex items-center justify-center p-6 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all">
+            <img src="https://cdn.worldvectorlogo.com/logos/dell-4.svg" alt="Dell" class="h-8 object-contain">
+        </a>
+        <a href="#" class="brand-card flex items-center justify-center p-6 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all">
+            <img src="https://cdn.worldvectorlogo.com/logos/nike-6.svg" alt="Nike" class="h-10 object-contain">
+        </a>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .category-tag {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 16px;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    .pagination-item {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+        color: #4b5563;
+        transition: all 0.2s ease;
+    }
+
+    .range-slider {
+        height: 6px;
+        border-radius: 3px;
+        background: #e5e7eb;
+        outline: none;
+        -webkit-appearance: none;
+    }
+
+    .range-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #3b82f6;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .range-slider::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+    }
+
+    .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .wishlist-btn:hover i {
+        color: #ef4444;
+    }
+
+    .quick-view-btn:hover i {
+        color: #3b82f6;
+    }
+
+    .product-card:hover {
+        transform: translateY(-5px);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Price Range Display and Filter
+    const priceRange = document.getElementById('priceRange');
+    const priceDisplay = document.getElementById('priceDisplay');
+    let priceTimeout;
+
+    function updatePriceDisplay(value) {
+        priceDisplay.textContent = `${value} KES`;
+    }
+
+    function applyPriceFilter(value) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('max_price', value);
+        window.location.href = url.toString();
+    }
+
+    priceRange.addEventListener('input', (e) => {
+        updatePriceDisplay(e.target.value);
+
+        // Debounce the filter application
+        clearTimeout(priceTimeout);
+        priceTimeout = setTimeout(() => {
+            applyPriceFilter(e.target.value);
+        }, 800);
+    });
+
+    // Stock Filter
+    document.getElementById('inStock').addEventListener('change', function() {
+        const url = new URL(window.location.href);
+        if (this.checked) {
+            url.searchParams.set('in_stock', 'true');
+        } else {
+            url.searchParams.delete('in_stock');
+        }
+        window.location.href = url.toString();
+    });
+
+    // Wishlist functionality
+    document.querySelectorAll('.wishlist-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            if (icon.classList.contains('far')) {
+                icon.classList.remove('far');
+                icon.classList.add('fas');
+                icon.style.color = '#ef4444';
+
+                // Visual feedback
+                this.animate([
+                    { transform: 'scale(1)' },
+                    { transform: 'scale(1.2)' },
+                    { transform: 'scale(1)' }
+                ], {
+                    duration: 300
+                });
+            } else {
+                icon.classList.remove('fas');
+                icon.classList.add('far');
+                icon.style.color = '';
+            }
+        });
+    });
+
+    // Quick View functionality
+    document.querySelectorAll('.quick-view-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const productCard = this.closest('.product-card');
+
+            // Visual feedback
+            this.animate([
+                { transform: 'scale(1)' },
+                { transform: 'scale(1.2)' },
+                { transform: 'scale(1)' }
+            ], {
+                duration: 300
+            });
+
+            // Show quick view modal (simulated)
+            alert('Quick view feature would open here');
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <h3 class="mb-0">Payment Successful</h3>
+        </div>
+
+        <div class="card-body">
+            <div class="alert alert-success">
+                <h4 class="alert-heading">Thank you!</h4>
+                <p>Your payment of {{ payment.formatted_amount }} was received</p>
+                <hr>
+                <dl class="row">
+                    <dt class="col-sm-4">Order ID</dt>
+                    <dd class="col-sm-8">{{ order.id }}</dd>
+                    <dt class="col-sm-4">Payment Method</dt>
+                    <dd class="col-sm-8">{{ payment.get_method_display }}</dd>
+                    <dt class="col-sm-4">Transaction ID</dt>
+                    <dd class="col-sm-8">{{ payment.transaction_id }}</dd>
+                </dl>
+            </div>
+
+            <a href="{% url 'order-detail' order.id %}" class="btn btn-primary">
+                View Order Details
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

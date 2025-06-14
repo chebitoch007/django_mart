@@ -1,0 +1,352 @@
+{% extends 'store/base.html' %}
+{% load static humanize %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Breadcrumb -->
+    <nav class="mb-6">
+        <ol class="flex flex-wrap items-center space-x-2 text-sm text-gray-500">
+            <li><a href="{% url 'store:home' %}" class="hover:text-blue-600 transition-colors">Home</a></li>
+            <li class="text-gray-300">/</li>
+            <li><a href="{{ product.category.get_absolute_url }}" class="hover:text-blue-600 transition-colors">{{ product.category.name }}</a></li>
+            <li class="text-gray-300">/</li>
+            <li class="text-blue-600 font-medium">{{ product.name|truncatechars:30 }}</li>
+        </ol>
+    </nav>
+
+    <!-- Product Detail -->
+    <div class="lg:flex gap-8">
+        <!-- Product Images -->
+        <div class="lg:w-1/2 mb-8 lg:mb-0">
+            <div class="sticky top-6">
+                <!-- Main Image -->
+                <div class="bg-white rounded-xl border border-gray-200 p-4 mb-4">
+                    <img
+                        src="{{ product.image.url }}"
+                        alt="{{ product.name }}"
+                        class="w-full h-auto max-h-[500px] object-contain"
+                        id="main-product-image"
+                    >
+                </div>
+
+                <!-- Thumbnails -->
+                <div class="grid grid-cols-4 gap-3">
+                    <div class="cursor-pointer border-2 border-transparent hover:border-blue-500 rounded-lg overflow-hidden transition-all">
+                        <img
+                            src="{{ product.image.url }}"
+                            alt="{{ product.name }}"
+                            class="w-full h-24 object-cover"
+                            onclick="document.getElementById('main-product-image').src = this.src"
+                        >
+                    </div>
+                    {% for image in product.additional_images.all %}
+                    <div class="cursor-pointer border-2 border-transparent hover:border-blue-500 rounded-lg overflow-hidden transition-all">
+                        <img
+                            src="{{ image.image.url }}"
+                            alt="{{ image.alt_text|default:product.name }}"
+                            class="w-full h-24 object-cover"
+                            onclick="document.getElementById('main-product-image').src = this.src"
+                        >
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Info -->
+        <div class="lg:w-1/2">
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+                <!-- Product Header -->
+                <div class="mb-6">
+                    {% if product.on_sale %}
+                    <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold mb-3 inline-block">
+                        SAVE {{ discount_percentage }}%
+                    </span>
+                    {% endif %}
+
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ product.name }}</h1>
+
+                    <div class="flex items-center mb-4">
+                        <div class="flex text-yellow-400 mr-2">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= product.rating|add:0.5|floatformat:0|add:"-1" %}
+                                    <i class="fas fa-star"></i>
+                                {% elif forloop.counter <= product.rating %}
+                                    <i class="fas fa-star-half-alt"></i>
+                                {% else %}
+                                    <i class="far fa-star"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <span class="text-gray-500">({{ product.review_count }} reviews)</span>
+                        <span class="mx-2 text-gray-300">•</span>
+                        <span class="text-gray-500">
+                            {% if product.stock > 10 %}
+                            In Stock
+                            {% elif product.stock > 0 %}
+                            Only {{ product.stock }} left!
+                            {% else %}
+                            Out of Stock
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="text-3xl font-bold text-blue-600">
+                            KES {{ product.get_display_price|intcomma }}
+                        </div>
+                        {% if product.discount_price %}
+                        <div class="text-xl text-gray-400 line-through">
+                            KES {{ product.price|intcomma }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <p class="text-gray-700 mb-6">{{ product.short_description|default:product.description|truncatewords:30 }}</p>
+                </div>
+
+                <!-- Add to Cart -->
+                <div class="mb-8">
+                    <form action="{% url 'cart:cart_add' product.id %}" method="post" class="flex gap-4">
+                        {% csrf_token %}
+                        <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                            <button type="button" class="px-4 py-3 bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors" onclick="updateQuantity(-1)">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input
+                                type="number"
+                                name="quantity"
+                                value="1"
+                                min="1"
+                                max="{{ product.stock }}"
+                                class="w-16 text-center border-x border-gray-300 py-3 focus:outline-none"
+                                id="quantity-input"
+                            >
+                            <button type="button" class="px-4 py-3 bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors" onclick="updateQuantity(1)">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <button
+                            type="submit"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
+                            {% if product.stock <= 0 %}disabled{% endif %}
+                        >
+                            <i class="fas fa-cart-plus"></i>
+                            Add to Cart
+                        </button>
+                    </form>
+
+                    {% if product.stock <= 0 %}
+                    <div class="mt-4">
+                        <button class="w-full bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-bold transition-colors flex items-center justify-center gap-2">
+                            <i class="fas fa-bell"></i>
+                            Notify When Available
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Product Details -->
+                <div class="border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Product Details</h3>
+                    <div class="prose max-w-none text-gray-600">
+                        {{ product.description|linebreaks }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reviews -->
+            <div class="bg-white rounded-xl border border-gray-200 p-6 mt-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-900">Customer Reviews</h2>
+                    <div>
+                        <span class="text-3xl font-bold text-blue-600">{{ product.rating|floatformat:1 }}</span>
+                        <span class="text-gray-500">/ 5.0</span>
+                    </div>
+                </div>
+
+                <!-- Review Form -->
+                {% if request.user.is_authenticated %}
+                <div class="mb-8">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Write a Review</h3>
+                    <form method="post" action="{% url 'store:submit_review' product.slug %}">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="block text-gray-700 mb-2">Your Rating</label>
+                            <div class="rating-stars flex">
+                                {% for i in "54321" %}
+                                <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" class="hidden"
+                                       {% if forloop.first %}checked{% endif %}>
+                                <label for="star{{ i }}" class="text-2xl text-gray-300 cursor-pointer hover:text-yellow-400">
+                                    <i class="fas fa-star"></i>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-gray-700 mb-2">Review Title</label>
+                            <input
+                                type="text"
+                                name="title"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Summarize your experience"
+                                required
+                            >
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-gray-700 mb-2">Your Review</label>
+                            <textarea
+                                name="comment"
+                                rows="4"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Share details of your experience with this product"
+                                required
+                            ></textarea>
+                        </div>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg font-medium">
+                            Submit Review
+                        </button>
+                    </form>
+                </div>
+                {% else %}
+                <div class="mb-8 text-center py-8 bg-blue-50 rounded-lg">
+                    <p class="text-gray-700 mb-4">Please log in to write a review</p>
+                    <a href="{% url 'login' %}?next={{ request.path }}" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg font-medium inline-block">
+                        Log In
+                    </a>
+                </div>
+                {% endif %}
+
+                <!-- Reviews List -->
+                <div class="space-y-6">
+                    {% for review in product.reviews.all %}
+                    {% if review.approved %}
+                    <div class="border-b border-gray-200 pb-6 last:border-0 last:pb-0">
+                        <div class="flex items-start mb-4">
+                            <div class="mr-4">
+                                <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-xl font-bold">
+                                    {{ review.user.first_name|first }}{{ review.user.last_name|first }}
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-900">{{ review.user.get_full_name }}</h4>
+                                <div class="flex items-center">
+                                    <div class="flex text-yellow-400 mr-2">
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= review.rating %}
+                                                <i class="fas fa-star"></i>
+                                            {% else %}
+                                                <i class="far fa-star"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <span class="text-gray-500 text-sm">{{ review.created|date:"M d, Y" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <h5 class="font-semibold text-lg text-gray-900 mb-2">{{ review.title }}</h5>
+                        <p class="text-gray-700">{{ review.comment }}</p>
+                    </div>
+                    {% endif %}
+                    {% empty %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-comments text-4xl text-gray-300 mb-4"></i>
+                        <p class="text-gray-600">No reviews yet. Be the first to review this product!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Related Products -->
+    <div class="mt-16">
+        <h2 class="text-2xl font-bold text-gray-900 mb-8">Related Products</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {% for product in related_products %}
+            <div class="product-card bg-white rounded-xl border border-gray-200 overflow-hidden transition-all hover:shadow-lg hover:border-blue-200">
+                <div class="relative">
+                    <a href="{{ product.get_absolute_url }}" class="block overflow-hidden">
+                        <div class="relative aspect-square bg-gray-100">
+                            <img src="{{ product.image.url }}"
+                                 alt="{{ product.name }}"
+                                 class="w-full h-full object-contain transition-transform duration-300 hover:scale-105">
+                            {% if product.on_sale %}
+                            <span class="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                                SAVE {{ product.get_discount_percentage }}%
+                            </span>
+                            {% endif %}
+                        </div>
+                    </a>
+                </div>
+
+                <div class="p-4">
+                    <a href="{{ product.get_absolute_url }}" class="block">
+                        <h3 class="font-bold text-gray-900 hover:text-blue-600 transition-colors mb-1">
+                            {{ product.name|truncatechars:40 }}
+                        </h3>
+                    </a>
+
+                    <div class="flex items-center mb-2">
+                        <div class="flex text-yellow-400 mr-2 text-sm">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= product.rating|add:0.5|floatformat:0|add:"-1" %}
+                                    <i class="fas fa-star"></i>
+                                {% elif forloop.counter <= product.rating %}
+                                    <i class="fas fa-star-half-alt"></i>
+                                {% else %}
+                                    <i class="far fa-star"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <span class="text-gray-500 text-sm">({{ product.review_count|default:"0" }})</span>
+                    </div>
+
+                    <div class="flex items-center justify-between mt-3 mb-4">
+                        <div class="space-y-1">
+                            <p class="text-lg text-blue-600 font-bold">
+                                KES {{ product.get_display_price|intcomma }}
+                            </p>
+                            {% if product.discount_price %}
+                            <p class="text-gray-400 line-through text-sm">
+                                KES {{ product.price|intcomma }}
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateQuantity(change) {
+        const input = document.getElementById('quantity-input');
+        let quantity = parseInt(input.value) || 1;
+        quantity += change;
+
+        if (quantity < 1) quantity = 1;
+        if (quantity > {{ product.stock }}) quantity = {{ product.stock }};
+
+        input.value = quantity;
+    }
+
+    // Initialize star rating interaction
+    document.querySelectorAll('.rating-stars label').forEach(star => {
+        star.addEventListener('click', function() {
+            const rating = this.htmlFor.replace('star', '');
+            document.querySelectorAll('.rating-stars label').forEach(s => {
+                if (parseInt(s.htmlFor.replace('star', '')) > rating) {
+                    s.querySelector('i').classList.remove('fas', 'text-yellow-400');
+                    s.querySelector('i').classList.add('far');
+                } else {
+                    s.querySelector('i').classList.remove('far');
+                    s.querySelector('i').classList.add('fas', 'text-yellow-400');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

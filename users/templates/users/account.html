@@ -1,0 +1,361 @@
+<!-- users/templates/users/account.html -->
+{% extends "store/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid bg-light py-5">
+  <div class="container">
+    <div class="row">
+      <!-- Sidebar Navigation -->
+      <div class="col-lg-3 mb-4">
+        <div class="card shadow-sm">
+          <div class="card-body text-center">
+            <div class="position-relative mb-3">
+              <img src="{% if user.profile_picture %}{{ user.profile_picture.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}"
+                   class="rounded-circle border"
+                   width="120"
+                   height="120"
+                   alt="Profile">
+              <button class="btn btn-sm btn-secondary position-absolute bottom-0 end-0 rounded-circle">
+                <i class="fas fa-camera"></i>
+              </button>
+            </div>
+            <h5 class="card-title">{{ user.get_full_name|default:user.username }}</h5>
+            <p class="text-muted small">Member since {{ user.date_joined|date:"F Y" }}</p>
+          </div>
+          <div class="list-group list-group-flush">
+            <a href="#profile" class="list-group-item list-group-item-action active">
+              <i class="fas fa-user me-2"></i>Profile
+            </a>
+            <a href="#orders" class="list-group-item list-group-item-action">
+              <i class="fas fa-shopping-bag me-2"></i>Orders
+            </a>
+            <a href="#addresses" class="list-group-item list-group-item-action">
+              <i class="fas fa-map-marker-alt me-2"></i>Addresses
+            </a>
+            <a href="#payments" class="list-group-item list-group-item-action">
+              <i class="fas fa-credit-card me-2"></i>Payment Methods
+            </a>
+            <a href="#security" class="list-group-item list-group-item-action">
+              <i class="fas fa-shield-alt me-2"></i>Security
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="col-lg-9">
+        <!-- Profile Section -->
+        <div id="profile" class="card shadow-sm mb-4">
+          <div class="card-header bg-white border-bottom-0 py-3">
+            <h5 class="mb-0"><i class="fas fa-user me-2"></i>Profile Information</h5>
+          </div>
+          <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="hidden" name="form_type" value="profile">
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">First Name</label>
+                  {{ profile_form.first_name }}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Last Name</label>
+                  {{ profile_form.last_name }}
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Email</label>
+                  {{ profile_form.email }}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Phone</label>
+                  {{ profile_form.phone_number }}
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary px-4">Update Profile</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Order History -->
+        <div id="orders" class="card shadow-sm mb-4">
+          <div class="card-header bg-white border-bottom-0 py-3">
+            <h5 class="mb-0"><i class="fas fa-shopping-bag me-2"></i>Recent Orders</h5>
+          </div>
+          <div class="card-body">
+            {% if recent_orders %}
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Order #</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for order in recent_orders %}
+                  <tr>
+                    <td>#{{ order.id }}</td>
+                    <td>{{ order.created_at|date:"M d, Y" }}</td>
+                    <td>
+                      <span class="badge bg-{% if order.status == 'completed' %}success{% elif order.status == 'processing' %}info{% else %}warning{% endif %}">
+                        {{ order.get_status_display }}
+                      </span>
+                    </td>
+                    <td>${{ order.total_amount }}</td>
+                    <td>
+                      <a href="{% url 'orders:detail' order.id %}" class="btn btn-sm btn-outline-primary">
+                        View Details
+                      </a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <div class="text-center mt-3">
+              <a href="{% url 'orders:history' %}" class="btn btn-light">
+                View All Orders <i class="fas fa-arrow-right ms-2"></i>
+              </a>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+              <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+              <p class="lead">No orders yet</p>
+              <a href="{% url 'store:product_list' %}" class="btn btn-primary">
+                Start Shopping
+              </a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Address Management -->
+        <div id="addresses" class="card shadow-sm mb-4">
+          <div class="card-header bg-white border-bottom-0 py-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Saved Addresses</h5>
+              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+                <i class="fas fa-plus me-1"></i> Add New
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              {% for address in addresses %}
+              <div class="col-md-6 mb-3">
+                <div class="card border {% if address.is_default %}border-primary{% endif %} h-100">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                      <h6 class="card-title">
+                        {{ address.street_address }}
+                        {% if address.is_default %}
+                        <span class="badge bg-primary ms-2">Default</span>
+                        {% endif %}
+                      </h6>
+                      <div class="dropdown">
+                        <button class="btn btn-sm" type="button" data-bs-toggle="dropdown">
+                          <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li><a class="dropdown-item" href="#">Set as Default</a></li>
+                          <li><a class="dropdown-item" href="#">Edit</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item text-danger" href="#">Delete</a></li>
+                        </ul>
+                      </div>
+                    </div>
+                    <p class="card-text mb-1">
+                      {{ address.city }}, {{ address.state }} {{ address.postal_code }}
+                    </p>
+                    <p class="card-text text-muted small">
+                      {{ address.country.name }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="col-12 text-center py-4">
+                <i class="fas fa-map-marked-alt fa-3x text-muted mb-3"></i>
+                <p class="lead">No saved addresses</p>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Methods -->
+        <div id="payments" class="card shadow-sm mb-4">
+          <div class="card-header bg-white border-bottom-0 py-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment Methods</h5>
+              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addPaymentModal">
+                <i class="fas fa-plus me-1"></i> Add New
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              {% for payment in payment_methods %}
+              <div class="col-md-6 mb-3">
+                <div class="card border {% if payment.is_default %}border-primary{% endif %}">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div>
+                        <img src="{% static 'images/visa.png' %}" alt="Visa" height="24" class="me-2">
+                        <span class="fw-bold">**** **** **** {{ payment.last4 }}</span>
+                      </div>
+                      <div class="dropdown">
+                        <button class="btn btn-sm" type="button" data-bs-toggle="dropdown">
+                          <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li><a class="dropdown-item" href="#">Set as Default</a></li>
+                          <li><a class="dropdown-item" href="#">Edit</a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item text-danger" href="#">Remove</a></li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div class="mt-2">
+                      <span class="text-muted">Expires</span>
+                      <span>{{ payment.expiry_date|date:"m/y" }}</span>
+                      {% if payment.is_default %}
+                      <span class="badge bg-primary float-end">Default</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="col-12 text-center py-4">
+                <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+                <p class="lead">No saved payment methods</p>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Security Settings -->
+        <div id="security" class="card shadow-sm">
+          <div class="card-header bg-white border-bottom-0 py-3">
+            <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Security</h5>
+          </div>
+          <div class="card-body">
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="form_type" value="password">
+
+              <div class="mb-3">
+                <label class="form-label">Current Password</label>
+                {{ password_form.old_password }}
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">New Password</label>
+                  {{ password_form.new_password1 }}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Confirm Password</label>
+                  {{ password_form.new_password2 }}
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary px-4">Change Password</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Address Modal -->
+<div class="modal fade" id="addAddressModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add New Address</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="address">
+        <div class="modal-body">
+          {{ address_form }}
+          <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" name="is_default" id="setDefaultAddress">
+            <label class="form-check-label" for="setDefaultAddress">
+              Set as default shipping address
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Address</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Add Payment Modal -->
+<div class="modal fade" id="addPaymentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Payment Method</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="payment">
+        <div class="modal-body">
+          {{ payment_form }}
+          <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" name="is_default" id="setDefaultPayment">
+            <label class="form-check-label" for="setDefaultPayment">
+              Set as default payment method
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Payment Method</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Smooth scrolling for sidebar navigation
+document.querySelectorAll('.list-group-item').forEach(item => {
+  item.addEventListener('click', function(e) {
+    e.preventDefault();
+    const target = this.getAttribute('href');
+    document.querySelector(target).scrollIntoView({
+      behavior: 'smooth'
+    });
+
+    // Update active state
+    document.querySelectorAll('.list-group-item').forEach(el => {
+      el.classList.remove('active');
+    });
+    this.classList.add('active');
+  });
+});
+</script>
+{% endblock %}

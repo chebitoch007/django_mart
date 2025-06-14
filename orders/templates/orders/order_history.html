@@ -1,0 +1,29 @@
+<!-- orders/templates/orders/order_history.html -->
+{% extends "store/base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="orbitron text-3xl text-white mb-6">Order History</h1>
+
+    {% if orders %}
+    <div class="space-y-4">
+        {% for order in orders %}
+        <div class="bg-dark-secondary rounded-lg p-4">
+            <div class="flex justify-between items-center mb-2">
+                <div class="text-primary orbitron">Order #{{ order.id }}</div>
+                <div class="text-gray-400 text-sm">
+                    {{ order.created|date:"M d, Y" }}
+                </div>
+            </div>
+            <!-- Add more order details as needed -->
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-8">
+        <i class="fas fa-box-open text-4xl text-gray-500 mb-4"></i>
+        <p class="text-gray-400">No orders found</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

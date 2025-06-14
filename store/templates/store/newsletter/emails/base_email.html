@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}{% endblock %}</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #3b82f6; font-size: 24px; margin: 0;">
+                DjangoMart Gaming Gear
+            </h1>
+        </div>
+
+        <div style="background-color: #f8fafc; padding: 30px; border-radius: 8px;">
+            {% block content %}{% endblock %}
+        </div>
+
+        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #64748b;">
+            <p>
+                This email was sent to {{ email }}<br>
+                IP Address: {{ ip_address }} | Requested: {{ timestamp|date:"M d, Y H:i" }}<br>
+                <a href="{{ privacy_url }}" style="color: #3b82f6; text-decoration: none;">
+                    Privacy Policy
+                </a>
+            </p>
+            <p style="margin-top: 15px;">
+                © {% now "Y" %} DjangoMart. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
