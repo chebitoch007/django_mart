@@ -1,7 +1,10 @@
 from django.contrib import admin
+from django.db.models import Count
+
 from .forms import ProductForm
 from .models import Category, Product
 from .models import NewsletterSubscription
+from mptt.admin import MPTTModelAdmin, DraggableMPTTAdmin
 
 # Unregister first to avoid conflicts during development reloads
 if admin.site.is_registered(Category):
@@ -9,18 +12,22 @@ if admin.site.is_registered(Category):
 
 
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
-    raw_id_fields = ('parent',)
-    autocomplete_fields = ['parent']
-    list_display = ('name', 'parent', 'is_active', 'product_count')
-    list_filter = ('parent', 'is_active')
+class CategoryAdmin(DraggableMPTTAdmin):
+    mptt_indent_field = "name"
+    list_display = ('tree_actions', 'indented_title', 'is_active', 'product_count')
+    list_display_links = ('indented_title',)
+    list_filter = ('is_active',)
     search_fields = ('name',)
     prepopulated_fields = {'slug': ('name',)}
 
-    def product_count(self, obj):
-        return obj.products.count()
 
-    product_count.short_description = 'Products'
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.annotate(_product_count=Count('products'))
+
+    def product_count(self, instance):
+        return instance._product_count
+    product_count.admin_order_field = '_product_count'
 
 
 @admin.register(Product)
@@ -35,6 +42,7 @@ class ProductAdmin(admin.ModelAdmin):
     def on_sale(self, obj):
         return bool(obj.discount_price)
     on_sale.boolean = True
+
 
 @admin.register(NewsletterSubscription)
 class NewsletterSubscriptionAdmin(admin.ModelAdmin):

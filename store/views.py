@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Avg, Q, Count, F, ExpressionWrapper, DecimalField
 from django.views.generic import TemplateView
-from .models import Category, Product, Review, NewsletterSubscription
+from .models import Category, Product, Review, NewsletterSubscription, ProductImage
 from cart.forms import CartAddProductForm
 from .forms import ReviewForm
 from django.core.exceptions import ValidationError
@@ -12,10 +12,13 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from .utils import send_email_async
 import logging
-from django.http import HttpRequest
+from django.http import HttpRequest, request
 from django.urls import reverse
-from django.template.loader import render_to_string
 from django.db.models.functions import Coalesce
+from store.constants import CATEGORIES
+from django.contrib.auth.decorators import login_required, user_passes_test
+from .forms import ProductForm
+
 
 
 
@@ -37,6 +40,7 @@ def get_sorted_products(products, sort_key):
     products = products.annotate(
         avg_rating=Coalesce(Avg('reviews__rating'), 0.0),
         review_count=Count('reviews'),
+        # FIXED: Corrected typo in discount_price field name
         discount_percentage=ExpressionWrapper(
             (F('price') - F('discount_price')) / F('price') * 100,
             output_field=DecimalField()
@@ -51,7 +55,7 @@ def product_list(request, category_slug=None):
     """Enhanced product listing with filtering, sorting, and pagination"""
     category = None
     categories = Category.objects.filter(is_active=True).annotate(
-        product_count=Count('products', filter=Q(products__available=True))
+        _product_count_cache=Count('products', filter=Q(products__available=True))
     )
 
     products = Product.objects.filter(available=True).select_related('category')
@@ -145,13 +149,16 @@ def home(request):
     featured_products = Product.objects.filter(
         available=True,
         featured=True
-    ).prefetch_related('category')[:8]
+    ).select_related('category').prefetch_related('additional_images')[:8]
 
-    categories = Category.objects.filter(
-        is_active=True
-    ).annotate(
-        product_count=Count('products', filter=Q(products__available=True))
-    )[:8]
+    categories = Category.objects.filter(is_active=True).annotate(
+        _product_count_cache=Count('products', distinct=True)
+    ).order_by('name')[:5]
+
+    # Add placeholder for categories without images
+    for category in categories:
+        if not category.image:
+            category.image_placeholder = True
 
     return render(request, 'store/home.html', {
         'featured_products': featured_products,
@@ -223,8 +230,9 @@ def submit_review(request, slug):
 
 def product_categories(request):
     categories = Category.objects.annotate(
-        product_count=Count('products', filter=Q(products__available=True))
-    )
+        num_products=Count('products')
+    )[:5]
+
     total_products = Product.objects.filter(available=True).count()
 
     context = {
@@ -274,40 +282,21 @@ Signup Date: {subscription.created_at}
 
 @require_POST
 def subscribe(request):
-    global subscription
     email = request.POST.get('email', '').strip()
-    confirmation_link = request.build_absolute_uri(
-        reverse('store:confirm_subscription', args=[subscription.confirmation_token])
-    )
-    unsubscribe_link = request.build_absolute_uri(
-        reverse('store:unsubscribe', args=[subscription.unsubscribe_token])
-    )
-    privacy_policy_link = request.build_absolute_uri(reverse('users:privacy'))
-
-
-    context = {
-        'confirmation_url': confirmation_link,
-        'unsubscribe_url': unsubscribe_link,
-        'privacy_url': privacy_policy_link,
-        'email': email,
-        'ip_address': subscription.ip_address,
-        'timestamp': subscription.created_at
-    }
-
-    render_to_string('store/newsletter/emails/confirmation_email.txt', context)
-    render_to_string('store/newsletter/emails/confirmation_email.html', context)
 
     try:
         validate_email(email)
 
-        if NewsletterSubscription.objects.filter(email=email).exists():
-            sub = NewsletterSubscription.objects.get(email=email)
-            if sub.confirmed and not sub.unsubscribed:
+        # Check existing subscriptions
+        existing = NewsletterSubscription.objects.filter(email=email).first()
+        if existing:
+            if existing.confirmed and not existing.unsubscribed:
                 messages.info(request, "This email is already subscribed!")
                 return redirect('store:home')
             messages.warning(request, "Please check your email to confirm subscription!")
             return redirect('store:home')
 
+        # Create new subscription
         subscription = NewsletterSubscription(
             email=email,
             ip_address=request.META.get('REMOTE_ADDR'),
@@ -317,10 +306,12 @@ def subscribe(request):
         subscription.confirmation_sent = timezone.now()
         subscription.save()
 
+        # Create email content
         plaintext, html = create_confirmation_email_content(request, subscription)
 
+        # Send email
         send_email_async(
-            "Confirm your DjangoMart newsletter subscription",
+            "Confirm newsletter subscription",
             plaintext,
             email,
             html_message=html
@@ -328,8 +319,9 @@ def subscribe(request):
 
         logger.info(f"Subscription initiated for {email}")
         messages.success(request, "Confirmation email sent! Please check your inbox.")
+        return redirect('store:home')
 
-    except ValidationError as ve:
+    except ValidationError:
         logger.warning(f"Invalid email attempt: {email}")
         messages.error(request, "Please enter a valid email address.")
     except Exception as e:
@@ -337,7 +329,6 @@ def subscribe(request):
         messages.error(request, "Subscription failed. Please try again later.")
 
     return redirect('store:home')
-
 
 def confirm_subscription(request, token):
     try:
@@ -368,7 +359,6 @@ def confirm_subscription(request, token):
 
 
 def unsubscribe(request, token):
-    global subscription
     try:
         subscription = NewsletterSubscription.objects.get(
             unsubscribe_token=token,
@@ -451,3 +441,74 @@ def accessibility(request):
 def sitemap(request):
     return render(request, 'store/sitemap.html', {'title': 'Sitemap'})
 
+
+# In views.py
+def some_view(request):
+    print(CATEGORIES["🎮 Game Controllers & Input Devices"])
+
+
+# In templates (via context)
+def category_list(request):
+    return render(request, 'categories.html', {'categories': CATEGORIES})
+
+
+def is_staff(user):
+    return user.is_staff
+
+
+@login_required
+@user_passes_test(is_staff)
+def add_product(request):
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES)
+        if form.is_valid():
+            product = form.save()
+            # Images are handled in form.save()
+            messages.success(request, f'Product "{product.name}" added successfully!')
+            return redirect('store:product_detail', slug=product.slug)
+    else:
+        form = ProductForm()
+    return render(request, 'store/dashboard/add_product.html', {'form': form})
+
+@login_required
+@user_passes_test(is_staff)
+def product_dashboard(request):
+    products = Product.objects.select_related('category').order_by('-created')
+    return render(request, 'store/dashboard/product_dashboard.html', {'products': products})
+
+
+@login_required
+@user_passes_test(is_staff)
+def edit_product(request, slug):
+    product = get_object_or_404(Product, slug=slug)
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES, instance=product)
+        if form.is_valid():
+            product = form.save()
+
+            # Handle image deletion
+            if 'delete_images' in request.POST:
+                image_ids = request.POST.getlist('delete_images')
+                ProductImage.objects.filter(id__in=image_ids, product=product).delete()
+
+            messages.success(request, f'Product "{product.name}" updated successfully!')
+            return redirect('store:product_detail', slug=product.slug)
+    else:
+        form = ProductForm(instance=product)
+
+    return render(request, 'store/dashboard/add_product.html', {
+        'form': form,
+        'product': product
+    })
+
+@login_required
+@user_passes_test(is_staff)
+def delete_product(request, slug):
+    product = get_object_or_404(Product, slug=slug)
+    if request.method == 'POST':
+        product_name = product.name
+        product.delete()
+        messages.success(request, f'Product "{product_name}" deleted successfully!')
+        return redirect('store:product_dashboard')
+
+    return render(request, 'store/dashboard/delete_product.html', {'product': product})

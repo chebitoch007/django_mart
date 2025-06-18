@@ -1,0 +1,158 @@
+{% extends "store/base.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Search Header -->
+    <div class="mb-8">
+        <nav class="mb-4">
+            <ol class="flex space-x-2 text-sm text-gray-400">
+                <li><a href="{% url 'store:home' %}" class="hover:text-primary transition-colors">Home</a></li>
+                <li class="text-gray-500">/</li>
+                <li class="text-primary">Search Results</li>
+            </ol>
+        </nav>
+
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="orbitron text-3xl text-white mb-2">Search Results</h1>
+                <p class="text-gray-400">Showing results for: <span class="text-accent">"{{ query }}"</span></p>
+            </div>
+            <span class="bg-accent text-white px-4 py-2 rounded-full orbitron">
+                {{ products.paginator.count }} Items
+            </span>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <form method="get" action="{% url 'store:product_search' %}" class="mb-8">
+        <div class="relative">
+            <input type="text"
+                   name="q"
+                   value="{{ query }}"
+                   placeholder="Search gaming gear..."
+                   class="w-full pl-12 pr-4 py-3 rounded-full bg-dark-secondary border border-gray-700 text-white focus:outline-none focus:border-primary"
+                   aria-label="Search products">
+            <button type="submit" class="absolute left-3 top-3 text-gray-400 hover:text-primary">
+                <i class="fas fa-search text-xl"></i>
+            </button>
+        </div>
+    </form>
+
+    <!-- Search Results -->
+    {% if products %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {% for product in products %}
+        <div class="product-card bg-dark-secondary rounded-xl p-4 shadow-lg hover:shadow-xl transition-all">
+            <div class="relative">
+                <a href="{{ product.get_absolute_url }}" class="block overflow-hidden rounded-lg">
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}"
+                         alt="{{ product.name }}"
+                         class="w-full h-48 object-contain transform hover:scale-105 transition-transform">
+                    {% else %}
+                    <div class="w-full h-48 bg-gray-800 flex items-center justify-center rounded-lg">
+                        <i class="fas fa-gamepad text-3xl text-gray-500"></i>
+                    </div>
+                    {% endif %}
+                </a>
+                {% if product.discount_price %}
+                <span class="absolute top-2 right-2 bg-accent text-white px-3 py-1 rounded-full text-sm orbitron">
+                    SALE
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="mt-4">
+                <a href="{{ product.get_absolute_url }}" class="block">
+                    <h3 class="orbitron text-white text-lg hover:text-primary transition-colors">
+                        {{ product.name|truncatechars:40 }}
+                    </h3>
+                </a>
+
+                <div class="flex items-center justify-between mt-3">
+                    <div class="space-y-1">
+                        <p class="text-xl text-primary font-bold">
+                            KES {{ product.get_display_price|intcomma }}
+                        </p>
+                        {% if product.discount_price %}
+                        <p class="text-gray-400 line-through text-sm">
+                            KES {{ product.price|intcomma }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    <span class="flex items-center text-sm text-gray-400">
+                        <i class="fas fa-star text-yellow-400 mr-1"></i>
+                        {{ product.rating|default:"4.5" }}
+                    </span>
+                </div>
+
+                <button class="w-full mt-4 bg-primary hover:bg-primary-dark text-white py-2 rounded-lg orbitron transition-colors
+                            {% if product.stock <= 0 %}opacity-50 cursor-not-allowed{% endif %}"
+                        {% if product.stock <= 0 %}disabled{% endif %}>
+                    {% if product.stock > 0 %}
+                    <i class="fas fa-cart-plus mr-2"></i>Add to Cart
+                    {% else %}
+                    Out of Stock
+                    {% endif %}
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="text-gray-400 text-6xl mb-4">
+            <i class="fas fa-search-minus"></i>
+        </div>
+        <h3 class="orbitron text-white text-xl mb-2">No Matching Products Found</h3>
+        <p class="text-gray-400 mb-4">Try different search terms or browse our collection</p>
+        <a href="{% url 'store:product_list' %}"
+           class="inline-block bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg transition-colors">
+            Browse All Products
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if products.paginator.num_pages > 1 %}
+    <div class="mt-8 flex justify-center">
+        <nav class="inline-flex space-x-2">
+            {% if products.has_previous %}
+            <a href="?q={{ query }}&page={{ products.previous_page_number }}"
+               class="pagination-item hover:bg-gray-700">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            {% endif %}
+
+            {% for num in products.paginator.page_range %}
+                {% if products.number == num %}
+                <span class="pagination-item bg-primary text-white">{{ num }}</span>
+                {% else %}
+                <a href="?q={{ query }}&page={{ num }}" class="pagination-item hover:bg-gray-700">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if products.has_next %}
+            <a href="?q={{ query }}&page={{ products.next_page_number }}"
+               class="pagination-item hover:bg-gray-700">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.pagination-item {
+    @apply w-10 h-10 flex items-center justify-center rounded-lg bg-gray-800 text-gray-300 transition-colors;
+}
+
+.product-card {
+    @apply transition-all duration-300 hover:-translate-y-1;
+}
+</style>
+{% endblock %}

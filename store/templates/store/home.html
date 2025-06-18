@@ -1,306 +1,913 @@
 {% extends "store/base.html" %}
 {% load static %}
 
+{% block extra_css %}
+<style>
+    /* Hero Section */
+    .hero-section {
+        position: relative;
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: white;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 20;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        text-align: center;
+    }
+
+    .hero-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(to right, #8b5cf6, #3b82f6, #60a5fa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .hero-subtitle {
+        font-size: 1.5rem;
+        max-width: 700px;
+        margin: 0 auto 2.5rem;
+        color: #cbd5e1;
+    }
+
+    .hero-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-primary {
+        background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+        color: white;
+        padding: 1rem 2.5rem;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+    }
+
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        color: white;
+        padding: 1rem 2.5rem;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-3px);
+    }
+
+    .hero-particles {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+        pointer-events: none;
+    }
+
+    .particle {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(139, 92, 246, 0.3);
+        animation: float 15s infinite linear;
+    }
+
+    @keyframes float {
+        0% {
+            transform: translateY(0) translateX(0) rotate(0deg);
+            opacity: 0;
+        }
+        10% {
+            opacity: 1;
+        }
+        90% {
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(-100px) translateX(100px) rotate(360deg);
+            opacity: 0;
+        }
+    }
+
+    /* Promotional Banner */
+    .promo-banner {
+        background: linear-gradient(90deg, #7c3aed, #5b21b6);
+        padding: 1rem 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .promo-content {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    .promo-text {
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .countdown {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .countdown-item {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 700;
+        min-width: 50px;
+        text-align: center;
+    }
+
+    .promo-link {
+        color: #fbbf24;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .promo-link:hover {
+        color: white;
+        text-decoration: underline;
+    }
+
+    /* Categories Grid */
+    .section-title {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .section-title h2 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: #0f172a;
+    }
+
+    .section-title p {
+        font-size: 1.1rem;
+        color: #64748b;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .categories-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .category-card {
+        position: relative;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        height: 300px;
+    }
+
+    .category-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .category-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+
+    .category-card:hover .category-image {
+        transform: scale(1.05);
+    }
+
+    .category-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(to top, rgba(15, 23, 42, 0.9), transparent);
+        padding: 2rem 1.5rem 1.5rem;
+        color: white;
+    }
+
+    .category-name {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .category-count {
+        font-size: 0.9rem;
+        color: #cbd5e1;
+    }
+
+    .shop-button {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0;
+        background: white;
+        color: #7c3aed;
+        padding: 0.8rem 1.8rem;
+        border-radius: 50px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.4s ease;
+        z-index: 20;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .category-card:hover .shop-button {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    /* Featured Products */
+    .featured-products {
+        background: linear-gradient(to bottom, #f8fafc, #e2e8f0);
+        padding: 5rem 0;
+    }
+
+    .featured-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1200px;
+        margin: 0 auto 3rem;
+        padding: 0 2rem;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+    }
+
+    .featured-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .featured-subtitle {
+        color: #64748b;
+        max-width: 500px;
+    }
+
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    .product-card {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .product-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    .product-badge {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background: #ef4444;
+        color: white;
+        padding: 0.4rem 1rem;
+        border-radius: 50px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        z-index: 10;
+    }
+
+    .product-image-container {
+        height: 220px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .product-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+
+    .product-card:hover .product-image {
+        transform: scale(1.05);
+    }
+
+    .quick-add {
+        position: absolute;
+        bottom: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        color: #3b82f6;
+        padding: 0.8rem 1.5rem;
+        border-radius: 50px;
+        font-weight: 600;
+        text-decoration: none;
+        opacity: 0;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        z-index: 10;
+    }
+
+    .product-card:hover .quick-add {
+        opacity: 1;
+        bottom: 1.5rem;
+    }
+
+    .product-info {
+        padding: 1.5rem;
+    }
+
+    .product-category {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .product-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #0f172a;
+    }
+
+    .product-price {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 1rem;
+    }
+
+    .price-container {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .current-price {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .original-price {
+        font-size: 0.9rem;
+        color: #94a3b8;
+        text-decoration: line-through;
+    }
+
+    .add-to-cart {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #3b82f6;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .add-to-cart:hover {
+        background: #3b82f6;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .product-rating {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .stars {
+        color: #fbbf24;
+    }
+
+    .rating-count {
+        font-size: 0.9rem;
+        color: #64748b;
+    }
+
+    /* Value Propositions */
+    .value-section {
+        padding: 5rem 0;
+        background: white;
+    }
+
+    .value-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    .value-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2.5rem 2rem;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        border: 1px solid #f1f5f9;
+    }
+
+    .value-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+        border-color: #e2e8f0;
+    }
+
+    .value-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2rem;
+    }
+
+    .value-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: #0f172a;
+    }
+
+    .value-description {
+        color: #64748b;
+        line-height: 1.6;
+    }
+
+    /* Testimonials */
+    .testimonials-section {
+        padding: 5rem 0;
+        background: linear-gradient(to right, #0f172a, #1e293b);
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .testimonials-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        position: relative;
+    }
+
+    .testimonial-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 2.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .testimonial-card:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateY(-5px);
+    }
+
+    .testimonial-content {
+        font-size: 1.1rem;
+        line-height: 1.7;
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .testimonial-content:before {
+        content: """;
+        position: absolute;
+        top: -20px;
+        left: -15px;
+        font-size: 4rem;
+        color: rgba(139, 92, 246, 0.3);
+        font-family: Georgia, serif;
+    }
+
+    .testimonial-author {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .author-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .author-info {
+        flex-grow: 1;
+    }
+
+    .author-name {
+        font-weight: 600;
+        margin-bottom: 0.2rem;
+    }
+
+    .author-role {
+        color: #cbd5e1;
+        font-size: 0.9rem;
+    }
+
+    .testimonial-rating {
+        color: #fbbf24;
+        font-size: 1.2rem;
+    }
+
+    /* Newsletter */
+    .newsletter-section {
+        padding: 5rem 0;
+        background: linear-gradient(to right, #8b5cf6, #3b82f6);
+        color: white;
+        text-align: center;
+    }
+
+    .newsletter-container {
+        max-width: 700px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    .newsletter-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .newsletter-subtitle {
+        font-size: 1.1rem;
+        max-width: 500px;
+        margin: 0 auto 2.5rem;
+        color: #e0e7ff;
+    }
+
+    .newsletter-form {
+        display: flex;
+        max-width: 500px;
+        margin: 0 auto;
+        border-radius: 50px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .newsletter-input {
+        flex-grow: 1;
+        padding: 1.2rem 1.5rem;
+        border: none;
+        font-size: 1rem;
+        outline: none;
+    }
+
+    .newsletter-button {
+        background: #0f172a;
+        color: white;
+        border: none;
+        padding: 0 2rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .newsletter-button:hover {
+        background: #1e293b;
+    }
+
+    .newsletter-disclaimer {
+        font-size: 0.9rem;
+        color: #e0e7ff;
+        margin-top: 1.5rem;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+        .hero-title {
+            font-size: 3rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2.5rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+        }
+
+        .section-title h2 {
+            font-size: 2rem;
+        }
+
+        .featured-title {
+            font-size: 1.8rem;
+        }
+
+        .newsletter-title {
+            font-size: 2rem;
+        }
+
+        .promo-content {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .hero-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .hero-title {
+            font-size: 2rem;
+        }
+
+        .section-title h2 {
+            font-size: 1.8rem;
+        }
+
+        .featured-title {
+            font-size: 1.6rem;
+        }
+
+        .newsletter-form {
+            flex-direction: column;
+            border-radius: 16px;
+        }
+
+        .newsletter-button {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Hero Section -->
-<section class="relative min-h-[70vh] flex items-center overflow-hidden">
-    <div class="absolute inset-0 bg-gradient-to-r from-gray-900/95 to-gray-900/60 z-10"></div>
-    <div class="absolute inset-0 bg-gradient-to-b from-transparent to-black/50 z-10"></div>
-
-    <!-- Background image with parallax effect -->
-    <div
-        class="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
-        style="background-image: url('https://images.unsplash.com/photo-1607082350899-7e105aa886ae?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');"
-        id="parallax-bg"
-    ></div>
-
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full z-20 py-20">
-        <div class="max-w-2xl text-white space-y-6 animate-fadeInUp">
-            <h1 class="orbitron text-4xl md:text-6xl font-bold leading-tight">
-                Discover Your Perfect Purchase
-            </h1>
-            <p class="text-xl md:text-2xl text-gray-300 max-w-xl">
-                Premium quality products for every need. Exceptional value, delivered to your door.
-            </p>
-            <div class="flex flex-col sm:flex-row gap-4">
-                <a href="{% url 'store:product_list' %}" class="btn-primary py-3 px-8 rounded-full text-lg font-bold flex items-center justify-center gap-2">
-                    <span>Shop Now</span>
-                    <i class="fas fa-arrow-right"></i>
-                </a>
-                <a href="#featured" class="btn-secondary py-3 px-8 rounded-full text-lg font-bold">
-                    Featured Products
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Trust badges -->
-    <div class="absolute bottom-6 left-0 right-0 z-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-wrap justify-center gap-8 items-center">
-                <div class="flex items-center gap-3">
-                    <i class="fas fa-truck text-2xl text-green-400"></i>
-                    <span class="text-white">Free Shipping Over $50</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <i class="fas fa-shield-alt text-2xl text-blue-400"></i>
-                    <span class="text-white">30-Day Money Back Guarantee</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <i class="fas fa-lock text-2xl text-yellow-400"></i>
-                    <span class="text-white">Secure Payment</span>
-                </div>
-            </div>
+<section class="hero-section">
+    <div class="hero-particles" id="particles"></div>
+    <div class="hero-content">
+        <h1 class="hero-title">PREMIUM GAMING EXPERIENCE</h1>
+        <p class="hero-subtitle">Discover cutting-edge gaming accessories and tech gear for the ultimate gaming setup. Elevate your gameplay with our premium collection.</p>
+        <div class="hero-buttons">
+            <a href="{% url 'store:product_list' %}" class="btn-primary">
+                <i class="fas fa-shopping-cart mr-2"></i> Shop Now
+            </a>
+            <a href="#featured" class="btn-secondary">
+                <i class="fas fa-star mr-2"></i> Featured Products
+            </a>
         </div>
     </div>
 </section>
 
 <!-- Promotional Banner -->
-<div class="bg-gradient-to-r from-blue-600 to-purple-600 py-4">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col md:flex-row justify-center items-center gap-3 md:gap-6">
-            <span class="text-white text-center font-bold text-lg">SUMMER SALE: UP TO 50% OFF</span>
-            <div class="flex items-center gap-1">
-                <span class="text-yellow-300 font-bold">ENDS IN:</span>
-                <div class="flex gap-2">
-                    <div class="bg-white/20 rounded px-3 py-1 text-white font-bold">02</div>
-                    <span class="text-white">:</span>
-                    <div class="bg-white/20 rounded px-3 py-1 text-white font-bold">18</div>
-                    <span class="text-white">:</span>
-                    <div class="bg-white/20 rounded px-3 py-1 text-white font-bold">45</div>
-                </div>
-            </div>
-            <a href="{% url 'store:product_list' %}?on_sale=true" class="text-white underline font-medium hover:text-yellow-300 transition">Shop Sale Items</a>
+<section class="promo-banner">
+    <div class="promo-content">
+        <div class="promo-text">
+            <i class="fas fa-fire text-yellow-300"></i>
+            <span>SUMMER SALE: UP TO 50% OFF</span>
         </div>
+        <div class="countdown">
+            <span class="text-white font-bold">ENDS IN:</span>
+            <div class="countdown-item" id="countdown-hours">02</div>
+            <span class="text-white">:</span>
+            <div class="countdown-item" id="countdown-minutes">18</div>
+            <span class="text-white">:</span>
+            <div class="countdown-item" id="countdown-seconds">45</div>
+        </div>
+        <a href="{% url 'store:product_list' %}?on_sale=true" class="promo-link">
+            Shop Sale Items <i class="fas fa-arrow-right ml-1"></i>
+        </a>
     </div>
-</div>
+</section>
 
 <!-- Categories Grid -->
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-    <div class="text-center mb-14">
-        <h2 class="orbitron text-3xl md:text-4xl font-bold mb-4">Shop By Category</h2>
-        <p class="text-gray-600 max-w-2xl mx-auto">Browse our carefully curated collections to find exactly what you're looking for</p>
+<section class="py-16">
+    <div class="section-title">
+        <h2>Shop By Category</h2>
+        <p>Browse our carefully curated collections to find exactly what you're looking for</p>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+    <div class="categories-grid">
         {% for category in categories %}
-        <a
-            href="{% url 'store:product_list_by_category' category.slug %}"
-            class="group relative block overflow-hidden rounded-xl aspect-square shadow-lg hover:shadow-xl transition-all"
-            aria-label="{{ category.name }}"
-        >
-            <div class="relative w-full h-full">
-                <img
-                    src="{{ category.image.url }}"
-                    alt="{{ category.name }}"
-                    class="w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
-                    loading="lazy"
-                >
-                <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-6">
-                    <h3 class="orbitron text-white text-xl md:text-2xl transition-transform group-hover:translate-y-[-10px]">
-                        {{ category.name }}
-                    </h3>
-                </div>
-                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span class="bg-white text-gray-900 py-2 px-6 rounded-full font-bold shadow-lg">
-                        Shop Now
-                    </span>
-                </div>
+        <a href="{% url 'store:product_list_by_category' category.slug %}" class="category-card">
+            {% if category.image %}
+            <img src="{{ category.image.url }}" alt="{{ category.name }}" class="category-image">
+            {% else %}
+            <div class="category-image bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                <i class="fas fa-folder text-white text-6xl opacity-30"></i>
             </div>
+            {% endif %}
+            <div class="category-overlay">
+                <h3 class="category-name">{{ category.name }}</h3>
+                <div class="category-count">{{ category.product_count }} products</div>
+            </div>
+            <span class="shop-button">Shop Now</span>
         </a>
         {% endfor %}
     </div>
 </section>
 
 <!-- Featured Products -->
-<section id="featured" class="py-16 bg-gradient-to-b from-gray-50 to-white">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-12 gap-4">
-            <div>
-                <h2 class="orbitron text-3xl md:text-4xl font-bold">Featured Products</h2>
-                <p class="text-gray-600 mt-2">Customer favorites and best sellers</p>
+<section id="featured" class="featured-products">
+    <div class="featured-header">
+        <div>
+            <h2 class="featured-title">Featured Products</h2>
+            <p class="featured-subtitle">Customer favorites and best sellers - curated just for you</p>
+        </div>
+        <a href="{% url 'store:product_list' %}" class="btn-primary">
+            View All Products <i class="fas fa-arrow-right ml-2"></i>
+        </a>
+    </div>
+
+    <div class="products-grid">
+        {% for product in featured_products %}
+        <div class="product-card">
+            {% if product.discount_price %}
+            <div class="product-badge">SAVE {{ product.get_discount_percentage }}%</div>
+            {% endif %}
+
+            <div class="product-image-container">
+                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+                <a href="{% url 'cart:cart_add' product.id %}" class="quick-add add-to-cart">
+                    <i class="fas fa-cart-plus mr-2"></i> Add to Cart
+                </a>
             </div>
-            <a href="{% url 'store:product_list' %}" class="btn-primary px-6 py-3 rounded-full font-bold flex items-center gap-2">
-                View All Products <i class="fas fa-arrow-right"></i>
-            </a>
-        </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {% for product in featured_products %}
-            <article class="product-card bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 relative">
-                {% if product.discount_price %}
-                <div class="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold z-10">
-                    SAVE {{ product.get_discount_percentage }}%
-                </div>
-                {% endif %}
+            <div class="product-info">
+                <div class="product-category">{{ product.category.name }}</div>
+                <h3 class="product-name">{{ product.name }}</h3>
 
-                <div class="relative aspect-square">
-                    <img
-                        src="{{ product.image.url }}"
-                        alt="{{ product.name }}"
-                        class="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                        loading="lazy"
-                    >
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent flex items-end p-4 opacity-0 hover:opacity-100 transition-opacity">
-                        <a
-                            href="{% url 'cart:cart_add' product.id %}"
-                            class="w-full bg-white text-gray-900 py-3 rounded-full font-bold text-center hover:bg-gray-100 transition"
-                        >
-                            <i class="fas fa-cart-plus mr-2"></i> Add to Cart
-                        </a>
-                    </div>
-                </div>
-
-                <div class="p-5">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-bold text-lg hover:text-blue-600 transition-colors">
-                            <a href="{{ product.get_absolute_url }}">{{ product.name }}</a>
-                        </h3>
-                        <div class="flex items-center text-yellow-400">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star-half-alt"></i>
-                        </div>
-                    </div>
-
-                    <p class="text-gray-600 text-sm mb-4">{{ product.category.name }}</p>
-
-                    <div class="flex justify-between items-center">
-                        <div class="space-y-1">
-                            {% if product.discount_price %}
-                            <div class="text-gray-400 line-through text-sm">${{ product.price }}</div>
-                            <div class="text-primary font-bold text-xl">${{ product.discount_price }}</div>
+                <div class="product-rating">
+                    <div class="stars">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= product.rating|floatformat:0 %}
+                                <i class="fas fa-star"></i>
+                            {% elif forloop.counter|add:"-0.5" <= product.rating %}
+                                <i class="fas fa-star-half-alt"></i>
                             {% else %}
-                            <div class="text-primary font-bold text-xl">${{ product.price }}</div>
+                                <i class="far fa-star"></i>
                             {% endif %}
-                        </div>
-                        <a
-                            href="{% url 'cart:cart_add' product.id %}"
-                            class="bg-gray-100 hover:bg-gray-200 rounded-full w-10 h-10 flex items-center justify-center transition-colors"
-                            aria-label="Add to cart"
-                        >
-                            <i class="fas fa-cart-plus text-gray-700"></i>
-                        </a>
+                        {% endfor %}
                     </div>
+                    <div class="rating-count">({{ product.review_count }})</div>
                 </div>
-            </article>
-            {% endfor %}
+
+                <div class="product-price">
+                    <div class="price-container">
+                        <span class="current-price">
+                            KSh {{ product.get_display_price }}
+                        </span>
+                        {% if product.discount_price %}
+                        <span class="original-price">KSh {{ product.price }}</span>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'cart:cart_add' product.id %}" class="add-to-cart add-to-cart">
+                        <i class="fas fa-plus"></i>
+                    </a>
+                </div>
+            </div>
         </div>
+        {% endfor %}
     </div>
 </section>
 
 <!-- Value Propositions -->
-<section class="py-16 bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-14">
-            <h2 class="orbitron text-3xl md:text-4xl font-bold mb-4">Why Shop With Us</h2>
-            <p class="text-gray-600 max-w-2xl mx-auto">We're committed to providing the best shopping experience</p>
+<section class="value-section">
+    <div class="section-title">
+        <h2>Why Shop With Us</h2>
+        <p>We're committed to providing the best shopping experience</p>
+    </div>
+
+    <div class="value-cards">
+        <div class="value-card">
+            <div class="value-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                <i class="fas fa-shipping-fast"></i>
+            </div>
+            <h3 class="value-title">Fast & Free Shipping</h3>
+            <p class="value-description">Free shipping on all orders over $50. Delivered right to your doorstep within 3-5 business days.</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="bg-white p-8 rounded-2xl shadow-lg text-center hover:shadow-xl transition-all">
-                <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-shipping-fast text-3xl text-blue-600"></i>
-                </div>
-                <h3 class="orbitron text-xl font-bold mb-3">Fast & Free Shipping</h3>
-                <p class="text-gray-600">Free shipping on all orders over $50. Delivered right to your doorstep.</p>
+        <div class="value-card">
+            <div class="value-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                <i class="fas fa-shield-alt"></i>
             </div>
+            <h3 class="value-title">Satisfaction Guaranteed</h3>
+            <p class="value-description">30-day hassle-free returns. We stand behind our products and offer a full refund if you're not satisfied.</p>
+        </div>
 
-            <div class="bg-white p-8 rounded-2xl shadow-lg text-center hover:shadow-xl transition-all">
-                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-shield-alt text-3xl text-green-600"></i>
-                </div>
-                <h3 class="orbitron text-xl font-bold mb-3">Satisfaction Guaranteed</h3>
-                <p class="text-gray-600">30-day hassle-free returns. We stand behind our products.</p>
+        <div class="value-card">
+            <div class="value-icon" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
+                <i class="fas fa-headset"></i>
             </div>
-
-            <div class="bg-white p-8 rounded-2xl shadow-lg text-center hover:shadow-xl transition-all">
-                <div class="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-headset text-3xl text-purple-600"></i>
-                </div>
-                <h3 class="orbitron text-xl font-bold mb-3">24/7 Customer Support</h3>
-                <p class="text-gray-600">Our dedicated team is always ready to help with any questions.</p>
-            </div>
+            <h3 class="value-title">24/7 Customer Support</h3>
+            <p class="value-description">Our dedicated team is always ready to help with any questions or concerns you might have.</p>
         </div>
     </div>
 </section>
 
 <!-- Testimonials -->
-<section class="py-16 bg-gradient-to-r from-blue-50 to-purple-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-14">
-            <h2 class="orbitron text-3xl md:text-4xl font-bold mb-4">What Our Customers Say</h2>
-            <p class="text-gray-600 max-w-2xl mx-auto">Don't just take our word for it - hear from our satisfied customers</p>
-        </div>
+<section class="testimonials-section">
+    <div class="section-title" style="color: white;">
+        <h2>What Our Customers Say</h2>
+        <p>Don't just take our word for it - hear from our satisfied customers</p>
+    </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="bg-white p-8 rounded-2xl shadow-lg">
-                <div class="flex items-center mb-4">
-                    <div class="flex text-yellow-400 mr-2">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                    </div>
-                    <span class="text-gray-500 text-sm">2 days ago</span>
-                </div>
-                <p class="text-gray-700 mb-6">"The quality of the products exceeded my expectations. Shipping was incredibly fast and the customer service was exceptional!"</p>
-                <div class="flex items-center">
-                    <div class="w-12 h-12 rounded-full bg-gray-300 mr-4 overflow-hidden">
-                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="Sarah Johnson" class="w-full h-full object-cover">
-                    </div>
-                    <div>
-                        <h4 class="font-bold">Sarah Johnson</h4>
-                        <p class="text-gray-500 text-sm">Verified Customer</p>
-                    </div>
-                </div>
+    <div class="testimonials-container">
+        <div class="testimonial-card">
+            <div class="testimonial-content">
+                "The quality of the gaming controller exceeded my expectations. The ergonomic design and responsive buttons have completely transformed my gaming experience!"
             </div>
-
-            <div class="bg-white p-8 rounded-2xl shadow-lg">
-                <div class="flex items-center mb-4">
-                    <div class="flex text-yellow-400 mr-2">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                    </div>
-                    <span class="text-gray-500 text-sm">1 week ago</span>
+            <div class="testimonial-author">
+                <div class="author-avatar">
+                    <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="David Kim">
                 </div>
-                <p class="text-gray-700 mb-6">"I've ordered from many online stores, but the attention to detail here is unmatched. My package arrived perfectly packed and ahead of schedule."</p>
-                <div class="flex items-center">
-                    <div class="w-12 h-12 rounded-full bg-gray-300 mr-4 overflow-hidden">
-                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="Michael Chen" class="w-full h-full object-cover">
-                    </div>
-                    <div>
-                        <h4 class="font-bold">Michael Chen</h4>
-                        <p class="text-gray-500 text-sm">Verified Customer</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white p-8 rounded-2xl shadow-lg">
-                <div class="flex items-center mb-4">
-                    <div class="flex text-yellow-400 mr-2">
+                <div class="author-info">
+                    <div class="author-name">David Kim</div>
+                    <div class="author-role">Professional Gamer</div>
+                    <div class="testimonial-rating">
                         <i class="fas fa-star"></i>
                         <i class="fas fa-star"></i>
                         <i class="fas fa-star"></i>
                         <i class="fas fa-star"></i>
-                        <i class="fas fa-star-half-alt"></i>
-                    </div>
-                    <span class="text-gray-500 text-sm">3 weeks ago</span>
-                </div>
-                <p class="text-gray-700 mb-6">"The return process was so simple when I needed to exchange a size. This level of customer care makes me a loyal shopper."</p>
-                <div class="flex items-center">
-                    <div class="w-12 h-12 rounded-full bg-gray-300 mr-4 overflow-hidden">
-                        <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="David Rodriguez" class="w-full h-full object-cover">
-                    </div>
-                    <div>
-                        <h4 class="font-bold">David Rodriguez</h4>
-                        <p class="text-gray-500 text-sm">Verified Customer</p>
+                        <i class="fas fa-star"></i>
                     </div>
                 </div>
             </div>
@@ -309,139 +916,124 @@
 </section>
 
 <!-- Newsletter -->
-<section class="py-16 bg-gray-900 text-white">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div class="mb-8">
-            <h2 class="orbitron text-3xl md:text-4xl font-bold mb-4">Join Our Community</h2>
-            <p class="text-gray-300 max-w-2xl mx-auto">Subscribe to get special offers, free giveaways, and new product alerts</p>
-        </div>
+<section class="newsletter-section">
+    <div class="newsletter-container">
+        <h2 class="newsletter-title">Join Our Gaming Community</h2>
+        <p class="newsletter-subtitle">Subscribe to get exclusive deals, new product alerts, and gaming tips</p>
 
-        <form class="flex flex-col sm:flex-row gap-4 max-w-xl mx-auto">
-            <input
-                type="email"
-                placeholder="Enter your email address"
-                class="flex-grow px-6 py-4 rounded-full text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-            >
-            <button
-                type="submit"
-                class="btn-primary px-8 py-4 rounded-full font-bold whitespace-nowrap"
-            >
-                Subscribe
-            </button>
+        <form class="newsletter-form" action="{% url 'store:subscribe' %}" method="POST">
+            {% csrf_token %}
+            <input type="email" name="email" placeholder="Your email address" class="newsletter-input" required>
+            <button type="submit" class="newsletter-button">Subscribe</button>
         </form>
 
-        <p class="text-gray-400 mt-4 text-sm">By subscribing, you agree to our Privacy Policy and consent to receive updates from our company.</p>
+        <p class="newsletter-disclaimer">
+            By subscribing, you agree to our Privacy Policy and consent to receive updates from our company.
+        </p>
     </div>
 </section>
 
-<style>
-    .animate-fadeInUp {
-        animation: fadeInUp 1s ease-out forwards;
-    }
-
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .btn-primary {
-        background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-        color: white;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-    }
-
-    .btn-primary:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
-    }
-
-    .btn-secondary {
-        background: transparent;
-        border: 2px solid white;
-        color: white;
-        transition: all 0.3s ease;
-    }
-
-    .btn-secondary:hover {
-        background: rgba(255, 255, 255, 0.1);
-    }
-
-    .btn-link {
-        color: #3b82f6;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-
-    .btn-link:hover {
-        color: #2563eb;
-    }
-
-    .product-card {
-        transition: all 0.3s ease;
-    }
-
-    #parallax-bg {
-        will-change: transform;
-    }
-</style>
-
 <script>
-    // Parallax effect for hero background
-    document.addEventListener('DOMContentLoaded', function() {
-        const parallaxBg = document.getElementById('parallax-bg');
+    // Create floating particles for hero section
+    function createParticles() {
+        const container = document.getElementById('particles');
+        const particleCount = 20;
 
-        window.addEventListener('scroll', function() {
-            const scrollPosition = window.pageYOffset;
-            parallaxBg.style.transform = `translateY(${scrollPosition * 0.4}px)`;
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+
+            // Random size
+            const size = Math.random() * 20 + 5;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+
+            // Random position
+            const left = Math.random() * 100;
+            const top = Math.random() * 100 + 20; // Start below top
+            particle.style.left = `${left}%`;
+            particle.style.top = `${top}%`;
+
+            // Random color
+            const colors = ['rgba(139, 92, 246, 0.3)', 'rgba(59, 130, 246, 0.3)', 'rgba(96, 165, 250, 0.3)'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            particle.style.background = color;
+
+            // Random animation duration
+            const duration = Math.random() * 20 + 15;
+            particle.style.animationDuration = `${duration}s`;
+
+            // Random animation delay
+            const delay = Math.random() * 5;
+            particle.style.animationDelay = `${delay}s`;
+
+            container.appendChild(particle);
+        }
+    }
+
+    // Countdown timer
+    function updateCountdown() {
+        // Set sale end date (72 hours from now)
+        const saleEndDate = new Date();
+        saleEndDate.setHours(saleEndDate.getHours() + 72);
+
+        function update() {
+            const now = new Date();
+            const diff = saleEndDate - now;
+
+            if (diff <= 0) {
+                document.getElementById('countdown-hours').textContent = '00';
+                document.getElementById('countdown-minutes').textContent = '00';
+                document.getElementById('countdown-seconds').textContent = '00';
+                return;
+            }
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            document.getElementById('countdown-hours').textContent = hours.toString().padStart(2, '0');
+            document.getElementById('countdown-minutes').textContent = minutes.toString().padStart(2, '0');
+            document.getElementById('countdown-seconds').textContent = seconds.toString().padStart(2, '0');
+        }
+
+        update();
+        setInterval(update, 1000);
+    }
+
+    // Add to cart animation
+    document.querySelectorAll('.add-to-cart').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const cartCount = document.querySelector('.cart-count');
+            let currentCount = parseInt(cartCount.textContent) || 0;
+
+            // Visual feedback
+            const originalHtml = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            // Simulate API call
+            setTimeout(() => {
+                cartCount.textContent = currentCount + 1;
+                cartCount.classList.add('animate-pulse');
+
+                this.innerHTML = '<i class="fas fa-check"></i>';
+                this.classList.add('bg-green-100', 'text-green-800');
+
+                setTimeout(() => {
+                    cartCount.classList.remove('animate-pulse');
+                    this.innerHTML = originalHtml;
+                    this.classList.remove('bg-green-100', 'text-green-800');
+                    window.location.href = this.href;
+                }, 1500);
+            }, 800);
         });
     });
 
-    // Add to cart animation
-    document.querySelectorAll('a[href*="cart_add"]').forEach(link => {
-        link.addEventListener('click', function(e) {
-            if (!this.classList.contains('cart-action-processed')) {
-                e.preventDefault();
-
-                // Visual feedback
-                const originalIcon = this.innerHTML;
-                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-                // Simulate API call
-                setTimeout(() => {
-                    this.innerHTML = '<i class="fas fa-check"></i> Added!';
-                    this.classList.add('text-green-500');
-
-                    // Update cart count in navbar
-                    const cartCount = document.querySelector('.cart-count');
-                    if (cartCount) {
-                        const currentCount = parseInt(cartCount.textContent) || 0;
-                        cartCount.textContent = currentCount + 1;
-                        cartCount.classList.add('animate-pulse');
-
-                        setTimeout(() => {
-                            cartCount.classList.remove('animate-pulse');
-                        }, 1000);
-                    }
-
-                    // Revert after 2 seconds
-                    setTimeout(() => {
-                        this.innerHTML = originalIcon;
-                        this.classList.remove('text-green-500');
-                        window.location.href = this.href;
-                    }, 1500);
-                }, 800);
-
-                this.classList.add('cart-action-processed');
-            }
-        });
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', function() {
+        createParticles();
+        updateCountdown();
     });
 </script>
 {% endblock %}

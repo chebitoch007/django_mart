@@ -1,0 +1,2 @@
+INFO 2025-05-24 16:35:19,954 views Expired subscription attempt: test
+WARNING 2025-05-24 16:35:20,236 views Invalid unsubscribe token: invalid-token

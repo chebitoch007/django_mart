@@ -1,4 +1,4 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.conf import settings
 from django.urls import reverse
@@ -48,20 +48,41 @@ class EncryptionManager:
         return self.cipher.decrypt(encrypted_value.encode()).decode()
 
 
-class CustomUserManager(models.Manager):
+class CustomUserManager(BaseUserManager):
     """Custom manager with security methods"""
+    use_in_migrations = True
 
-    def create_user(self, username, email, password, **extra_fields):
-        # Enforce strong passwords
-        self._validate_password(password)
-        user = self.model(
-            username=username,
-            email=self.normalize_email(email),
-            **extra_fields
-        )
-        user.set_password(password)
+    def _create_user(self, username, email, password, **extra_fields):
+        if not email:
+            raise ValueError('The Email field must be set')
+        email = self.normalize_email(email)
+        user = self.model(username=username, email=email, **extra_fields)
+
+        # Validate and set password
+        if password:
+            self._validate_password(password)
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
+
         user.save(using=self._db)
         return user
+
+    def create_user(self, username, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', False)
+        extra_fields.setdefault('is_superuser', False)
+        return self._create_user(username, email, password, **extra_fields)
+
+    def create_superuser(self, username, email, password, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self._create_user(username, email, password, **extra_fields)
 
     def _validate_password(self, password):
         """Enforce strong password policy"""
@@ -76,8 +97,20 @@ class CustomUserManager(models.Manager):
         if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
             raise ValidationError("Password must contain at least one special character")
 
+    def get_by_natural_key(self, username):
+        # Handle both email and username
+        return self.get(
+            models.Q(**{self.model.USERNAME_FIELD: username}) |
+            models.Q(email__iexact=username)
+        )
 
 class CustomUser(AbstractUser):
+    public_id = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True
+    )
+
     # Security enhancements
     objects = CustomUserManager()
 
@@ -136,6 +169,7 @@ class CustomUser(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+
     class Meta:
         verbose_name = "User Account"
         verbose_name_plural = "User Accounts"
@@ -172,21 +206,25 @@ class CustomUser(AbstractUser):
         # Validate password strength
         CustomUserManager._validate_password(None, raw_password)
 
-        # Update password history
-        PasswordHistory.objects.create(
-            user=self,
-            password=make_password(raw_password)
-        )
-
-        # Keep only last 5 passwords
-        passwords = PasswordHistory.objects.filter(user=self).order_by('-created_at')
-        if passwords.count() > 5:
-            for p in passwords[5:]:
-                p.delete()
-
+        # Call super to set the password first
         super().set_password(raw_password)
         self.last_password_update = timezone.now()
-        self.save(update_fields=['last_password_update'])
+
+        # Only create PasswordHistory if user is already saved
+        if self.pk:
+            PasswordHistory.objects.create(
+                user=self,
+                password=make_password(raw_password)
+            )
+
+            # Keep only last 5 passwords
+            passwords = PasswordHistory.objects.filter(user=self).order_by('-created_at')
+            if passwords.count() > 5:
+                for p in passwords[5:]:
+                    p.delete()
+
+            # Save user after updating password history
+            self.save(update_fields=['last_password_update'])
 
 
 class Profile(models.Model):

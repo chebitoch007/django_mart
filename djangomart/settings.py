@@ -4,7 +4,7 @@ Django settings for djangomart project.
 
 import os
 from pathlib import Path
-from pickle import NONE, FALSE
+
 
 import environ
 from debug_toolbar.panels import templates
@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'crispy_forms',
     'django_countries',
+    'mptt',
     'store.apps.StoreConfig',
     'cart.apps.CartConfig',
     'users.apps.UsersConfig',

@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 
+from .views import add_product, product_dashboard, edit_product, delete_product
+
 app_name = 'store'
 
 urlpatterns = [
@@ -38,4 +40,9 @@ urlpatterns = [
     path('cookie-policy/', views.cookies, name='cookies'),
     path('accessibility/', views.accessibility, name='accessibility'),
     path('sitemap/', views.sitemap, name='sitemap'),
+
+    path('dashboard/products/', product_dashboard, name='product_dashboard'),
+    path('dashboard/products/add/', add_product, name='add_product'),
+    path('dashboard/products/edit/<slug:slug>/', edit_product, name='edit_product'),
+    path('dashboard/products/delete/<slug:slug>/', delete_product, name='delete_product'),
 ]

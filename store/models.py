@@ -4,18 +4,28 @@ from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
 import secrets
+from .constants import CATEGORIES
+from mptt.models import MPTTModel, TreeForeignKey
 
-class Category(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+
+class Category(MPTTModel):  # Change from models.Model to MPTTModel
+    name = models.CharField(max_length=100)
     slug = models.SlugField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
-    image = models.ImageField(upload_to='categories/', blank=True, null=True)
+    image = models.ImageField(
+        upload_to='categories/',
+        blank=True,
+        null=True,
+        default='categories/default.png'
+    )
     is_active = models.BooleanField(default=True)
     meta_title = models.CharField(max_length=100, blank=True)
     meta_description = models.CharField(max_length=200, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    parent = models.ForeignKey(
+
+    # Change to TreeForeignKey
+    parent = TreeForeignKey(
         'self',
         on_delete=models.CASCADE,
         null=True,
@@ -23,7 +33,20 @@ class Category(models.Model):
         related_name='children'
     )
 
+    # Add MPTTMeta class
+    class MPTTMeta:
+        order_insertion_by = ['name']
+        level_attr = 'mptt_level'
+
+    @classmethod
+    def get_default_categories(cls):
+        """Class method to access the categories constant"""
+        return CATEGORIES
+
     def __str__(self):
+        # Use mptt_level instead of level
+        if self.parent:
+            return f'{"-" * self.mptt_level} {self.name}'
         return self.name
 
     class Meta:
@@ -40,8 +63,13 @@ class Category(models.Model):
 
     @property
     def product_count(self):
+        if hasattr(self, '_product_count_cache'):
+            return self._product_count_cache
         return self.products.count()
 
+    @product_count.setter
+    def product_count(self, value):
+        self._product_count_cache = value
 
 
 class Product(models.Model):
@@ -72,19 +100,16 @@ class Product(models.Model):
         ]
         ordering = ['-created']
 
-
-
     def save(self, *args, **kwargs):
         if not self.slug:
             base_slug = slugify(self.name)
-            unique_id = str(uuid.uuid4())[:4]  # Get first 4 chars of UUID
+            unique_id = str(uuid.uuid4())[:4]
             self.slug = f"{base_slug}-{unique_id}"
 
-            # Ensure the slug is unique
+            # Ensure uniqueness
             while Product.objects.filter(slug=self.slug).exists():
                 unique_id = str(uuid.uuid4())[:4]
                 self.slug = f"{base_slug}-{unique_id}"
-
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
@@ -117,8 +142,8 @@ class Product(models.Model):
 
 
 class ProductImage(models.Model):
-    product = models.ForeignKey(Product, related_name='additional_images', on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='products/additional/')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='additional_images')
+    image = models.ImageField(upload_to='products/')
     alt_text = models.CharField(max_length=100, blank=True)
     is_featured = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -177,3 +202,10 @@ class NewsletterSubscription(models.Model):
 
     def __str__(self):
         return f"{self.email} ({'confirmed' if self.confirmed else 'pending'})"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['email']),
+            models.Index(fields=['confirmed']),
+            models.Index(fields=['unsubscribed']),
+        ]
