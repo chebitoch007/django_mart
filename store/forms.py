@@ -5,6 +5,7 @@ from .models import Product, Category, ProductImage, Review
 from django.core.exceptions import ValidationError
 import re
 from django.forms import inlineformset_factory
+from .validators import validate_product_name
 
 class CategoryChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
@@ -44,7 +45,10 @@ class MultipleFileField(forms.FileField):
 
 
 class ProductForm(forms.ModelForm):
-
+    name = forms.CharField(
+        validators=[validate_product_name],
+        help_text="5-100 characters (letters, numbers, spaces, and common punctuation)"
+    )
     category = CategoryChoiceField(
         queryset=Category.objects.all().select_related('parent'),
         widget=forms.Select(attrs={'style': 'width: 300px;'})
@@ -58,11 +62,8 @@ class ProductForm(forms.ModelForm):
 
     class Meta:
         model = Product
-        fields = [
-            'category', 'name', 'description', 'short_description',
-            'price', 'discount_price', 'image', 'stock', 'available',
-            'featured'
-        ]
+        fields = ['name', 'category', 'description', 'short_description',
+                 'price', 'discount_price', 'stock', 'available', 'featured']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4}),
             'short_description': forms.Textarea(attrs={'rows': 2}),
@@ -71,8 +72,7 @@ class ProductForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Only show active categories
-        self.fields['category'].queryset = Category.objects.filter(is_active=True)
+        self.fields['category'].queryset = Category.objects.filter(parent__isnull=False)
 
         # Add Bootstrap classes to form fields
         for field_name, field in self.fields.items():

@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Search Header -->
+    <!-- Search Header with Visual Impact -->
     <div class="mb-8">
         <nav class="mb-4">
             <ol class="flex space-x-2 text-sm text-gray-400">
@@ -15,64 +15,66 @@
 
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-                <h1 class="orbitron text-3xl text-white mb-2">Search Results</h1>
-                <p class="text-gray-400">Showing results for: <span class="text-accent">"{{ query }}"</span></p>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Search Results</h1>
+                <p class="text-gray-600">Showing results for: <span class="text-blue-600 font-medium">"{{ query }}"</span></p>
             </div>
-            <span class="bg-accent text-white px-4 py-2 rounded-full orbitron">
+            <span class="bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-medium">
                 {{ products.paginator.count }} Items
             </span>
         </div>
     </div>
 
-    <!-- Search Form -->
+    <!-- Search Form - Enhanced Design -->
     <form method="get" action="{% url 'store:product_search' %}" class="mb-8">
-        <div class="relative">
+        <div class="relative max-w-2xl mx-auto">
             <input type="text"
                    name="q"
                    value="{{ query }}"
-                   placeholder="Search gaming gear..."
-                   class="w-full pl-12 pr-4 py-3 rounded-full bg-dark-secondary border border-gray-700 text-white focus:outline-none focus:border-primary"
+                   placeholder="Search our products..."
+                   class="w-full pl-12 pr-4 py-4 rounded-xl bg-white border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
                    aria-label="Search products">
-            <button type="submit" class="absolute left-3 top-3 text-gray-400 hover:text-primary">
+            <button type="submit" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-600">
                 <i class="fas fa-search text-xl"></i>
             </button>
         </div>
     </form>
 
-    <!-- Search Results -->
+    <!-- Search Results - Modern Grid Layout -->
     {% if products %}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {% for product in products %}
-        <div class="product-card bg-dark-secondary rounded-xl p-4 shadow-lg hover:shadow-xl transition-all">
+        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
             <div class="relative">
-                <a href="{{ product.get_absolute_url }}" class="block overflow-hidden rounded-lg">
-                    {% if product.image %}
-                    <img src="{{ product.image.url }}"
-                         alt="{{ product.name }}"
-                         class="w-full h-48 object-contain transform hover:scale-105 transition-transform">
-                    {% else %}
-                    <div class="w-full h-48 bg-gray-800 flex items-center justify-center rounded-lg">
-                        <i class="fas fa-gamepad text-3xl text-gray-500"></i>
+                <a href="{{ product.get_absolute_url }}" class="block overflow-hidden">
+                    <div class="relative aspect-square bg-gray-100">
+                        {% if product.image %}
+                        <img src="{{ product.image.url }}"
+                             alt="{{ product.name }}"
+                             class="w-full h-full object-contain transition-transform duration-500 hover:scale-110">
+                        {% else %}
+                        <div class="w-full h-full bg-gray-100 flex items-center justify-center">
+                            <i class="fas fa-box text-gray-300 text-4xl"></i>
+                        </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
                 </a>
                 {% if product.discount_price %}
-                <span class="absolute top-2 right-2 bg-accent text-white px-3 py-1 rounded-full text-sm orbitron">
+                <span class="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
                     SALE
                 </span>
                 {% endif %}
             </div>
 
-            <div class="mt-4">
+            <div class="p-5">
                 <a href="{{ product.get_absolute_url }}" class="block">
-                    <h3 class="orbitron text-white text-lg hover:text-primary transition-colors">
-                        {{ product.name|truncatechars:40 }}
+                    <h3 class="font-bold text-gray-900 text-lg mb-2 hover:text-blue-600 transition-colors line-clamp-2">
+                        {{ product.name }}
                     </h3>
                 </a>
 
                 <div class="flex items-center justify-between mt-3">
                     <div class="space-y-1">
-                        <p class="text-xl text-primary font-bold">
+                        <p class="text-xl text-blue-600 font-bold">
                             KES {{ product.get_display_price|intcomma }}
                         </p>
                         {% if product.discount_price %}
@@ -81,17 +83,17 @@
                         </p>
                         {% endif %}
                     </div>
-                    <span class="flex items-center text-sm text-gray-400">
+                    <span class="flex items-center text-sm text-gray-500">
                         <i class="fas fa-star text-yellow-400 mr-1"></i>
                         {{ product.rating|default:"4.5" }}
                     </span>
                 </div>
 
-                <button class="w-full mt-4 bg-primary hover:bg-primary-dark text-white py-2 rounded-lg orbitron transition-colors
+                <button class="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white py-3 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2
                             {% if product.stock <= 0 %}opacity-50 cursor-not-allowed{% endif %}"
                         {% if product.stock <= 0 %}disabled{% endif %}>
                     {% if product.stock > 0 %}
-                    <i class="fas fa-cart-plus mr-2"></i>Add to Cart
+                    <i class="fas fa-shopping-cart"></i> Add to Cart
                     {% else %}
                     Out of Stock
                     {% endif %}
@@ -101,41 +103,43 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="text-center py-12">
-        <div class="text-gray-400 text-6xl mb-4">
+    <div class="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div class="text-blue-500 text-6xl mb-4">
             <i class="fas fa-search-minus"></i>
         </div>
-        <h3 class="orbitron text-white text-xl mb-2">No Matching Products Found</h3>
-        <p class="text-gray-400 mb-4">Try different search terms or browse our collection</p>
+        <h3 class="text-2xl font-bold text-gray-900 mb-2">No Matching Products Found</h3>
+        <p class="text-gray-600 max-w-md mx-auto mb-6">
+            Try different search terms or browse our collection
+        </p>
         <a href="{% url 'store:product_list' %}"
-           class="inline-block bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg transition-colors">
+           class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors shadow-md hover:shadow-lg">
             Browse All Products
         </a>
     </div>
     {% endif %}
 
-    <!-- Pagination -->
+    <!-- Enhanced Pagination -->
     {% if products.paginator.num_pages > 1 %}
-    <div class="mt-8 flex justify-center">
-        <nav class="inline-flex space-x-2">
+    <div class="mt-12 flex justify-center">
+        <nav class="inline-flex space-x-1">
             {% if products.has_previous %}
             <a href="?q={{ query }}&page={{ products.previous_page_number }}"
-               class="pagination-item hover:bg-gray-700">
+               class="pagination-item hover:bg-gray-100">
                 <i class="fas fa-chevron-left"></i>
             </a>
             {% endif %}
 
             {% for num in products.paginator.page_range %}
                 {% if products.number == num %}
-                <span class="pagination-item bg-primary text-white">{{ num }}</span>
+                <span class="pagination-item bg-blue-600 text-white">{{ num }}</span>
                 {% else %}
-                <a href="?q={{ query }}&page={{ num }}" class="pagination-item hover:bg-gray-700">{{ num }}</a>
+                <a href="?q={{ query }}&page={{ num }}" class="pagination-item hover:bg-gray-100">{{ num }}</a>
                 {% endif %}
             {% endfor %}
 
             {% if products.has_next %}
             <a href="?q={{ query }}&page={{ products.next_page_number }}"
-               class="pagination-item hover:bg-gray-700">
+               class="pagination-item hover:bg-gray-100">
                 <i class="fas fa-chevron-right"></i>
             </a>
             {% endif %}
@@ -148,11 +152,26 @@
 {% block extra_css %}
 <style>
 .pagination-item {
-    @apply w-10 h-10 flex items-center justify-center rounded-lg bg-gray-800 text-gray-300 transition-colors;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    color: #4b5563;
+    transition: all 0.2s ease;
 }
 
-.product-card {
-    @apply transition-all duration-300 hover:-translate-y-1;
+.pagination-item:hover {
+    background-color: #f3f4f6;
+}
+
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 </style>
 {% endblock %}

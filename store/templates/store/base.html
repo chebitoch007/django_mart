@@ -29,6 +29,7 @@
             --color-success: #10b981;
             --color-danger: #ef4444;
             --color-purple: #a259ff;
+            --transition-default: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
         * {
@@ -62,7 +63,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            transition: all 0.3s ease;
+            transition: var(--transition-default);
         }
 
         .amazon-nav.scrolled {
@@ -124,7 +125,7 @@
             border-radius: 3px;
             cursor: pointer;
             margin-right: 0.5rem;
-            transition: all 0.2s ease;
+            transition: var(--transition-default);
         }
 
         .nav-location:hover {
@@ -187,7 +188,7 @@
             border-radius: 3px;
             color: white;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: var(--transition-default);
         }
 
         .nav-link-box:hover {
@@ -213,7 +214,7 @@
             color: white;
             cursor: pointer;
             position: relative;
-            transition: all 0.2s ease;
+            transition: var(--transition-default);
         }
 
         .cart-box:hover {
@@ -261,7 +262,7 @@
             cursor: pointer;
             border: 1px solid transparent;
             border-radius: 3px;
-            transition: all 0.2s ease;
+            transition: var(--transition-default);
             white-space: nowrap;
         }
 
@@ -282,7 +283,7 @@
             border: 1px solid transparent;
             border-radius: 3px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: var(--transition-default);
             white-space: nowrap;
         }
 
@@ -325,7 +326,7 @@
             padding: 1rem;
             border-radius: 8px;
             background: rgba(255, 255, 255, 0.05);
-            transition: all 0.3s ease;
+            transition: var(--transition-default);
         }
 
         .mobile-category:hover {
@@ -399,7 +400,7 @@
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: var(--transition-default);
         }
 
         .product-card:hover {
@@ -553,7 +554,7 @@
             justify-content: center;
             color: white;
             font-size: 1.2rem;
-            transition: all 0.3s ease;
+            transition: var(--transition-default);
         }
 
         .social-icon:hover {
@@ -584,7 +585,7 @@
             padding: 10px 0;
             color: #94a3b8;
             text-decoration: none;
-            transition: all 0.3s ease;
+            transition: var(--transition-default);
             position: relative;
             padding-left: 24px;
         }
@@ -620,7 +621,7 @@
             border-radius: 8px;
             color: white;
             font-size: 1rem;
-            transition: all 0.3s ease;
+            transition: var(--transition-default);
         }
 
         .newsletter-input:focus {
@@ -641,7 +642,7 @@
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: var(--transition-default);
         }
 
         .newsletter-button:hover {
@@ -687,7 +688,7 @@
             justify-content: center;
             color: white;
             font-size: 1.4rem;
-            transition: all 0.3s ease;
+            transition: var(--transition-default);
         }
 
         .payment-icon:hover {
@@ -730,7 +731,7 @@
             cursor: pointer;
             opacity: 0;
             transform: translateY(20px);
-            transition: all 0.3s ease;
+            transition: var(--transition-default);
             z-index: 99;
             box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
         }
@@ -881,7 +882,7 @@
 
         /* Premium hover effects */
         .premium-hover {
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transition: var(--transition-default);
         }
 
         .premium-hover:hover {
@@ -896,7 +897,7 @@
         <!-- Top Row -->
         <div class="nav-top-row">
             <!-- ASAI Logo -->
-            <a href="{% url 'store:home' %}" class="nav-logo">
+            <a href="{% url 'store:home' %}" class="nav-logo" aria-label="ASAI Home">
                 <div class="asai-logo">
                     <div class="asai-text">ASAI</div>
                     <div class="controller-icons">
@@ -908,16 +909,16 @@
                 </div>
             </a>
 
-            <div class="nav-location premium-hover">
-                <i class="fas fa-map-marker-alt mr-1"></i>
+            <div class="nav-location premium-hover" aria-label="Delivery Location">
+                <i class="fas fa-map-marker-alt mr-1" aria-hidden="true"></i>
                 <div>
                     <div class="nav-link-top">Deliver to</div>
                     <div class="nav-link-bottom">Nairobi, Kenya</div>
                 </div>
             </div>
 
-            <form class="search-container" action="{% url 'store:product_search' %}" method="GET">
-                <select class="search-select" name="category">
+            <form class="search-container" action="{% url 'store:product_search' %}" method="GET" role="search">
+                <select class="search-select" name="category" aria-label="Select Category">
                     <option value="">All Categories</option>
                     {% for category in categories|slice:":5" %}
                     <option value="{{ category.slug }}">{{ category.name }}</option>
@@ -928,32 +929,33 @@
                     class="search-input"
                     name="q"
                     placeholder="Search for products..."
+                    aria-label="Search products"
                 >
-                <button type="submit" class="search-button">
+                <button type="submit" class="search-button" aria-label="Search">
                     <i class="fas fa-search"></i>
                 </button>
             </form>
 
             <div class="nav-right">
                 {% if user.is_authenticated %}
-                <a href="{% url 'users:account' %}" class="nav-link-box premium-hover">
+                <a href="{% url 'users:account' %}" class="nav-link-box premium-hover" aria-label="Account">
                     <div class="nav-link-top">Hello, {{ user.first_name|default:user.username }}</div>
                     <div class="nav-link-bottom">Account & Lists</div>
                 </a>
                 {% else %}
-                <a href="{% url 'users:login' %}" class="nav-link-box premium-hover">
+                <a href="{% url 'users:login' %}" class="nav-link-box premium-hover" aria-label="Sign In">
                     <div class="nav-link-top">Hello, Sign in</div>
                     <div class="nav-link-bottom">Account & Lists</div>
                 </a>
                 {% endif %}
 
-                <a href="{% url 'orders:order_history' %}" class="nav-link-box premium-hover">
+                <a href="{% url 'orders:order_history' %}" class="nav-link-box premium-hover" aria-label="Returns and Orders">
                     <div class="nav-link-top">Returns</div>
                     <div class="nav-link-bottom">& Orders</div>
                 </a>
 
-                <a href="{% url 'cart:cart_detail' %}" class="cart-box premium-hover">
-                    <i class="fas fa-shopping-cart text-xl"></i>
+                <a href="{% url 'cart:cart_detail' %}" class="cart-box premium-hover" aria-label="Shopping Cart">
+                    <i class="fas fa-shopping-cart text-xl" aria-hidden="true"></i>
                     <div class="ml-1">
                         <div class="nav-link-bottom">Cart</div>
                     </div>
@@ -972,10 +974,10 @@
 
         <!-- Bottom Row -->
         <div class="nav-bottom-row">
-            <div class="hamburger-menu premium-hover" id="mobile-menu-toggle">
+            <button class="hamburger-menu premium-hover" id="mobile-menu-toggle" aria-expanded="false" aria-controls="mobile-menu">
                 <i class="fas fa-bars mr-2"></i>
                 <span>All</span>
-            </div>
+            </button>
 
             <div class="nav-links">
                 <a href="{% url 'store:product_list' %}?on_sale=true" class="nav-link-item premium-hover">Today's Deals</a>
@@ -989,18 +991,18 @@
     </header>
 
     <!-- Mobile Menu -->
-    <div class="mobile-menu" id="mobile-menu">
+    <div class="mobile-menu" id="mobile-menu" aria-hidden="true">
         <div class="mobile-menu-categories">
             <a href="{% url 'store:product_list' %}?on_sale=true" class="mobile-category">
-                <i class="fas fa-tag" style="color: var(--color-purple);"></i>
+                <i class="fas fa-tag" style="color: var(--color-purple);" aria-hidden="true"></i>
                 <span>Today's Deals</span>
             </a>
             <a href="{% url 'store:product_list' %}?sort=-created" class="mobile-category">
-                <i class="fas fa-box-open" style="color: #3b82f6;"></i>
+                <i class="fas fa-box-open" style="color: #3b82f6;" aria-hidden="true"></i>
                 <span>New Releases</span>
             </a>
             <a href="{% url 'store:product_list' %}?sort=-review_count" class="mobile-category">
-                <i class="fas fa-crown" style="color: #ffc107;"></i>
+                <i class="fas fa-crown" style="color: #ffc107;" aria-hidden="true"></i>
                 <span>Best Sellers</span>
             </a>
 
@@ -1010,7 +1012,7 @@
                     <img src="{{ category.image.url }}" alt="{{ category.name }}" class="w-10 h-10 object-cover rounded">
                 {% else %}
                     <div class="w-10 h-10 bg-gray-200 rounded flex items-center justify-center">
-                        <i class="fas fa-folder text-gray-500"></i>
+                        <i class="fas fa-folder text-gray-500" aria-hidden="true"></i>
                     </div>
                 {% endif %}
                 <span>{{ category.name }}</span>
@@ -1020,84 +1022,9 @@
     </div>
 
     <!-- Main Content -->
-    <main class="flex-grow container">
+    <main class="flex-grow container" id="main-content">
         {% block content %}
-        <!-- Default content (home page) -->
-        <div class="hero">
-            <div class="hero-content">
-                <h1>Premium Gaming & Tech Accessories</h1>
-                <p>Discover amazing deals on controllers, headsets, monitors, and more with fast delivery across Kenya</p>
-                <a href="{% url 'store:product_list' %}" class="btn">Shop Now</a>
-            </div>
-        </div>
 
-        <!-- Featured Products -->
-        <h2 class="text-2xl font-bold mb-4">Featured Products</h2>
-        <div class="product-grid">
-            {% for product in featured_products %}
-            <div class="product-card premium-hover">
-                <a href="{{ product.get_absolute_url }}">
-                    {% if product.image %}
-                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-img">
-                    {% else %}
-                    <div class="product-img" style="background: linear-gradient(45deg, #a78bfa, #c4b5fd);"></div>
-                    {% endif %}
-                </a>
-                <div class="product-info">
-                    <a href="{{ product.get_absolute_url }}">
-                        <h3 class="product-title">{{ product.name|truncatechars:40 }}</h3>
-                    </a>
-                    <div class="product-price">
-                        {% if product.discount_price %}
-                        <span class="text-red-600">KSh {{ product.discount_price }}</span>
-                        <span class="text-gray-500 line-through">KSh {{ product.price }}</span>
-                        {% else %}
-                        KSh {{ product.price }}
-                        {% endif %}
-                    </div>
-                    <div class="product-rating">
-                        <div class="stars">
-                            {% for i in "12345" %}
-                                {% if forloop.counter <= product.rating|floatformat:0 %}
-                                    <i class="fas fa-star"></i>
-                                {% elif forloop.counter|add:"-0.5" <= product.rating %}
-                                    <i class="fas fa-star-half-alt"></i>
-                                {% else %}
-                                    <i class="far fa-star"></i>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                        <div class="rating-count">({{ product.review_count }})</div>
-                    </div>
-                    <form action="{% url 'cart:cart_add' product.id %}" method="post">
-                        {% csrf_token %}
-                        {{ cart_product_form }}
-                        <button type="submit" class="add-to-cart">Add to Cart</button>
-                    </form>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <!-- Categories -->
-        <h2 class="text-2xl font-bold mb-4 mt-8">Browse Categories</h2>
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-            {% for category in categories|slice:":5" %}
-            <a href="{{ category.get_absolute_url }}" class="group">
-                <div class="bg-white rounded-lg shadow-md p-4 h-full flex flex-col items-center text-center group-hover:shadow-lg transition-shadow">
-                    {% if category.image %}
-                    <img src="{{ category.image.url }}" alt="{{ category.name }}" class="w-16 h-16 object-contain mb-2">
-                    {% else %}
-                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-folder text-gray-500 text-xl"></i>
-                    </div>
-                    {% endif %}
-                    <h3 class="font-medium text-gray-800 group-hover:text-blue-600">{{ category.name }}</h3>
-                    <p class="text-sm text-gray-500 mt-1">{{ category.product_count }} products</p>
-                </div>
-            </a>
-            {% endfor %}
-        </div>
         {% endblock %}
     </main>
 
@@ -1108,7 +1035,7 @@
                 <!-- Brand Section -->
                 <div class="footer-column">
                     <a href="{% url 'store:home' %}" class="footer-logo">
-                        <i class="fas fa-shopping-bag mr-2"></i>
+                        <i class="fas fa-shopping-bag mr-2" aria-hidden="true"></i>
                         <span>ASAI</span>
                     </a>
                     <p class="brand-description">
@@ -1161,6 +1088,7 @@
                             placeholder="Your email address"
                             class="newsletter-input"
                             required
+                            aria-label="Email address for newsletter"
                         >
                         <button type="submit" class="newsletter-button">Subscribe</button>
                     </form>
@@ -1172,24 +1100,24 @@
 
             <div class="copyright-section">
                 <p class="copyright-text">
-                    © 2025 ASAI. All rights reserved. Proudly serving customers in Kenya.
+                    © 2025 ASAI. All rights reserved.
                 </p>
 
                 <div class="payment-icons">
                     <div class="payment-icon">
-                        <i class="fab fa-cc-visa"></i>
+                        <i class="fab fa-cc-visa" aria-hidden="true"></i>
                     </div>
                     <div class="payment-icon">
-                        <i class="fab fa-cc-mastercard"></i>
+                        <i class="fab fa-cc-mastercard" aria-hidden="true"></i>
                     </div>
                     <div class="payment-icon">
-                        <i class="fab fa-cc-paypal"></i>
+                        <i class="fab fa-cc-paypal" aria-hidden="true"></i>
                     </div>
                     <div class="payment-icon">
-                        <i class="fab fa-cc-apple-pay"></i>
+                        <i class="fab fa-cc-apple-pay" aria-hidden="true"></i>
                     </div>
                     <div class="payment-icon">
-                        <i class="fab fa-cc-m-pesa"></i>
+                        <i class="fab fa-cc-m-pesa" aria-hidden="true"></i>
                     </div>
                 </div>
 
@@ -1205,43 +1133,50 @@
     </footer>
 
     <!-- Back to top button -->
-    <div class="back-to-top" id="back-to-top">
+    <button class="back-to-top" id="back-to-top" aria-label="Back to top">
         <i class="fas fa-chevron-up"></i>
-    </div>
+    </button>
 
     <script>
         // Navbar scroll effect
         window.addEventListener('scroll', function() {
             const navbar = document.querySelector('.amazon-nav');
-            if (window.scrollY > 50) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-            }
+            const scrolled = window.scrollY > 50;
+            navbar.classList.toggle('scrolled', scrolled);
 
             // Back to top button visibility
             const backToTop = document.getElementById('back-to-top');
-            if (window.scrollY > 500) {
-                backToTop.classList.add('visible');
-            } else {
-                backToTop.classList.remove('visible');
-            }
+            backToTop.classList.toggle('visible', window.scrollY > 500);
         });
 
         // Mobile menu toggle
-        document.getElementById('mobile-menu-toggle').addEventListener('click', function() {
-            document.getElementById('mobile-menu').classList.toggle('active');
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        mobileMenuToggle.addEventListener('click', function() {
+            const expanded = this.getAttribute('aria-expanded') === 'true' || false;
+            this.setAttribute('aria-expanded', !expanded);
+            mobileMenu.classList.toggle('active');
+            mobileMenu.setAttribute('aria-hidden', !expanded);
         });
 
         // Close mobile menu when clicking outside
         document.addEventListener('click', function(e) {
-            const mobileMenu = document.getElementById('mobile-menu');
-            const menuToggle = document.getElementById('mobile-menu-toggle');
-
             if (mobileMenu.classList.contains('active') &&
                 !mobileMenu.contains(e.target) &&
-                !menuToggle.contains(e.target)) {
+                !mobileMenuToggle.contains(e.target)) {
+                mobileMenuToggle.setAttribute('aria-expanded', 'false');
                 mobileMenu.classList.remove('active');
+                mobileMenu.setAttribute('aria-hidden', 'true');
+            }
+        });
+
+        // Close mobile menu when pressing Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
+                mobileMenuToggle.setAttribute('aria-expanded', 'false');
+                mobileMenu.classList.remove('active');
+                mobileMenu.setAttribute('aria-hidden', 'true');
             }
         });
 
@@ -1251,6 +1186,8 @@
                 top: 0,
                 behavior: 'smooth'
             });
+            // Focus on main content for screen reader users
+            document.getElementById('main-content').focus();
         });
 
         // Add to cart animation
@@ -1296,8 +1233,53 @@
         // Close mobile menu when a link is clicked
         document.querySelectorAll('.mobile-category').forEach(link => {
             link.addEventListener('click', function() {
-                document.getElementById('mobile-menu').classList.remove('active');
+                mobileMenuToggle.setAttribute('aria-expanded', 'false');
+                mobileMenu.classList.remove('active');
+                mobileMenu.setAttribute('aria-hidden', 'true');
             });
+        });
+
+        // Focus management for mobile menu
+        mobileMenuToggle.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.click();
+            }
+        });
+
+        // Initialize focusable elements in mobile menu
+        function initMobileMenuFocus() {
+            const focusableElements = mobileMenu.querySelectorAll('a');
+            const firstFocusable = focusableElements[0];
+            const lastFocusable = focusableElements[focusableElements.length - 1];
+
+            mobileMenu.addEventListener('keydown', function(e) {
+                if (e.key === 'Tab') {
+                    if (e.shiftKey) {
+                        if (document.activeElement === firstFocusable) {
+                            e.preventDefault();
+                            lastFocusable.focus();
+                        }
+                    } else {
+                        if (document.activeElement === lastFocusable) {
+                            e.preventDefault();
+                            firstFocusable.focus();
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize when mobile menu is active
+        mobileMenuToggle.addEventListener('click', function() {
+            if (this.getAttribute('aria-expanded') === 'true') {
+                initMobileMenuFocus();
+                // Focus first element in mobile menu
+                setTimeout(() => {
+                    const firstItem = mobileMenu.querySelector('.mobile-category');
+                    if (firstItem) firstItem.focus();
+                }, 100);
+            }
         });
     </script>
 </body>

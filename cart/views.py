@@ -56,4 +56,3 @@ def cart_update(request, product_id):
             form.save()
     return redirect('cart:detail')
 
-

@@ -1,110 +1,404 @@
-{% extends "store/base.html" %}
-{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASAI Store - Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
-{% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-b from-gray-900 to-dark-secondary min-h-screen">
-    <!-- Messages -->
-    {% if messages %}
-    <div class="mb-6 space-y-3 max-w-2xl mx-auto">
-        {% for message in messages %}
-        <div class="alert bg-primary/20 text-primary border border-primary/30 px-6 py-4 rounded-xl flex items-center backdrop-blur-sm">
-            <i class="fas fa-gamepad mr-3"></i>
-            {{ message }}
-            <button class="ml-auto text-primary/50 hover:text-primary transition-colors">
-                <i class="fas fa-times"></i>
-            </button>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .form-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .form-header {
+            background: linear-gradient(90deg, #2563eb, #1d4ed8);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .form-content {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #334155;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+            outline: none;
+        }
+
+        .password-container {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #2563eb, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 14px;
+            width: 100%;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(90deg, #1d4ed8, #1e40af);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
+        }
+
+        .form-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .remember-checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: #2563eb;
+        }
+
+        .forgot-link {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 25px;
+            color: #64748b;
+        }
+
+        .register-link a {
+            color: #2563eb;
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .brand-logo i {
+            font-size: 28px;
+        }
+
+        .brand-logo span {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .error-message {
+            color: #dc2626;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .alert {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background-color: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+
+        .alert-error {
+            background-color: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-info {
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Form Container -->
+    <div class="form-container">
+        <div class="form-header">
+            <div class="brand-logo">
+                <i class="fas fa-shopping-bag text-white"></i>
+                <span class="text-white">ASAI</span>
+            </div>
+            <h2 class="text-xl font-semibold">Sign in to your account</h2>
         </div>
-        {% endfor %}
-    </div>
-    {% endif %}
 
-    <div class="max-w-md mx-auto bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden border border-gray-700/30 relative">
-        <!-- Glowing effect -->
-        <div class="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent -z-10"></div>
+        <div class="form-content">
+            <!-- Messages Container -->
+            <div id="messages-container">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}">
+        <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+        <span>{{ message }}</span>
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>
 
-        <!-- Header -->
-        <div class="bg-gradient-to-r from-primary to-primary-dark px-6 py-6">
-            <h2 class="orbitron text-3xl text-center text-white drop-shadow-lg">
-                <i class="fas fa-space-shuttle mr-3"></i>Login
-            </h2>
-        </div>
-
-        <!-- Form -->
-        <div class="p-8 space-y-8">
-            <form method="post" class="space-y-8">
-                {% csrf_token %}
-
-                <!-- Username/Email -->
-                <div class="group relative">
-                    <label class="block text-neon-blue orbitron mb-3 text-lg">Email/Username</label>
-                    <div class="relative">
-                        <input type="text"
-                               name="username"
-                               class="w-full bg-gray-800/50 border-2 border-gray-700 rounded-xl py-4 px-6 text-white focus:border-primary focus:ring-4 focus:ring-primary/30 placeholder-gray-500 transition-all"
-                               placeholder="Enter email/username"
-                               required
-                               autofocus>
-                        <i class="fas fa-user-astronaut absolute right-6 top-5 text-gray-500 text-xl"></i>
-                    </div>
+                       <form id="login-form" method="post" action="{% url 'users:login' %}" class="space-y-6">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.GET.next }}">
+                <!-- Username/Email Field -->
+                <div class="form-group">
+                    <label for="username" class="form-label">Email or Username</label>
+                    <input type="text" name="username" id="username" class="form-input" placeholder="Enter your email or username" required>
+                    <div id="username-error" class="error-message"></div>
                 </div>
 
-                <!-- Password -->
-                <div class="group">
-                    <label class="block text-neon-blue orbitron mb-3 text-lg">Repeat Password</label>
-                    <div class="relative">
-                        <input type="password"
-                               name="password"
-                               class="w-full bg-gray-800/50 border-2 border-gray-700 rounded-xl py-4 px-6 text-white focus:border-primary focus:ring-4 focus:ring-primary/30 placeholder-gray-500 transition-all"
-                               placeholder="••••••••"
-                               required>
-                        <button type="button" class="password-toggle absolute right-6 top-5 text-gray-500 hover:text-primary text-xl transition-colors">
+                <!-- Password Field -->
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="password-container">
+                        <input type="password" name="password" id="password" class="form-input" placeholder="Enter your password" required>
+                        <button type="button" id="toggle-password" class="password-toggle">
                             <i class="fas fa-eye-slash"></i>
                         </button>
                     </div>
+                    <div id="password-error" class="error-message"></div>
                 </div>
 
-                <!-- Remember & Forgot -->
-                <div class="flex items-center justify-between">
-                    <label class="flex items-center space-x-3">
-                        <input type="checkbox"
-                               class="rounded-lg bg-gray-800 border-2 border-gray-700 text-primary focus:ring-primary/40 h-5 w-5">
-                        <span class="text-gray-400 orbitron-condensed">Remember Password</span>
+                <!-- Remember Me & Forgot Password -->
+                <div class="form-footer">
+                    <label class="remember-me">
+                        <input type="checkbox" name="remember_me" class="remember-checkbox">
+                        <span>Remember me</span>
                     </label>
-                    <a href="{% url 'users:password_reset' %}" class="text-sm text-primary hover:text-primary-light orbitron-condensed">
-                        Reset Password
-                    </a>
+                    <a href="{% url 'users:password_reset' %}" class="forgot-link">Forgot password?</a>
                 </div>
 
-                <!-- Submit -->
-                <button type="submit" class="w-full bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-white py-4 rounded-xl orbitron text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-primary/20">
-                    <i class="fas fa-sign-in-alt mr-3"></i>Login
+                <!-- Submit Button -->
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-sign-in-alt mr-2"></i> Sign In
                 </button>
-
-                <!-- Registration Link -->
-                <p class="text-center text-gray-400 orbitron-condensed mt-6">
-                    Don't have an account?
-                    <a href="{% url 'users:register' %}" class="text-primary hover:text-primary-light underline underline-offset-4">
-                        Register
-                    </a>
-                </p>
             </form>
+
+            <!-- Registration Link -->
+            <div class="register-link">
+                Don't have an account? <a href="{% url 'users:register' %}" id="register-link">Register now</a>
+            </div>
         </div>
     </div>
-</div>
-{% endblock %}
 
+    <script>
+        // Toggle password visibility
+        document.getElementById('toggle-password').addEventListener('click', function() {
+            const passwordField = document.getElementById('password');
+            const isPassword = passwordField.type === 'password';
 
-{% block extra_js %}
-<script>
-document.querySelectorAll('.password-toggle').forEach(button => {
-    button.addEventListener('click', () => {
-        const input = button.previousElementSibling;
-        const isPassword = input.type === 'password';
-        input.type = isPassword ? 'text' : 'password';
-        button.innerHTML = isPassword ?
-            '<i class="fas fa-eye"></i>' :
-            '<i class="fas fa-eye-slash"></i>';
-    });
-});
-</script>
-{% endblock %}
+            passwordField.type = isPassword ? 'text' : 'password';
+            this.innerHTML = isPassword ?
+                '<i class="fas fa-eye"></i>' :
+                '<i class="fas fa-eye-slash"></i>';
+        });
+
+        // Show messages function
+        function showMessage(text, type) {
+            const container = document.getElementById('messages-container');
+            const alert = document.createElement('div');
+
+            let iconClass, alertClass;
+            switch (type) {
+                case 'success':
+                    iconClass = 'fas fa-check-circle';
+                    alertClass = 'alert-success';
+                    break;
+                case 'error':
+                    iconClass = 'fas fa-exclamation-circle';
+                    alertClass = 'alert-error';
+                    break;
+                case 'info':
+                    iconClass = 'fas fa-info-circle';
+                    alertClass = 'alert-info';
+                    break;
+            }
+
+            alert.className = `alert ${alertClass}`;
+            alert.innerHTML = `
+                <i class="${iconClass}"></i>
+                <span>${text}</span>
+            `;
+
+            container.appendChild(alert);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 300);
+            }, 5000);
+        }
+
+        // Handle form submission
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Clear previous errors
+            document.querySelectorAll('.error-message').forEach(el => {
+                el.style.display = 'none';
+                el.textContent = '';
+            });
+
+            // Get form data
+            const formData = {
+                username: this.username.value.trim(),
+                password: this.password.value,
+                remember_me: this.remember_me.checked
+            };
+
+            // Basic client-side validation
+            let isValid = true;
+
+            if (!formData.username) {
+                showError('username', 'Please enter your email or username');
+                isValid = false;
+            }
+
+            if (!formData.password) {
+                showError('password', 'Please enter your password');
+                isValid = false;
+            } else if (formData.password.length < 8) {
+                showError('password', 'Password must be at least 8 characters');
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            // Show loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Signing in...';
+            submitBtn.disabled = true;
+
+            // Simulate API call to backend
+            setTimeout(() => {
+                // Reset button
+                submitBtn.innerHTML = originalBtnText;
+                submitBtn.disabled = false;
+
+                // For demo purposes - in real app this would be handled by Django
+                if (formData.username === 'demo@example.com' && formData.password === 'password123') {
+                    showMessage('Login successful! Redirecting to your account...', 'success');
+
+                    // Redirect after delay
+                    setTimeout(() => {
+                        // In a real app, you would redirect to the dashboard
+                        window.location.href = '/account/';
+                    }, 1500);
+                } else {
+                    showError('password', 'Invalid username or password');
+                    showMessage('Invalid credentials. Please try again.', 'error');
+                }
+            }, 1500);
+        });
+
+        // Show error message
+        function showError(fieldId, message) {
+            const errorElement = document.getElementById(`${fieldId}-error`);
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+
+        // Handle register link
+        document.getElementById('register-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = '/register/';
+        });
+
+                // ... existing JavaScript ...
+
+        // Update form submission to use Django handling
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            // Only do client-side validation
+            // Django will handle actual submission
+        });
+
+    </script>
+</body>
+</html>

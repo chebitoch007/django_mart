@@ -1,3 +1,4 @@
+import unicodedata
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Avg, Q, Count, F, ExpressionWrapper, DecimalField
@@ -28,24 +29,29 @@ SORT_OPTIONS = {
     'price_desc': '-price',
     'name': 'name',
     'rating': '-avg_rating',
-    'popular': '-review_count',
+    'popular': '-review_count_annotation',
     'newest': '-created',
     'discount': '-discount_percentage',
 }
 
 
+
 def get_sorted_products(products, sort_key):
     """Enhanced sorting with annotations for discount percentage"""
-    # Annotate with calculated fields needed for sorting
     products = products.annotate(
         avg_rating=Coalesce(Avg('reviews__rating'), 0.0),
-        review_count=Count('reviews'),
-        # FIXED: Corrected typo in discount_price field name
-        discount_percentage=ExpressionWrapper(
-            (F('price') - F('discount_price')) / F('price') * 100,
-            output_field=DecimalField()
-        ) if 'discount' in sort_key else None
+        # Rename the annotation to avoid conflict with model field
+        review_count_annotation=Count('reviews'),
     )
+
+    # Only annotate discount_percentage when needed
+    if sort_key == 'discount':  # Note: Fix typo to 'discount'
+        products = products.annotate(
+            discount_percentage=ExpressionWrapper(
+                (F('price') - F('discount_price')) / F('price') * 100,
+                output_field=DecimalField()
+            )
+        )
 
     sort_field = SORT_OPTIONS.get(sort_key, '-created')
     return products.order_by(sort_field)
@@ -175,16 +181,12 @@ def legacy_product_redirect(request, id, slug):
 def product_search(request):
     """Handle product search queries"""
     query = request.GET.get('q', '').strip()
-    products = Product.objects.none()
 
     if not query:
         messages.info(request, "Please enter a search term")
         return redirect('store:product_list')
 
-    products = Product.objects.filter(available=True).select_related('category').annotate(
-        avg_rating=Avg('reviews__rating'),
-        review_count=Count('reviews')
-    )
+    products = Product.objects.filter(available=True).select_related('category')
 
     paginator = Paginator(products, 16)
     page_number = request.GET.get('page')
@@ -462,7 +464,9 @@ def add_product(request):
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES)
         if form.is_valid():
-            product = form.save()
+            product = form.save(commit=False)
+            product.name = unicodedata.normalize('NFKC', product.name)
+            product.save()
             # Images are handled in form.save()
             messages.success(request, f'Product "{product.name}" added successfully!')
             return redirect('store:product_detail', slug=product.slug)
@@ -512,3 +516,12 @@ def delete_product(request, slug):
         return redirect('store:product_dashboard')
 
     return render(request, 'store/dashboard/delete_product.html', {'product': product})
+
+
+
+
+def custom_404(request, exception):
+    return render(request, '404.html', status=404)
+
+def custom_500(request):
+    return render(request, '500.html', status=500)

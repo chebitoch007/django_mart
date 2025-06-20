@@ -11,3 +11,4 @@ class StoreConfig(AppConfig):
         from mptt import register as mptt_register
         from .models import Category
         mptt_register(Category)
+        import store.signals

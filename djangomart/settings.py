@@ -25,6 +25,9 @@ SECRET_KEY = env('DJANGO_SECRET_KEY')
 DEBUG = env.bool('DJANGO_DEBUG', default=True)
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS')
 
+handler404 = 'store.views.custom_404'
+handler500 = 'store.views.custom_500'
+
 # ================== Security Headers ==================
 #SECURE_PROXY_SSL_HEADER = None
 SECURE_SSL_REDIRECT = False  # Redirect HTTP → HTTPS
@@ -283,8 +286,5 @@ LOGGING = {
 
 RECAPTCHA_SITE_KEY = os.getenv('RECAPTCHA_SITE_KEY', 'dev_test_key')
 RECAPTCHA_SECRET_KEY = os.getenv('RECAPTCHA_SECRET_KEY', 'dev_test_secret')
-
-
-
 
 

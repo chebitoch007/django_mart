@@ -84,7 +84,7 @@ class Product(models.Model):
     description = models.TextField()
     short_description = models.CharField(max_length=300, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    discount_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    discount_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, db_index=True )
     image = models.ImageField(upload_to='products/main/')
     stock = models.PositiveIntegerField()
     available = models.BooleanField(default=True)
