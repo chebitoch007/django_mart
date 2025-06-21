@@ -920,7 +920,7 @@
             <form class="search-container" action="{% url 'store:product_search' %}" method="GET" role="search">
                 <select class="search-select" name="category" aria-label="Select Category">
                     <option value="">All Categories</option>
-                    {% for category in categories|slice:":5" %}
+                    {% for category in categories|slice:":15" %}
                     <option value="{{ category.slug }}">{{ category.name }}</option>
                     {% endfor %}
                 </select>
@@ -949,7 +949,7 @@
                 </a>
                 {% endif %}
 
-                <a href="{% url 'orders:order_history' %}" class="nav-link-box premium-hover" aria-label="Returns and Orders">
+                <a href="{% url 'orders:history' %}" class="nav-link-box premium-hover" aria-label="Returns and Orders">
                     <div class="nav-link-top">Returns</div>
                     <div class="nav-link-bottom">& Orders</div>
                 </a>

@@ -6,7 +6,6 @@
     <title>ASAI Store - Register</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
@@ -26,37 +25,38 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             overflow: hidden;
             width: 100%;
-            max-width: 550px;
+            max-width: 500px;
         }
 
         .form-header {
             background: linear-gradient(90deg, #2563eb, #1d4ed8);
             color: white;
-            padding: 30px 20px;
+            padding: 25px 20px;
             text-align: center;
         }
 
         .form-content {
-            padding: 30px;
+            padding: 25px;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
         .form-label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: 500;
             color: #334155;
+            font-size: 14px;
         }
 
         .form-input {
             width: 100%;
-            padding: 12px 15px;
+            padding: 11px 14px;
             border: 1px solid #cbd5e1;
             border-radius: 6px;
-            font-size: 16px;
+            font-size: 15px;
             transition: all 0.3s;
         }
 
@@ -85,13 +85,14 @@
             background: linear-gradient(90deg, #2563eb, #1d4ed8);
             color: white;
             border: none;
-            padding: 14px;
+            padding: 13px;
             width: 100%;
             border-radius: 6px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
+            margin-top: 10px;
         }
 
         .btn-primary:hover {
@@ -102,8 +103,9 @@
 
         .register-link {
             text-align: center;
-            margin-top: 25px;
+            margin-top: 20px;
             color: #64748b;
+            font-size: 14px;
         }
 
         .register-link a {
@@ -121,30 +123,29 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
 
         .brand-logo i {
-            font-size: 28px;
+            font-size: 26px;
         }
 
         .brand-logo span {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 700;
             letter-spacing: -0.5px;
         }
 
         .error-message {
             color: #dc2626;
-            font-size: 14px;
+            font-size: 13px;
             margin-top: 5px;
-            display: none;
         }
 
         .alert {
             padding: 12px 15px;
             border-radius: 6px;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -169,73 +170,18 @@
             border: 1px solid #bfdbfe;
         }
 
-        .form-row {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .form-col {
-            flex: 1;
-        }
-
-        .password-strength {
-            margin-top: 8px;
-        }
-
-        .strength-bar {
-            height: 6px;
-            border-radius: 3px;
-            background-color: #e2e8f0;
-            margin-top: 5px;
-            overflow: hidden;
-        }
-
-        .strength-fill {
-            height: 100%;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        .strength-text {
-            font-size: 13px;
-            margin-top: 5px;
-        }
-
-        .requirement-list {
-            margin-top: 15px;
-            padding-left: 20px;
-            color: #64748b;
-            font-size: 14px;
-        }
-
-        .requirement {
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-        }
-
-        .requirement i {
-            margin-right: 8px;
-            font-size: 12px;
-        }
-
-        .requirement.valid {
-            color: #15803d;
-        }
-
         .terms-container {
             background-color: #f1f5f9;
             border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-            margin-bottom: 25px;
+            padding: 15px;
+            margin-top: 15px;
+            margin-bottom: 15px;
         }
 
         .terms-item {
             display: flex;
             gap: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
 
         .terms-item:last-child {
@@ -250,8 +196,9 @@
         }
 
         .terms-label {
-            font-size: 14px;
+            font-size: 13px;
             color: #334155;
+            line-height: 1.4;
         }
 
         .terms-link {
@@ -263,6 +210,16 @@
         .terms-link:hover {
             text-decoration: underline;
         }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-col {
+            flex: 1;
+        }
     </style>
 </head>
 <body>
@@ -273,61 +230,78 @@
                 <i class="fas fa-shopping-bag text-white"></i>
                 <span class="text-white">ASAI STORE</span>
             </div>
-            <h2 class="text-xl font-semibold">Create Your Account</h2>
+            <h2 class="text-lg font-semibold">Create Your Account</h2>
         </div>
 
         <div class="form-content">
             <!-- Messages Container -->
             <div id="messages-container">
-  {% if messages %}
-    {% for message in messages %}
-      <div class="alert alert-{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}">
-        <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
-        <span>{{ message }}</span>
-      </div>
-    {% endfor %}
-  {% endif %}
-</div>
+                {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}">
+                        <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
 
-            <form id="registration-form" method="post" action="{% url 'users:register' %}" class="space-y-6">
+            <form id="registration-form" method="post" action="{% url 'users:register' %}" class="space-y-5">
                 {% csrf_token %}
                 <!-- Personal Information -->
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="username" class="form-label">Username</label>
-                        <input type="text" name="username" id="username" class="form-input" placeholder="Choose a username" required>
-                        <div id="username-error" class="error-message"></div>
+                        <label for="first_name" class="form-label">First Name</label>
+                        <input type="text" name="first_name" id="first_name" class="form-input" placeholder="John" required>
                     </div>
 
                     <div class="form-col">
-                        <label for="phone" class="form-label">Phone Number</label>
-                        <input type="tel" name="phone" id="phone" class="form-input" placeholder="+2547XXXXXXXX" required>
-                        <div id="phone-error" class="error-message"></div>
+                        <label for="last_name" class="form-label">Last Name</label>
+                        <input type="text" name="last_name" id="last_name" class="form-input" placeholder="Doe" required>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="email" class="form-label">Email Address</label>
-                    <input type="email" name="email" id="email" class="form-input" placeholder="Enter your email" required>
-                    <div id="email-error" class="error-message"></div>
+                    <input type="email" name="email" id="email" class="form-input" placeholder="your@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <input type="tel" name="phone_number" id="phone" class="form-input" placeholder="+2547XXXXXXXX" required>
+                </div>
+
+                <!-- Address Information -->
+                <div class="form-group">
+                    <label for="street_address" class="form-label">Street Address</label>
+                    <input type="text" name="street_address" id="street_address" class="form-input" placeholder="123 Main Street" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="city" class="form-label">City</label>
+                        <input type="text" name="city" id="city" class="form-input" placeholder="Nairobi" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="state" class="form-label">State/Province</label>
+                        <input type="text" name="state" id="state" class="form-input" placeholder="Nairobi County" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="postal_code" class="form-label">Postal Code</label>
+                    <input type="text" name="postal_code" id="postal_code" class="form-input" placeholder="00100" required>
                 </div>
 
                 <!-- Password Fields -->
                 <div class="form-group">
                     <label for="password" class="form-label">Password</label>
                     <div class="password-container">
-                        <input type="password" name="password1" id="password" class="form-input" placeholder="Create a strong password" required>
+                        <input type="password" name="password1" id="password" class="form-input" placeholder="Create a password" required>
                         <button type="button" id="toggle-password" class="password-toggle">
                             <i class="fas fa-eye-slash"></i>
                         </button>
                     </div>
-                    <div class="password-strength">
-                        <div class="strength-bar">
-                            <div id="strength-fill" class="strength-fill"></div>
-                        </div>
-                        <div id="strength-text" class="strength-text"></div>
-                    </div>
-                    <div id="password-error" class="error-message"></div>
                 </div>
 
                 <div class="form-group">
@@ -337,32 +311,6 @@
                         <button type="button" id="toggle-confirm-password" class="password-toggle">
                             <i class="fas fa-eye-slash"></i>
                         </button>
-                    </div>
-                    <div id="confirm-password-error" class="error-message"></div>
-                </div>
-
-                <!-- Password Requirements -->
-                <div class="requirement-list">
-                    <p class="font-medium text-slate-700 mb-2">Password must contain:</p>
-                    <div class="requirement" id="req-length">
-                        <i class="fas fa-circle text-red-500"></i>
-                        <span>At least 10 characters</span>
-                    </div>
-                    <div class="requirement" id="req-upper">
-                        <i class="fas fa-circle text-red-500"></i>
-                        <span>At least one uppercase letter</span>
-                    </div>
-                    <div class="requirement" id="req-lower">
-                        <i class="fas fa-circle text-red-500"></i>
-                        <span>At least one lowercase letter</span>
-                    </div>
-                    <div class="requirement" id="req-digit">
-                        <i class="fas fa-circle text-red-500"></i>
-                        <span>At least one number</span>
-                    </div>
-                    <div class="requirement" id="req-special">
-                        <i class="fas fa-circle text-red-500"></i>
-                        <span>At least one special character</span>
                     </div>
                 </div>
 
@@ -411,227 +359,18 @@
             });
         }
 
-        // Show messages function
-        function showMessage(text, type) {
-            const container = document.getElementById('messages-container');
-            const alert = document.createElement('div');
-
-            let iconClass, alertClass;
-            switch (type) {
-                case 'success':
-                    iconClass = 'fas fa-check-circle';
-                    alertClass = 'alert-success';
-                    break;
-                case 'error':
-                    iconClass = 'fas fa-exclamation-circle';
-                    alertClass = 'alert-error';
-                    break;
-                case 'info':
-                    iconClass = 'fas fa-info-circle';
-                    alertClass = 'alert-info';
-                    break;
-            }
-
-            alert.className = `alert ${alertClass}`;
-            alert.innerHTML = `
-                <i class="${iconClass}"></i>
-                <span>${text}</span>
-            `;
-
-            container.appendChild(alert);
-
-            // Auto-remove after 5 seconds
-            setTimeout(() => {
-                alert.style.opacity = '0';
-                setTimeout(() => alert.remove(), 300);
-            }, 5000);
-        }
-
-        // Show error message
-        function showError(fieldId, message) {
-            const errorElement = document.getElementById(`${fieldId}-error`);
-            errorElement.textContent = message;
-            errorElement.style.display = 'block';
-        }
-
-        // Check password strength
-        function checkPasswordStrength(password) {
-            if (!password) return 0;
-
-            let strength = 0;
-            const requirements = {
-                length: password.length >= 10,
-                upper: /[A-Z]/.test(password),
-                lower: /[a-z]/.test(password),
-                digit: /[0-9]/.test(password),
-                special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
-            };
-
-            // Update requirement indicators
-            Object.keys(requirements).forEach(req => {
-                const element = document.getElementById(`req-${req}`);
-                if (element) {
-                    element.className = requirements[req] ?
-                        "requirement valid" : "requirement";
-                    element.querySelector('i').className = requirements[req] ?
-                        "fas fa-check-circle text-green-500" : "fas fa-circle text-red-500";
-                }
-
-                if (requirements[req]) strength += 20;
-            });
-
-            return strength;
-        }
-
-        // Update password strength UI
-        function updatePasswordStrength(password) {
-            const strength = checkPasswordStrength(password);
-            const strengthFill = document.getElementById('strength-fill');
-            const strengthText = document.getElementById('strength-text');
-
-            // Update strength bar
-            strengthFill.style.width = `${strength}%`;
-
-            // Update strength text
-            if (password.length === 0) {
-                strengthText.textContent = "";
-                strengthFill.style.backgroundColor = '#e2e8f0';
-            } else if (strength < 40) {
-                strengthText.textContent = "Weak password";
-                strengthText.style.color = "#dc2626";
-                strengthFill.style.backgroundColor = '#dc2626';
-            } else if (strength < 80) {
-                strengthText.textContent = "Medium strength";
-                strengthText.style.color = "#ca8a04";
-                strengthFill.style.backgroundColor = '#ca8a04';
-            } else {
-                strengthText.textContent = "Strong password";
-                strengthText.style.color = "#16a34a";
-                strengthFill.style.backgroundColor = '#16a34a';
-            }
-        }
-
-        // Handle form submission
-        document.getElementById('registration-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            // Clear previous errors
-            document.querySelectorAll('.error-message').forEach(el => {
-                el.style.display = 'none';
-                el.textContent = '';
-            });
-
-            // Get form data
-            const formData = {
-                username: this.username.value.trim(),
-                phone: this.phone.value.trim(),
-                email: this.email.value.trim(),
-                password: this.password.value,
-                confirmPassword: this['confirm-password'].value,
-                terms: this.terms.checked,
-                privacy: this.privacy.checked
-            };
-
-            // Client-side validation
-            let isValid = true;
-
-            if (!formData.username) {
-                showError('username', 'Please enter a username');
-                isValid = false;
-            } else if (formData.username.length < 3) {
-                showError('username', 'Username must be at least 3 characters');
-                isValid = false;
-            }
-
-            if (!formData.phone) {
-                showError('phone', 'Please enter your phone number');
-                isValid = false;
-            } else if (!/^\+254\d{9}$/.test(formData.phone)) {
-                showError('phone', 'Phone must be in format: +2547XXXXXXXX');
-                isValid = false;
-            }
-
-            if (!formData.email) {
-                showError('email', 'Please enter your email');
-                isValid = false;
-            } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-                showError('email', 'Please enter a valid email address');
-                isValid = false;
-            }
-
-            if (!formData.password) {
-                showError('password', 'Please enter a password');
-                isValid = false;
-            } else if (formData.password.length < 10) {
-                showError('password', 'Password must be at least 10 characters');
-                isValid = false;
-            }
-
-            if (!formData.confirmPassword) {
-                showError('confirm-password', 'Please confirm your password');
-                isValid = false;
-            } else if (formData.password !== formData.confirmPassword) {
-                showError('confirm-password', 'Passwords do not match');
-                isValid = false;
-            }
-
-            if (!formData.terms || !formData.privacy) {
-                showMessage('Please accept both the Terms of Service and Privacy Policy', 'error');
-                isValid = false;
-            }
-
-            if (!isValid) return;
-
-            // Show loading state
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalBtnText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Creating account...';
-            submitBtn.disabled = true;
-
-            // Simulate API call to backend
-            setTimeout(() => {
-                // Reset button
-                submitBtn.innerHTML = originalBtnText;
-                submitBtn.disabled = false;
-
-                // For demo purposes - in real app this would be handled by Django
-                showMessage('Account created successfully! Redirecting to your account...', 'success');
-
-                // Redirect after delay
-                setTimeout(() => {
-                    // In a real app, you would redirect to the account page
-                    window.location.href = '/account/';
-                }, 1500);
-            }, 1500);
-        });
-
         // Initialize on load
         document.addEventListener('DOMContentLoaded', function() {
             // Setup password toggles
             setupPasswordToggle('password', 'toggle-password');
             setupPasswordToggle('confirm-password', 'toggle-confirm-password');
 
-            // Password strength checker
-            const passwordInput = document.getElementById('password');
-            if (passwordInput) {
-                passwordInput.addEventListener('input', function() {
-                    updatePasswordStrength(this.value);
-                });
-            }
-
             // Handle login link
             document.getElementById('login-link').addEventListener('click', function(e) {
                 e.preventDefault();
-                window.location.href = '/login/';
+                window.location.href = '{% url "users:login" %}';
             });
         });
-
-        // Update form submission to use Django handling
-        document.getElementById('registration-form').addEventListener('submit', function(e) {
-            // Only do client-side validation
-            // Django will handle actual submission
-        });
-
     </script>
 </body>
 </html>

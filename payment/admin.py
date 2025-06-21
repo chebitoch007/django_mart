@@ -1,6 +1,5 @@
 from django.contrib import admin
-from .models import Payment, PaymentVerificationCode
-
+from .models import Payment, PaymentVerificationCode, PaymentMethod
 
 
 class PaymentVerificationCodeInline(admin.TabularInline):
@@ -63,3 +62,16 @@ class PaymentAdmin(admin.ModelAdmin):
         for payment in queryset:
             payment.generate_verification_code()
         self.message_user(request, f"Verification codes generated for {queryset.count()} payments")
+
+
+@admin.register(PaymentMethod)
+class PaymentMethodAdmin(admin.ModelAdmin):
+    list_display = ('user', 'card_type', 'last_4_digits', 'is_default')
+    search_fields = ('user__username', 'cardholder_name', 'last_4_digits')
+    list_filter = ('is_default', 'card_type')
+    raw_id_fields = ('user',)
+
+    def last_4_digits(self, obj):
+        return obj.last_4_digits
+
+    last_4_digits.short_description = 'Last 4 Digits'

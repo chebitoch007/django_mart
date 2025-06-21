@@ -20,6 +20,10 @@ from store.constants import CATEGORIES
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .forms import ProductForm
 
+from django.forms import inlineformset_factory
+from .models import Product, ProductVariant
+
+
 
 
 
@@ -461,18 +465,39 @@ def is_staff(user):
 @login_required
 @user_passes_test(is_staff)
 def add_product(request):
+    ImageFormSet = inlineformset_factory(
+        Product,
+        ProductImage,
+        fields=('image',),
+        extra=3,
+        can_delete=True
+    )
+
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES)
-        if form.is_valid():
+        image_formset = ImageFormSet(request.POST, request.FILES, prefix='images')
+
+        if form.is_valid() and image_formset.is_valid():
             product = form.save(commit=False)
-            product.name = unicodedata.normalize('NFKC', product.name)
             product.save()
-            # Images are handled in form.save()
-            messages.success(request, f'Product "{product.name}" added successfully!')
-            return redirect('store:product_detail', slug=product.slug)
+
+            # Save images
+            for image_form in image_formset:
+                if image_form.cleaned_data.get('image'):
+                    image = image_form.save(commit=False)
+                    image.product = product
+                    image.save()
+
+            messages.success(request, 'Product added successfully!')
+            return redirect('store:product_dashboard')
     else:
         form = ProductForm()
-    return render(request, 'store/dashboard/add_product.html', {'form': form})
+        image_formset = ImageFormSet(prefix='images', queryset=ProductImage.objects.none())
+
+    return render(request, 'store/dashboard/add_product.html', {
+        'form': form,
+        'image_formset': image_formset
+    })
 
 @login_required
 @user_passes_test(is_staff)
@@ -495,6 +520,11 @@ def edit_product(request, slug):
                 image_ids = request.POST.getlist('delete_images')
                 ProductImage.objects.filter(id__in=image_ids, product=product).delete()
 
+            # Handle new additional images
+            additional_images = request.FILES.getlist('additional_images')
+            for image_file in additional_images:
+                ProductImage.objects.create(product=product, image=image_file)
+
             messages.success(request, f'Product "{product.name}" updated successfully!')
             return redirect('store:product_detail', slug=product.slug)
     else:
@@ -504,6 +534,8 @@ def edit_product(request, slug):
         'form': form,
         'product': product
     })
+
+
 
 @login_required
 @user_passes_test(is_staff)

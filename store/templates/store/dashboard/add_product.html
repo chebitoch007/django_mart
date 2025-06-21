@@ -35,6 +35,13 @@
             background-color: #3b82f6;
             border-color: #3b82f6;
         }
+
+        input[type="file"] {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            background-color: white;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -61,36 +68,46 @@
                 </div>
             </div>
 
-            <form method="post" enctype="multipart/form-data" class="p-6" id="product-form">
+            <form method="post" action="{% url 'store:add_product' %}" enctype="multipart/form-data" class="p-6" id="product-form">
                 {% csrf_token %}
 
-{% if form.errors %}
-<div class="rounded-md bg-red-50 p-4 mb-4">
-    <div class="flex">
-        <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-            </svg>
-        </div>
-        <div class="ml-3">
-            <h3 class="text-sm font-medium text-red-800">
-                Please correct the {{ form.errors|pluralize:"error,errors" }} below
-            </h3>
-            <div class="mt-2 text-sm text-red-700">
-                <ul class="list-disc pl-5 space-y-1">
-                    {% for field in form %}
-                        {% if field.errors %}
-                            {% for error in field.errors %}
-                                <li>{{ error|escape }}</li>
-                            {% endfor %}
-                        {% endif %}
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
+                {% if form.errors or image_formset.errors %}
+                <div class="rounded-md bg-red-50 p-4 mb-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">
+                                Please correct the errors below
+                            </h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <ul class="list-disc pl-5 space-y-1">
+                                    {% for field in form %}
+                                        {% if field.errors %}
+                                            {% for error in field.errors %}
+                                                <li>{{ error|escape }}</li>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% if image_formset.errors %}
+                                        {% for form in image_formset %}
+                                            {% for field in form %}
+                                                {% for error in field.errors %}
+                                                    <li>{{ error|escape }}</li>
+                                                {% endfor %}
+                                            {% endfor %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
 
                 <div class="bg-gray-50 p-6 rounded-xl mb-6">
                     <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -110,7 +127,19 @@
                             <label for="{{ form.category.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
                                 Category *
                             </label>
-                            {{ form.category }}
+                            <select name="{{ form.category.name }}" id="{{ form.category.id_for_label }}"
+                                    class="form-control {% if form.category.errors %}border-red-500{% endif %}">
+                                {% for value, label in form.category.field.choices %}
+                                    <option value="{{ value }}" {% if value == form.category.value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.category.errors %}
+                                <div class="text-red-500 text-sm mt-1">
+                                    {{ form.category.errors }}
+                                </div>
+                            {% endif %}
                         </div>
 
                         <div class="md:col-span-2">
@@ -126,7 +155,9 @@
                                 Short Description
                             </label>
                             {{ form.short_description }}
-                            <p class="mt-1 text-sm text-gray-500">Brief description shown in product listings (max 300 characters)</p>
+                            {% if form.short_description.help_text %}
+                            <p class="mt-1 text-sm text-gray-500">{{ form.short_description.help_text }}</p>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -167,6 +198,9 @@
                                 Stock Quantity *
                             </label>
                             {{ form.stock }}
+                            {% if form.stock.help_text %}
+                            <p class="mt-1 text-sm text-gray-500">{{ form.stock.help_text }}</p>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -195,30 +229,36 @@
                         </div>
 
                         <div>
-                            <label for="id_additional_images" class="block text-sm font-medium text-gray-700 mb-2">
-                                Additional Images
-                            </label>
-                            <input type="file" name="additional_images" id="id_additional_images" multiple class="w-full px-3 py-2 border rounded-md">
-                            <p class="mt-1 text-sm text-gray-500">Upload multiple images (JPG, PNG, max 5MB each)</p>
+                            <h3 class="text-sm font-medium text-gray-700 mb-2">Additional Images</h3>
+                            {{ image_formset.management_form }}
 
-                            {% if form.instance.pk and form.instance.additional_images.exists %}
-                            <div class="mt-4">
-                                <h3 class="text-sm font-medium text-gray-700 mb-2">Current Additional Images:</h3>
-                                <div class="flex flex-wrap gap-4">
-                                    {% for image in form.instance.additional_images.all %}
-                                    <div class="flex flex-col items-center">
-                                        <div class="w-20 h-20 border rounded-md overflow-hidden">
-                                            <img src="{{ image.image.url }}" alt="Additional image" class="w-full h-full object-contain">
-                                        </div>
-                                        <div class="mt-2 flex items-center">
-                                            <input type="checkbox" name="delete_images" value="{{ image.id }}" id="delete_image_{{ image.id }}" class="rounded text-blue-600">
-                                            <label for="delete_image_{{ image.id }}" class="text-xs text-gray-700 ml-1">Delete</label>
-                                        </div>
+                            {% for image_form in image_formset %}
+                            <div class="border rounded-lg p-4 mb-4">
+                                {% if image_form.instance.pk %}
+                                <div class="flex items-center mb-3">
+                                    <div class="w-16 h-16 border rounded-md overflow-hidden mr-3">
+                                        <img src="{{ image_form.instance.image.url }}" alt="Additional image" class="w-full h-full object-contain">
                                     </div>
-                                    {% endfor %}
+                                    <div>
+                                        <label class="flex items-center">
+                                            {{ image_form.DELETE }}
+                                            <span class="ml-2 text-sm text-gray-700">Delete this image</span>
+                                        </label>
+                                        {{ image_form.id }}
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <div>
+                                    <label class="block text-sm text-gray-700 mb-1">
+                                        {% if image_form.instance.pk %}Replace Image{% else %}New Image{% endif %}
+                                    </label>
+                                    {{ image_form.image }}
                                 </div>
                             </div>
-                            {% endif %}
+                            {% endfor %}
+
+                            <p class="mt-1 text-sm text-gray-500">Upload multiple images (JPG, PNG, max 5MB each)</p>
                         </div>
                     </div>
                 </div>
@@ -237,7 +277,9 @@
                                 <label for="{{ form.available.id_for_label }}" class="font-medium text-gray-700">
                                     Product Available
                                 </label>
-                                <p class="text-gray-500 text-sm mt-1">Show this product in your store</p>
+                                {% if form.available.help_text %}
+                                <p class="text-gray-500 text-sm mt-1">{{ form.available.help_text }}</p>
+                                {% endif %}
                             </div>
                         </div>
 
@@ -249,14 +291,16 @@
                                 <label for="{{ form.featured.id_for_label }}" class="font-medium text-gray-700">
                                     Featured Product
                                 </label>
-                                <p class="text-gray-500 text-sm mt-1">Highlight on homepage</p>
+                                {% if form.featured.help_text %}
+                                <p class="text-gray-500 text-sm mt-1">{{ form.featured.help_text }}</p>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="flex justify-between items-center pt-6 border-t border-gray-200">
-                    <a href="{% url 'store:product_dashboard' %}" class="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition flex items-center">
+                    <a href="{% url 'store:add_product' %}" class="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition flex items-center">
                         <i class="fas fa-arrow-left mr-2"></i> Back to Dashboard
                     </a>
                     <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center">
@@ -270,6 +314,7 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Main image preview
         const mainImageInput = document.getElementById('id_image');
         if (mainImageInput) {
             mainImageInput.addEventListener('change', function(event) {
@@ -294,44 +339,7 @@
             });
         }
 
-        const additionalImagesInput = document.getElementById('id_additional_images');
-        if (additionalImagesInput) {
-            additionalImagesInput.addEventListener('change', function(event) {
-                const files = event.target.files;
-
-                const existingPreview = additionalImagesInput.parentElement.querySelector('.mt-4');
-                if (existingPreview) {
-                    existingPreview.remove();
-                }
-
-                if (files.length > 0) {
-                    const previewContainer = document.createElement('div');
-                    previewContainer.className = 'mt-4';
-                    previewContainer.innerHTML = `
-                        <h3 class="text-sm font-medium text-gray-700 mb-2">New Images Preview:</h3>
-                        <div class="flex flex-wrap gap-4" id="additional-images-preview"></div>
-                    `;
-                    additionalImagesInput.parentElement.appendChild(previewContainer);
-
-                    const previewDiv = document.getElementById('additional-images-preview');
-
-                    for (let i = 0; i < files.length; i++) {
-                        const file = files[i];
-                        if (file.type.startsWith('image/')) {
-                            const imgContainer = document.createElement('div');
-                            imgContainer.className = 'flex flex-col items-center';
-                            imgContainer.innerHTML = `
-                                <div class="w-20 h-20 border rounded-md overflow-hidden">
-                                    <img src="${URL.createObjectURL(file)}" alt="Preview" class="w-full h-full object-contain">
-                                </div>
-                            `;
-                            previewDiv.appendChild(imgContainer);
-                        }
-                    }
-                }
-            });
-        }
-
+        // Form submission loading state
         const form = document.getElementById('product-form');
         form.addEventListener('submit', function() {
             const submitBtn = form.querySelector('button[type="submit"]');

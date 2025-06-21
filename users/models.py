@@ -17,23 +17,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Kenyan counties list
-KENYAN_COUNTIES = [
-    ('Nairobi', 'Nairobi'), ('Mombasa', 'Mombasa'), ('Kisumu', 'Kisumu'), ('Nakuru', 'Nakuru'),
-    ('Eldoret', 'Eldoret'), ('Thika', 'Thika'), ('Malindi', 'Malindi'), ('Kitale', 'Kitale'),
-    ('Kakamega', 'Kakamega'), ('Kisii', 'Kisii'), ('Garissa', 'Garissa'), ('Wajir', 'Wajir'),
-    ('Mandera', 'Mandera'), ('Marsabit', 'Marsabit'), ('Isiolo', 'Isiolo'), ('Meru', 'Meru'),
-    ('Nyeri', 'Nyeri'), ('Embu', 'Embu'), ('Machakos', 'Machakos'), ('Kitui', 'Kitui'),
-    ('Makueni', 'Makueni'), ('Nyandarua', 'Nyandarua'), ('Nandi', 'Nandi'), ('Bomet', 'Bomet'),
-    ('Kericho', 'Kericho'), ('Bungoma', 'Bungoma'), ('Busia', 'Busia'), ('Siaya', 'Siaya'),
-    ('Homa Bay', 'Homa Bay'), ('Migori', 'Migori'), ('Kilifi', 'Kilifi'), ('Kwale', 'Kwale'),
-    ('Lamu', 'Lamu'), ('Taita Taveta', 'Taita Taveta'), ('Trans Nzoia', 'Trans Nzoia'),
-    ('Uasin Gishu', 'Uasin Gishu'), ('Elgeyo-Marakwet', 'Elgeyo-Marakwet'), ('West Pokot', 'West Pokot'),
-    ('Samburu', 'Samburu'), ('Turkana', 'Turkana'), ('Laikipia', 'Laikipia'),
-    ('Muranga', 'Muranga'), ('Kirinyaga', 'Kirinyaga'), ('Vihiga', 'Vihiga'),
-    ('Baringo', 'Baringo'), ('Narok', 'Narok')
-]
-
 
 class EncryptionManager:
     """Handles encryption/decryption of sensitive fields"""
@@ -105,11 +88,6 @@ class CustomUserManager(BaseUserManager):
         )
 
 class CustomUser(AbstractUser):
-    public_id = models.UUIDField(
-        default=uuid.uuid4,
-        editable=False,
-        unique=True
-    )
 
     # Security enhancements
     objects = CustomUserManager()
@@ -149,14 +127,30 @@ class CustomUser(AbstractUser):
     phone_verified = models.BooleanField(default=False)
     email_verified = models.BooleanField(default=False)
 
-    # Address Information
-    county = models.CharField(
-        max_length=50,
+    registration_street_address = models.CharField(
+        _('registration street address'),
+        max_length=255,
         blank=True,
-        choices=KENYAN_COUNTIES
+        null=True
     )
-    town = models.CharField(max_length=100, blank=True)
-    postal_address = models.CharField(max_length=100, blank=True)
+    registration_city = models.CharField(
+        _('registration city'),
+        max_length=100,
+        blank=True,
+        null=True
+    )
+    registration_state = models.CharField(
+        _('registration state/province'),
+        max_length=100,
+        blank=True,
+        null=True
+    )
+    registration_postal_code = models.CharField(
+        _('registration postal code'),
+        max_length=20,
+        blank=True,
+        null=True
+    )
 
     # Security/Authentication
     last_password_update = models.DateTimeField(auto_now_add=True)
@@ -233,68 +227,32 @@ class Profile(models.Model):
         on_delete=models.CASCADE,
         related_name='profile'
     )
+
     profile_image = models.ImageField(
-        upload_to='profile_pics/%Y/%m/%d/',
+        _('profile picture'),
+        upload_to='profile_pics/',
         blank=True,
-        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png'])],
-        verbose_name="Profile Picture"
+        null=True
     )
-    bio = models.TextField(blank=True, max_length=500, verbose_name="About Me")
-    email_notifications = models.BooleanField(
-        default=True,
-        verbose_name="Email Notifications"
-    )
-    sms_notifications = models.BooleanField(
-        default=False,
-        verbose_name="SMS Notifications"
-    )
+    bio = models.TextField(_('bio'), blank=True)
+    email_notifications = models.BooleanField(_('email notifications'), default=True)
+    sms_notifications = models.BooleanField(_('SMS notifications'), default=False)
     preferred_language = models.CharField(
+        _('preferred language'),
         max_length=10,
-        choices=[('en', 'English'), ('sw', 'Swahili')],
-        default='en'
+        choices=settings.LANGUAGES,
+        default=settings.LANGUAGE_CODE
     )
-    dark_mode = models.BooleanField(default=False)
-    last_updated = models.DateTimeField(auto_now=True)
-    preferences = models.JSONField(
-        default=dict,
-        blank=True,
-        verbose_name="User Preferences"
-    )
+    dark_mode = models.BooleanField(_('dark mode'), default=False)
+    two_factor_enabled = models.BooleanField(_('two factor authentication'), default=False)
+    last_updated = models.DateTimeField(_('last updated'), auto_now=True)
 
     class Meta:
-        verbose_name = "User Profile"
-        verbose_name_plural = "User Profiles"
+        verbose_name = _('profile')
+        verbose_name_plural = _('profiles')
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
-
-    def save(self, *args, **kwargs):
-        # Add automatic image resizing and optimization
-        super().save(*args, **kwargs)
-        if self.profile_image:
-            try:
-                img = Image.open(self.profile_image.path)
-                if img.mode in ('RGBA', 'P'):
-                    img = img.convert('RGB')
-
-                # Resize only if larger than 300px in any dimension
-                if img.height > 300 or img.width > 300:
-                    output_size = (300, 300)
-                    img.thumbnail(output_size, Image.LANCZOS)
-
-                    # Save optimized image
-                    img.save(self.profile_image.path, 'JPEG', quality=85, optimize=True)
-            except Exception as e:
-                logger.error(f"Error processing profile image: {e}")
-
-    @property
-    def notification_channels(self):
-        channels = []
-        if self.email_notifications:
-            channels.append('email')
-        if self.sms_notifications and self.user.phone_verified:
-            channels.append('sms')
-        return channels
 
 
 class PasswordHistory(models.Model):
@@ -313,143 +271,53 @@ class PasswordHistory(models.Model):
 
 
 class Address(models.Model):
+    ADDRESS_TYPES = (
+        ('home', 'Home'),
+        ('work', 'Work'),
+        ('other', 'Other'),
+    )
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='addresses'
     )
-    street_address = models.CharField(max_length=255)
-    city = models.CharField(max_length=100)
-    state = models.CharField(max_length=100, blank=True)
-    postal_code = models.CharField(max_length=20)
-    country = CountryField(default='KE')
-    is_default = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    # Address metadata
+    nickname = models.CharField(_('nickname'), max_length=50, blank=True)
     address_type = models.CharField(
-        max_length=20,
-        choices=[('home', 'Home'), ('work', 'Work'), ('other', 'Other')],
+        _('address type'),
+        max_length=10,
+        choices=ADDRESS_TYPES,
         default='home'
     )
-    notes = models.TextField(blank=True, max_length=500)
+    full_name = models.CharField(_('full name'), max_length=100)
+    street_address = models.CharField(_('street address'), max_length=255)
+    city = models.CharField(_('city'), max_length=100)
+    state = models.CharField(_('state/province'), max_length=100)
+    postal_code = models.CharField(_('postal code'), max_length=20)
+    country = models.CharField(_('country'), max_length=50, default='Kenya')
+    phone = models.CharField(
+        _('phone number'),
+        max_length=17,
+        validators=[CustomUser.phone_regex],
+        blank=True
+    )
+    is_default = models.BooleanField(_('default address'), default=False)
+    created = models.DateTimeField(_('created at'), auto_now_add=True)
+    updated = models.DateTimeField(_('updated at'), auto_now=True)
 
     class Meta:
-        verbose_name_plural = "Addresses"
-        ordering = ['-is_default', '-created_at']
-        unique_together = ('user', 'street_address', 'postal_code')
+        verbose_name = _('address')
+        verbose_name_plural = _('addresses')
+        ordering = ['-is_default', '-created']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'nickname'],
+                name='unique_address_nickname'
+            )
+        ]
 
     def __str__(self):
-        return f"{self.street_address}, {self.city}, {self.country.name}"
-
-    def clean(self):
-        """Ensure only one default address per user"""
-        if self.is_default:
-            # Check if another default exists
-            existing_default = Address.objects.filter(
-                user=self.user,
-                is_default=True
-            ).exclude(pk=self.pk).exists()
-
-            if existing_default:
-                raise ValidationError(
-                    _('User already has a default address'),
-                    code='duplicate_default'
-                )
-
-    def save(self, *args, **kwargs):
-        self.clean()
-        super().save(*args, **kwargs)
-
-
-class PaymentMethod(models.Model):
-    """Secure payment method storage with encryption"""
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='payment_methods'
-    )
-    # Encrypted card details
-    encrypted_card_number = models.CharField(max_length=255)
-    encrypted_expiry_date = models.CharField(max_length=255)
-    encrypted_cvv = models.CharField(max_length=255)
-    cardholder_name = models.CharField(max_length=100)
-    is_default = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    # Card metadata
-    card_type = models.CharField(
-        max_length=20,
-        choices=[('visa', 'Visa'), ('mastercard', 'MasterCard'),
-                 ('amex', 'American Express'), ('other', 'Other')]
-    )
-    last_4_digits = models.CharField(max_length=4, editable=False)
-    expiration_month = models.PositiveIntegerField(editable=False)
-    expiration_year = models.PositiveIntegerField(editable=False)
-
-    # Audit fields
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        verbose_name_plural = "Payment Methods"
-        ordering = ['-is_default', '-created_at']
-
-    def __str__(self):
-        return f"{self.card_type} ending in {self.last_4_digits}"
-
-    def save(self, *args, **kwargs):
-        # Encrypt sensitive data before saving
-        if not self.pk:  # Only on creation
-            self.last_4_digits = self.encrypted_card_number[-4:]
-
-            # Parse expiration date
-            expiry_date = self.encrypted_expiry_date
-            self.expiration_month = int(expiry_date[:2])
-            self.expiration_year = int(expiry_date[3:])
-
-            # Encrypt all sensitive data
-            encryptor = EncryptionManager()
-            self.encrypted_card_number = encryptor.encrypt(self.encrypted_card_number)
-            self.encrypted_expiry_date = encryptor.encrypt(self.encrypted_expiry_date)
-            self.encrypted_cvv = encryptor.encrypt(self.encrypted_cvv)
-
-        super().save(*args, **kwargs)
-
-    def get_decrypted_card_number(self):
-        """Decrypt card number for processing"""
-        encryptor = EncryptionManager()
-        return encryptor.decrypt(self.encrypted_card_number)
-
-    def get_decrypted_expiry_date(self):
-        """Decrypt expiry date for processing"""
-        encryptor = EncryptionManager()
-        return encryptor.decrypt(self.encrypted_expiry_date)
-
-    def get_decrypted_cvv(self):
-        """Decrypt CVV for processing (use with extreme caution)"""
-        encryptor = EncryptionManager()
-        return encryptor.decrypt(self.encrypted_cvv)
-
-    def clean(self):
-        """Validate payment method data"""
-        if self.is_default:
-            # Check if another default exists
-            existing_default = PaymentMethod.objects.filter(
-                user=self.user,
-                is_default=True
-            ).exclude(pk=self.pk).exists()
-
-            if existing_default:
-                raise ValidationError(
-                    _('User already has a default payment method'),
-                    code='duplicate_default'
-                )
-
-    def save(self, *args, **kwargs):
-        self.clean()
-        super().save(*args, **kwargs)
+        return f"{self.full_name}, {self.street_address}, {self.city}"
 
 
 class ActivityLog(models.Model):

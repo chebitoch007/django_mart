@@ -46,7 +46,7 @@ class Category(MPTTModel):  # Change from models.Model to MPTTModel
     def __str__(self):
         # Use mptt_level instead of level
         if self.parent:
-            return f'{"-" * self.mptt_level} {self.name}'
+            return f'{"-" * self.mptt_level} {self.name}' if self.parent else self.name
         return self.name
 
     class Meta:
@@ -154,6 +154,17 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f"Image for {self.product.name}"
+
+
+class ProductVariant(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
+    size = models.CharField(max_length=20, blank=True)
+    color = models.CharField(max_length=50, blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.product.name} - {self.color} {self.size}"
 
 
 class Review(models.Model):

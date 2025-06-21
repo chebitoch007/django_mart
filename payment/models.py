@@ -1,11 +1,117 @@
 from django.db import models, transaction
-from django.conf import settings
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.utils import timezone
 import secrets
 from .constants import PAYMENT_METHODS, CURRENCY_CHOICES
-from django.core.validators import FileExtensionValidator
-from PIL import Image
+
+from django.conf import settings
+from cryptography.fernet import Fernet
+import logging
+import uuid
+
+logger = logging.getLogger(__name__)
+
+
+class EncryptionManager:
+    """Handles encryption/decryption of sensitive fields"""
+    def __init__(self):
+        self.cipher = Fernet(settings.FIELD_ENCRYPTION_KEY)
+
+    def encrypt(self, value):
+        return self.cipher.encrypt(value.encode()).decode()
+
+    def decrypt(self, encrypted_value):
+        return self.cipher.decrypt(encrypted_value.encode()).decode()
+
+class PaymentMethod(models.Model):
+    """Secure payment method storage with encryption"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='payment_app_payment_methods'
+    )
+    # Encrypted card details
+    encrypted_card_number = models.CharField(max_length=255)
+    encrypted_expiry_date = models.CharField(max_length=255)
+    encrypted_cvv = models.CharField(max_length=255)
+    cardholder_name = models.CharField(max_length=100)
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    # Card metadata
+    card_type = models.CharField(
+        max_length=20,
+        choices=[('visa', 'Visa'), ('mastercard', 'MasterCard'),
+                 ('amex', 'American Express'), ('other', 'Other')]
+    )
+    last_4_digits = models.CharField(max_length=4, editable=False)
+    expiration_month = models.PositiveIntegerField(editable=False)
+    expiration_year = models.PositiveIntegerField(editable=False)
+
+    # Audit fields
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name_plural = "Payment Methods"
+        ordering = ['-is_default', '-created_at']
+
+    def __str__(self):
+        return f"{self.card_type} ending in {self.last_4_digits}"
+
+    def save(self, *args, **kwargs):
+        # Encrypt sensitive data before saving
+        if not self.pk:  # Only on creation
+            self.last_4_digits = self.encrypted_card_number[-4:]
+
+            # Parse expiration date
+            expiry_date = self.encrypted_expiry_date
+            self.expiration_month = int(expiry_date[:2])
+            self.expiration_year = int(expiry_date[3:])
+
+            # Encrypt all sensitive data
+            encryptor = EncryptionManager()
+            self.encrypted_card_number = encryptor.encrypt(self.encrypted_card_number)
+            self.encrypted_expiry_date = encryptor.encrypt(self.encrypted_expiry_date)
+            self.encrypted_cvv = encryptor.encrypt(self.encrypted_cvv)
+
+        super().save(*args, **kwargs)
+
+    def get_decrypted_card_number(self):
+        """Decrypt card number for processing"""
+        encryptor = EncryptionManager()
+        return encryptor.decrypt(self.encrypted_card_number)
+
+    def get_decrypted_expiry_date(self):
+        """Decrypt expiry date for processing"""
+        encryptor = EncryptionManager()
+        return encryptor.decrypt(self.encrypted_expiry_date)
+
+    def get_decrypted_cvv(self):
+        """Decrypt CVV for processing (use with extreme caution)"""
+        encryptor = EncryptionManager()
+        return encryptor.decrypt(self.encrypted_cvv)
+
+    def clean(self):
+        """Validate payment method data"""
+        if self.is_default:
+            # Check if another default exists
+            existing_default = PaymentMethod.objects.filter(
+                user=self.user,
+                is_default=True
+            ).exclude(pk=self.pk).exists()
+
+            if existing_default:
+                raise ValidationError(
+                    _('User already has a default payment method'),
+                    code='duplicate_default'
+                )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+
 
 class Payment(models.Model):
     STATUS_CHOICES = (

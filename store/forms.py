@@ -9,7 +9,8 @@ from .validators import validate_product_name
 
 class CategoryChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
-        depth = self.get_depth(obj)
+        # FIX: Use mptt_level instead of level
+        depth = obj.mptt_level if hasattr(obj, 'mptt_level') else 0
         return f"{'—' * depth} {obj.name}"
 
     def get_depth(self, obj, depth=0):
@@ -62,8 +63,11 @@ class ProductForm(forms.ModelForm):
 
     class Meta:
         model = Product
-        fields = ['name', 'category', 'description', 'short_description',
-                 'price', 'discount_price', 'stock', 'available', 'featured']
+        fields = [
+            'name', 'category', 'description', 'short_description',
+            'price', 'discount_price', 'stock', 'image',
+            'available', 'featured'
+        ]
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4}),
             'short_description': forms.Textarea(attrs={'rows': 2}),
@@ -72,7 +76,7 @@ class ProductForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['category'].queryset = Category.objects.filter(parent__isnull=False)
+        self.fields['category'].queryset = Category.objects.all()
 
         # Add Bootstrap classes to form fields
         for field_name, field in self.fields.items():
@@ -80,6 +84,8 @@ class ProductForm(forms.ModelForm):
                 field.widget.attrs['class'] = 'form-control'
             if field_name in ['available', 'featured']:
                 field.widget.attrs['class'] = 'form-check-input'
+            if self.instance and self.instance.pk:
+                self.fields['image'].required = False
 
     def clean_price(self):
         price = self.cleaned_data.get('price')
@@ -97,14 +103,15 @@ class ProductForm(forms.ModelForm):
 
     def clean_name(self):
         name = self.cleaned_data.get('name')
-        if not re.match(r'^[\w\s-]{5,100}$', name):
+        if not re.match(r'^[\w\s\-,.()]{5,100}$', name):
             raise ValidationError(
-                "Product name must be 5-100 characters long and can only contain letters, numbers, spaces, and hyphens."
+                "Product name must be 5-100 characters long and can only contain letters, "
+                "numbers, spaces, hyphens, commas, periods, and parentheses."
             )
         return name
 
     def clean_additional_images(self):
-        files = self.cleaned_data.get('additional_images', [])
+        files = self.files.getlist('additional_images') if 'additional_images' in self.files else []
         for file in files:
             if file.size > 5 * 1024 * 1024:  # 5MB
                 raise ValidationError(f"{file.name} is too large (max 5MB)")

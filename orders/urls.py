@@ -8,6 +8,6 @@ urlpatterns = [
     path('', OrderListView.as_view(), name='order_list'),
     path('<int:pk>/', OrderDetailView.as_view(), name='order_detail'),
     path("checkout/", views.checkout, name="checkout"),
-    path('history/', views.order_history, name='order_history'),
+    path('history/', views.order_history, name='history'),
 ]
 

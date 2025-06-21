@@ -82,7 +82,9 @@ def checkout(request):
     }
     return render(request, "orders/checkout.html", context)
 
+
 @login_required
 def order_history(request):
-    orders = request.user.orders.all().order_by('-created')
-    return render(request, 'orders/order_history.html', {'orders': orders})
+    orders = Order.objects.filter(user=request.user).order_by('-created')
+    return render(request, 'orders/history.html', {'orders': orders})
+

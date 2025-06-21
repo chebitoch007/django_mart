@@ -7,6 +7,75 @@ from .models import Payment
 from orders.models import Order
 from .forms import MobileMoneyVerificationForm
 
+from django.views.generic import CreateView, UpdateView, DeleteView
+from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required
+from django.urls import reverse_lazy
+from django.contrib import messages
+from .models import PaymentMethod
+from .forms import PaymentMethodForm
+
+
+@method_decorator(login_required, name='dispatch')
+class PaymentMethodCreateView(CreateView):
+    model = PaymentMethod
+    form_class = PaymentMethodForm
+    template_name = 'payment/payment_form.html'
+    success_url = reverse_lazy('payment:payment_methods')
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        if form.cleaned_data.get('is_default'):
+            # Unset other default payment methods
+            PaymentMethod.objects.filter(user=self.request.user).update(is_default=False)
+        messages.success(self.request, 'Payment method added successfully')
+        return super().form_valid(form)
+
+@method_decorator(login_required, name='dispatch')
+class PaymentMethodUpdateView(UpdateView):
+    model = PaymentMethod
+    form_class = PaymentMethodForm
+    template_name = 'payment/payment_form.html'
+    success_url = reverse_lazy('payment:payment_methods')
+
+    def get_queryset(self):
+        return PaymentMethod.objects.filter(user=self.request.user)
+
+    def form_valid(self, form):
+        if form.cleaned_data.get('is_default'):
+            # Unset other default payment methods
+            PaymentMethod.objects.filter(user=self.request.user).exclude(pk=self.object.pk).update(is_default=False)
+        messages.success(self.request, 'Payment method updated successfully')
+        return super().form_valid(form)
+
+@method_decorator(login_required, name='dispatch')
+class PaymentMethodDeleteView(DeleteView):
+    model = PaymentMethod
+    success_url = reverse_lazy('payment:payment_methods')
+    template_name = 'payment/payment_confirm_delete.html'
+
+    def get_queryset(self):
+        return PaymentMethod.objects.filter(user=self.request.user)
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Payment method deleted successfully')
+        return super().delete(request, *args, **kwargs)
+
+@login_required
+def set_default_payment(request, pk):
+    payment = PaymentMethod.objects.get(pk=pk, user=request.user)
+    PaymentMethod.objects.filter(user=request.user).update(is_default=False)
+    payment.is_default = True
+    payment.save()
+    messages.success(request, 'Default payment method updated successfully')
+    return redirect('payment:payment_methods')
+
+@login_required
+def payment_methods(request):
+    return render(request, 'payment/payment_methods.html', {
+        'payment_methods': PaymentMethod.objects.filter(user=request.user)
+    })
+
 
 class PaymentPendingView(DetailView):
     model = Order
