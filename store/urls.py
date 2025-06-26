@@ -6,13 +6,14 @@ from .views import add_product, product_dashboard, edit_product, delete_product
 app_name = 'store'
 
 urlpatterns = [
-    # Home & Core Pages
-    path('', views.home, name='home'),
+    # Core Pages
     path('categories/', views.product_categories, name='categories'),
     path('search/', views.product_search, name='product_search'),
 
+    path('search-suggestions/', views.search_suggestions, name='search_suggestions'),
+
     # Product URLs
-    path('products/', views.product_list, name='product_list'),
+    path('', views.product_list, name='product_list'),
     path('products/category/<slug:category_slug>/', views.product_list, name='product_list_by_category'),
     path('products/<slug:slug>/', views.product_detail, name='product_detail'),
     path('products/<slug:slug>/review/', views.submit_review, name='submit_review'),

@@ -94,6 +94,16 @@ class Product(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
+    is_dropship = models.BooleanField(default=False)
+    supplier = models.CharField(max_length=100, blank=True)
+    supplier_url = models.URLField(blank=True)
+    shipping_time = models.CharField(max_length=50, default="10-20 days")
+    commission_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=15.00  # Default 15% commission
+    )
+
     class Meta:
         indexes = [
             models.Index(fields=['id', 'slug']),
@@ -144,12 +154,17 @@ class Product(models.Model):
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='additional_images')
     image = models.ImageField(upload_to='products/')
+    color = models.CharField(max_length=50, blank=True, null=True)
     alt_text = models.CharField(max_length=100, blank=True)
     is_featured = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+
     class Meta:
         ordering = ['-is_featured', 'created_at']
+        indexes = [
+            models.Index(fields=['color']),
+        ]
 
 
     def __str__(self):

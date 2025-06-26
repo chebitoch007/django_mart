@@ -42,6 +42,48 @@
             border-radius: 0.375rem;
             background-color: white;
         }
+
+        .image-preview-container {
+            position: relative;
+            display: inline-block;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .image-preview {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .preview-overlay {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .image-preview-container:hover .preview-overlay {
+            opacity: 1;
+        }
+
+        .preview-overlay i {
+            font-size: 14px;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -68,7 +110,7 @@
                 </div>
             </div>
 
-            <form method="post" action="{% url 'store:add_product' %}" enctype="multipart/form-data" class="p-6" id="product-form">
+            <form method="post" action="{% if form.instance.pk %}{% url 'store:edit_product' slug=form.instance.slug %}{% else %}{% url 'store:add_product' %}{% endif %}" enctype="multipart/form-data" class="p-6" id="product-form">
                 {% csrf_token %}
 
                 {% if form.errors or image_formset.errors %}
@@ -93,15 +135,19 @@
                                         {% endif %}
                                     {% endfor %}
 
-                                    {% if image_formset.errors %}
-                                        {% for form in image_formset %}
-                                            {% for field in form %}
-                                                {% for error in field.errors %}
-                                                    <li>{{ error|escape }}</li>
-                                                {% endfor %}
+                                    {% for form in image_formset %}
+                                        {% for field in form %}
+                                            {% for error in field.errors %}
+                                                <li>{{ error|escape }}</li>
                                             {% endfor %}
                                         {% endfor %}
-                                    {% endif %}
+
+                                        {% if form.non_field_errors %}
+                                            {% for error in form.non_field_errors %}
+                                                <li>{{ error|escape }}</li>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
                                 </ul>
                             </div>
                         </div>
@@ -232,28 +278,43 @@
                             <h3 class="text-sm font-medium text-gray-700 mb-2">Additional Images</h3>
                             {{ image_formset.management_form }}
 
-                            {% for image_form in image_formset %}
-                            <div class="border rounded-lg p-4 mb-4">
-                                {% if image_form.instance.pk %}
+                            {% for form in image_formset %}
+                            <div class="border rounded-lg p-4 mb-4 image-form" data-form-id="{{ form.prefix }}">
+                                {% if form.instance.pk %}
                                 <div class="flex items-center mb-3">
                                     <div class="w-16 h-16 border rounded-md overflow-hidden mr-3">
-                                        <img src="{{ image_form.instance.image.url }}" alt="Additional image" class="w-full h-full object-contain">
+                                        <img src="{{ form.instance.image.url }}" alt="Additional image" class="w-full h-full object-contain">
                                     </div>
                                     <div>
                                         <label class="flex items-center">
-                                            {{ image_form.DELETE }}
+                                            {{ form.DELETE }}
                                             <span class="ml-2 text-sm text-gray-700">Delete this image</span>
                                         </label>
-                                        {{ image_form.id }}
+                                        {{ form.id }}
                                     </div>
                                 </div>
                                 {% endif %}
 
                                 <div>
                                     <label class="block text-sm text-gray-700 mb-1">
-                                        {% if image_form.instance.pk %}Replace Image{% else %}New Image{% endif %}
+                                        {% if form.instance.pk %}Replace Image{% else %}Add New Image{% endif %}
                                     </label>
-                                    {{ image_form.image }}
+                                    {{ form.image }}
+
+                                    <!-- Color variant field -->
+                                    <div class="mt-2">
+                                        <label class="block text-sm text-gray-700 mb-1">
+                                            Color Variant (optional)
+                                        </label>
+                                        {{ form.color }}
+                                        <p class="mt-1 text-xs text-gray-500">Associate with a color (e.g., Red, Blue)</p>
+                                    </div>
+                                </div>
+
+                                <!-- Preview container -->
+                                <div class="preview-container mt-3" style="display: none;">
+                                    <h4 class="text-xs font-medium text-gray-700 mb-1">Preview:</h4>
+                                    <div class="flex flex-wrap" id="preview-{{ form.prefix }}"></div>
                                 </div>
                             </div>
                             {% endfor %}
@@ -273,6 +334,10 @@
                             <div class="flex items-center h-5 mt-1">
                                 {{ form.available }}
                             </div>
+
+
+
+
                             <div class="ml-3">
                                 <label for="{{ form.available.id_for_label }}" class="font-medium text-gray-700">
                                     Product Available
@@ -299,8 +364,81 @@
                     </div>
                 </div>
 
+
+                <div class="bg-gray-50 p-6 rounded-xl mb-6">
+  <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+    <i class="fab fa-alipay mr-2 text-orange-500"></i> Dropshipping Settings
+  </h2>
+
+  <div class="flex items-start mb-6">
+    <div class="flex items-center h-5 mt-1">
+      {{ form.is_dropship }}
+    </div>
+    <div class="ml-3">
+      <label for="{{ form.is_dropship.id_for_label }}" class="font-medium text-gray-700">
+        This is a dropshipping product
+      </label>
+      <p class="text-gray-500 text-sm mt-1">
+        Product will be fulfilled directly from AliExpress
+      </p>
+    </div>
+  </div>
+
+  <div id="dropship-fields" class="space-y-4">
+    <div>
+      <label for="{{ form.aliexpress_url.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+        AliExpress Product URL *
+      </label>
+      {{ form.aliexpress_url }}
+      <p class="mt-1 text-sm text-gray-500">
+        Paste the full AliExpress product URL
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <label for="{{ form.shipping_time.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+          Estimated Shipping Time
+        </label>
+        {{ form.shipping_time }}
+      </div>
+
+      <div>
+        <label for="{{ form.commission_rate.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+          Commission Rate (%)
+        </label>
+        <div class="relative">
+          {{ form.commission_rate }}
+          <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <span class="text-gray-500">%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-blue-50 p-4 rounded-lg">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <i class="fas fa-info-circle text-blue-400 text-xl"></i>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-blue-800">Dropshipping Tips</h3>
+          <div class="mt-2 text-sm text-blue-700">
+            <ul class="list-disc pl-5 space-y-1">
+              <li>Use "ePacket" shipping for faster delivery</li>
+              <li>Set commission rate between 15-30%</li>
+              <li>Order samples to test quality first</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
                 <div class="flex justify-between items-center pt-6 border-t border-gray-200">
-                    <a href="{% url 'store:add_product' %}" class="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition flex items-center">
+                    <a href="{% url 'store:product_dashboard' %}" class="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition flex items-center">
                         <i class="fas fa-arrow-left mr-2"></i> Back to Dashboard
                     </a>
                     <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center">
@@ -339,6 +477,49 @@
             });
         }
 
+        // Additional image previews
+        document.querySelectorAll('.image-form').forEach(formContainer => {
+            const imageInput = formContainer.querySelector('input[type="file"]');
+            const previewContainer = formContainer.querySelector('.preview-container');
+            const previewArea = formContainer.querySelector('.preview-container > div');
+
+            if (imageInput) {
+                imageInput.addEventListener('change', function(e) {
+                    previewArea.innerHTML = '';
+
+                    // Handle multiple files
+                    Array.from(e.target.files).forEach(file => {
+                        if (!file.type.match('image.*')) return;
+
+                        const previewContainer = document.createElement('div');
+                        previewContainer.className = 'image-preview-container';
+
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(file);
+                        img.className = 'image-preview';
+
+                        const overlay = document.createElement('div');
+                        overlay.className = 'preview-overlay';
+                        overlay.innerHTML = '<i class="fas fa-times"></i>';
+                        overlay.addEventListener('click', () => {
+                            previewContainer.remove();
+                            // Reset input value
+                            imageInput.value = '';
+                            formContainer.querySelector('.preview-container').style.display = 'none';
+                        });
+
+                        previewContainer.appendChild(img);
+                        previewContainer.appendChild(overlay);
+                        previewArea.appendChild(previewContainer);
+                    });
+
+                    if (e.target.files.length > 0) {
+                        previewContainer.style.display = 'block';
+                    }
+                });
+            }
+        });
+
         // Form submission loading state
         const form = document.getElementById('product-form');
         form.addEventListener('submit', function() {
@@ -350,6 +531,76 @@
             `;
         });
     });
+
+        document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Alpine.js component for real-time validation
+    document.getElementById('product-form').setAttribute('x-data', `{
+        productName: '${document.getElementById('id_name').value || ''}',
+        updateSlugPreview() {
+            // Generate slug preview as user types
+            if (!this.productName) return;
+
+            // Simple slug generation for preview
+            const slug = this.productName
+                .toLowerCase()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/[\s_-]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .substring(0, 50);
+
+            document.getElementById('id_slug_preview').value = slug;
+        }
+    }`);
+
+    // Real-time name validation
+    const nameInput = document.getElementById('id_name');
+    if (nameInput) {
+        const errorContainer = document.createElement('div');
+        errorContainer.className = 'text-red-500 text-sm mt-1';
+        nameInput.parentElement.appendChild(errorContainer);
+
+        nameInput.addEventListener('input', function() {
+            const value = this.value;
+            errorContainer.textContent = '';
+
+            // Length validation
+            if (value.length < 5 || value.length > 100) {
+                errorContainer.textContent = 'Name must be between 5 and 100 characters';
+                return;
+            }
+
+            // Character validation
+            const allowedChars = /^[\w\s\-\'",.()&!;:%+@#°*¢£¥€©®™]+$/;
+            if (!allowedChars.test(value)) {
+                // Find invalid characters
+                const invalidChars = [...value].filter(c => !allowedChars.test(c));
+                const uniqueInvalid = [...new Set(invalidChars)];
+                errorContainer.textContent = `Invalid characters: ${uniqueInvalid.join(', ')}`;
+            }
+        });
+    }
+
+    // Initialize slug preview
+    if (nameInput && nameInput.value) {
+        const event = new Event('input', { bubbles: true });
+        nameInput.dispatchEvent(event);
+    }
+});
+
+         // Add this code to toggle dropshipping fields
+    const dropshipCheckbox = document.getElementById('id_is_dropship');
+    const dropshipFields = document.getElementById('dropship-fields');
+
+    if (dropshipCheckbox && dropshipFields) {
+        // Set initial state
+        dropshipFields.style.display = dropshipCheckbox.checked ? 'block' : 'none';
+
+        // Toggle on change
+        dropshipCheckbox.addEventListener('change', function() {
+            dropshipFields.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+});
     </script>
 </body>
 </html>

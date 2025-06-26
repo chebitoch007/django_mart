@@ -1,57 +1,190 @@
 {% extends "store/base.html" %}
-{% load static %}
-
-{% block title %}Notification Preferences - DjangoMart{% endblock %}
-
-{% block content %}
-<div class="container mt-5">
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <h2 class="mb-4">Notification Settings</h2>
-
-            <form method="post">
-                {% csrf_token %}
-
-                <div class="mb-4">
-                    <h5 class="mb-3">Email Notifications</h5>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="email_notifications"
-                               id="email_notifications" {% if profile.email_notifications %}checked{% endif %}>
-                        <label class="form-check-label" for="email_notifications">
-                            Receive email notifications
-                        </label>
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <h5 class="mb-3">SMS Notifications</h5>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="sms_notifications"
-                               id="sms_notifications" {% if profile.sms_notifications %}checked{% endif %}>
-                        <label class="form-check-label" for="sms_notifications">
-                            Receive SMS notifications
-                        </label>
-                    </div>
-                </div>
-
-                <div class="mt-4">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save me-2"></i>Save Changes
-                    </button>
-                    <a href="{% url 'users:profile' %}" class="btn btn-outline-secondary">
-                        Cancel
-                    </a>
-                </div>
-            </form>
-        </div>
+{% block user_content %}
+<div class="user-section-header">
+    <div>
+        <h1>Notification Preferences</h1>
+        <p>Control how we communicate with you</p>
     </div>
+</div>
+
+<div class="user-section-content">
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="security-alert rounded-lg p-4 mb-4 {% if message.tags == 'success' %}bg-green-50 border-l-4 border-green-500{% elif message.tags == 'error' %}bg-red-50 border-l-4 border-red-500{% else %}bg-blue-50 border-l-4 border-blue-500{% endif %}">
+            <i class="fas {% if message.tags == 'success' %}fa-check-circle text-green-500{% elif message.tags == 'error' %}fa-exclamation-circle text-red-500{% else %}fa-info-circle text-blue-500{% endif %} mr-3"></i>
+            <div>
+                <h4 class="font-semibold {% if message.tags == 'success' %}text-green-800{% elif message.tags == 'error' %}text-red-800{% else %}text-blue-800{% endif %}">
+                    {% if message.tags == 'success' %}Success!{% elif message.tags == 'error' %}Action Required{% else %}Notice{% endif %}
+                </h4>
+                <p class="{% if message.tags == 'success' %}text-green-700{% elif message.tags == 'error' %}text-red-700{% else %}text-blue-700{% endif %}">
+                    {{ message }}
+                </p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="premium-form">
+        {% csrf_token %}
+
+        <!-- Email Notifications -->
+        <div class="user-card mb-6">
+            <div class="user-card-header">
+                <h3 class="user-card-title">
+                    <i class="fas fa-envelope text-indigo-500 mr-2"></i>
+                    Email Notifications
+                </h3>
+            </div>
+            <div class="user-card-content">
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                        <h4 class="font-medium text-gray-800">Receive email notifications</h4>
+                        <p class="text-sm text-gray-600 mt-1">Get updates on orders, promotions, and account activity</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="email_notifications" class="sr-only peer" {% if profile.email_notifications %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                </div>
+
+                <div class="mt-6">
+                    <h4 class="font-medium text-gray-800 mb-3">Email Notification Types</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex items-start">
+                            <input id="promotional" name="promotional_emails" type="checkbox" class="h-4 w-4 text-indigo-600 mt-1" {% if profile.promotional_emails %}checked{% endif %}>
+                            <label for="promotional" class="ml-3 text-gray-700">
+                                <span class="font-medium">Promotional Offers</span>
+                                <p class="text-sm text-gray-500 mt-1">Special deals and new product announcements</p>
+                            </label>
+                        </div>
+                        <div class="flex items-start">
+                            <input id="order_updates" name="order_updates" type="checkbox" class="h-4 w-4 text-indigo-600 mt-1" {% if profile.order_updates %}checked{% endif %}>
+                            <label for="order_updates" class="ml-3 text-gray-700">
+                                <span class="font-medium">Order Updates</span>
+                                <p class="text-sm text-gray-500 mt-1">Shipping notifications and delivery updates</p>
+                            </label>
+                        </div>
+                        <div class="flex items-start">
+                            <input id="account_activity" name="account_activity" type="checkbox" class="h-4 w-4 text-indigo-600 mt-1" {% if profile.account_activity %}checked{% endif %}>
+                            <label for="account_activity" class="ml-3 text-gray-700">
+                                <span class="font-medium">Account Activity</span>
+                                <p class="text-sm text-gray-500 mt-1">Password changes and security alerts</p>
+                            </label>
+                        </div>
+                        <div class="flex items-start">
+                            <input id="product_recommendations" name="product_recommendations" type="checkbox" class="h-4 w-4 text-indigo-600 mt-1" {% if profile.product_recommendations %}checked{% endif %}>
+                            <label for="product_recommendations" class="ml-3 text-gray-700">
+                                <span class="font-medium">Personalized Recommendations</span>
+                                <p class="text-sm text-gray-500 mt-1">Products we think you'll love</p>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SMS Notifications -->
+        <div class="user-card mb-6">
+            <div class="user-card-header">
+                <h3 class="user-card-title">
+                    <i class="fas fa-mobile-alt text-purple-500 mr-2"></i>
+                    SMS Notifications
+                </h3>
+            </div>
+            <div class="user-card-content">
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                        <h4 class="font-medium text-gray-800">Receive SMS notifications</h4>
+                        <p class="text-sm text-gray-600 mt-1">Get time-sensitive alerts on your mobile device</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="sms_notifications" class="sr-only peer" {% if profile.sms_notifications %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+
+                <div class="mt-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div class="flex-1">
+                            <label class="user-form-label">Mobile Number</label>
+                            <input type="tel" name="mobile_number" value="{{ profile.mobile_number|default:'' }}"
+                                   class="user-form-input" placeholder="+254 700 000000">
+                        </div>
+                        <div class="flex items-end">
+                            <button type="button" class="user-btn user-btn-secondary h-[42px]">
+                                Verify Number
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Push Notifications -->
+        <div class="user-card">
+            <div class="user-card-header">
+                <h3 class="user-card-title">
+                    <i class="fas fa-bell text-amber-500 mr-2"></i>
+                    Push Notifications
+                </h3>
+            </div>
+            <div class="user-card-content">
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-lg mb-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-amber-500 mt-1"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-amber-700">
+                                To manage push notifications, please update your preferences in our mobile app.
+                                <a href="#" class="font-medium text-amber-800 underline">Download the app</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="user-form-actions mt-8">
+            <button type="submit" class="user-btn user-btn-primary">
+                <i class="fas fa-save mr-2"></i>Save Preferences
+            </button>
+            <a href="{% url 'users:account' %}" class="user-btn user-btn-secondary">
+                Cancel
+            </a>
+        </div>
+    </form>
 </div>
 {% endblock %}
 
-{% if messages %}
-  {% for message in messages %}
-    <div class="alert alert-{{ message.tags }}">
-      {{ message }}
-    </div>
-  {% endfor %}
-{% endif %}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle advanced settings when main toggle changes
+    const emailToggle = document.querySelector('[name="email_notifications"]');
+    const smsToggle = document.querySelector('[name="sms_notifications"]');
+
+    function toggleEmailSettings() {
+        const emailSettings = document.querySelectorAll('[name="promotional_emails"], [name="order_updates"], [name="account_activity"], [name="product_recommendations"]');
+        emailSettings.forEach(setting => {
+            setting.disabled = !emailToggle.checked;
+        });
+    }
+
+    function toggleSmsSettings() {
+        const smsInput = document.querySelector('[name="mobile_number"]');
+        if (smsInput) smsInput.disabled = !smsToggle.checked;
+    }
+
+    // Initial state
+    toggleEmailSettings();
+    toggleSmsSettings();
+
+    // Add event listeners
+    if (emailToggle) emailToggle.addEventListener('change', toggleEmailSettings);
+    if (smsToggle) smsToggle.addEventListener('change', toggleSmsSettings);
+});
+</script>
+{% endblock %}

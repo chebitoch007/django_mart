@@ -1,7 +1,7 @@
 import unicodedata
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Avg, Q, Count, F, ExpressionWrapper, DecimalField
+from django.db.models import Avg, Q, Count, F, ExpressionWrapper, DecimalField, Prefetch
 from django.views.generic import TemplateView
 from .models import Category, Product, Review, NewsletterSubscription, ProductImage
 from cart.forms import CartAddProductForm
@@ -13,15 +13,18 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from .utils import send_email_async
 import logging
-from django.http import HttpRequest, request
+from django.http import HttpRequest, JsonResponse
 from django.urls import reverse
 from django.db.models.functions import Coalesce
 from store.constants import CATEGORIES
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .forms import ProductForm
 
 from django.forms import inlineformset_factory
-from .models import Product, ProductVariant
+from .forms import ProductForm, ProductImageFormSet
+
+from .aliexpress import generate_affiliate_link
+
+
 
 
 
@@ -39,12 +42,10 @@ SORT_OPTIONS = {
 }
 
 
-
 def get_sorted_products(products, sort_key):
     """Enhanced sorting with annotations for discount percentage"""
     products = products.annotate(
         avg_rating=Coalesce(Avg('reviews__rating'), 0.0),
-        # Rename the annotation to avoid conflict with model field
         review_count_annotation=Count('reviews'),
     )
 
@@ -114,7 +115,10 @@ def product_detail(request, slug):
     product = get_object_or_404(
         Product.objects
         .select_related('category')
-        .prefetch_related('additional_images', 'reviews__user'),
+        .prefetch_related(
+            Prefetch('additional_images', queryset=ProductImage.objects.all().only('image', 'color')),
+            'reviews__user'
+        ),
         slug=slug,
         available=True
     )
@@ -127,6 +131,10 @@ def product_detail(request, slug):
         category=product.category,
         available=True
     ).exclude(id=product.id).order_by('?')[:4]  # Random 4 products
+
+    if product.is_dropship:
+        affiliate_link = generate_affiliate_link(product.supplier_url)
+        context['affiliate_link'] = affiliate_link
 
     if request.method == 'POST' and request.user.is_authenticated:
         review_form = ReviewForm(request.POST)
@@ -154,27 +162,6 @@ def product_detail(request, slug):
     return render(request, 'store/product/detail.html', context)
 
 
-def home(request):
-    """Enhanced home page with featured products and categories"""
-    featured_products = Product.objects.filter(
-        available=True,
-        featured=True
-    ).select_related('category').prefetch_related('additional_images')[:8]
-
-    categories = Category.objects.filter(is_active=True).annotate(
-        _product_count_cache=Count('products', distinct=True)
-    ).order_by('name')[:5]
-
-    # Add placeholder for categories without images
-    for category in categories:
-        if not category.image:
-            category.image_placeholder = True
-
-    return render(request, 'store/home.html', {
-        'featured_products': featured_products,
-        'categories': categories
-    })
-
 
 def legacy_product_redirect(request, id, slug):
     """Redirect old product URLs to new slug-only URLs"""
@@ -183,30 +170,84 @@ def legacy_product_redirect(request, id, slug):
 
 
 def product_search(request):
-    """Handle product search queries"""
+    """Handle product search queries with proper filtering and sorting"""
     query = request.GET.get('q', '').strip()
 
     if not query:
         messages.info(request, "Please enter a search term")
         return redirect('store:product_list')
 
-    products = Product.objects.filter(available=True).select_related('category')
+    # Normalize query for better matching
+    normalized_query = unicodedata.normalize('NFKD', query).encode('ascii', 'ignore').decode('ascii')
 
+    # Create search query with Q objects
+    search_query = (
+            Q(name__icontains=query) |
+            Q(name__icontains=normalized_query) |
+            Q(description__icontains=query) |
+            Q(short_description__icontains=query) |
+            Q(category__name__icontains=query)
+    )
+
+    # Apply filters and annotations
+    products = Product.objects.filter(
+        available=True
+    ).filter(
+        search_query
+    ).select_related('category')
+
+    # Apply category filter if exists
+    category_slug = request.GET.get('category')
+    if category_slug:
+        products = products.filter(category__slug=category_slug)
+
+    # Apply price filter if exists
+    max_price = request.GET.get('max_price')
+    if max_price and max_price.isdigit():
+        products = products.filter(price__lte=max_price)
+
+    # Apply sorting
+    sort_by = request.GET.get('sort', '-created')
+    products = get_sorted_products(products, sort_by)
+
+    # Pagination
     paginator = Paginator(products, 16)
     page_number = request.GET.get('page')
 
     try:
-        products = paginator.page(page_number)
+        products_page = paginator.page(page_number)
     except PageNotAnInteger:
-        products = paginator.page(1)
+        products_page = paginator.page(1)
     except EmptyPage:
-        products = paginator.page(paginator.num_pages)
+        products_page = paginator.page(paginator.num_pages)
 
     return render(request, 'store/product/search.html', {
-        'products': products,
+        'products': products_page,
         'query': query,
-        'sort_options': SORT_OPTIONS
+        'sort_options': SORT_OPTIONS,
+        'sort_by': sort_by,
     })
+
+
+def search_suggestions(request):
+    query = request.GET.get('q', '').strip()
+    suggestions = []
+
+    if query:
+        # Get product name suggestions
+        products = Product.objects.filter(
+            Q(name__icontains=query) |
+            Q(category__name__icontains=query),
+            available=True
+        )[:5]
+
+        suggestions = [{
+            'name': p.name,
+            'url': p.get_absolute_url(),
+            'image': p.image.url if p.image else ''
+        } for p in products]
+
+    return JsonResponse({'suggestions': suggestions})
 
 
 def submit_review(request, slug):
@@ -464,35 +505,22 @@ def is_staff(user):
 
 @login_required
 @user_passes_test(is_staff)
+@login_required
+@user_passes_test(is_staff)
 def add_product(request):
-    ImageFormSet = inlineformset_factory(
-        Product,
-        ProductImage,
-        fields=('image',),
-        extra=3,
-        can_delete=True
-    )
-
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES)
-        image_formset = ImageFormSet(request.POST, request.FILES, prefix='images')
+        image_formset = ProductImageFormSet(request.POST, request.FILES, prefix='images')
 
         if form.is_valid() and image_formset.is_valid():
-            product = form.save(commit=False)
-            product.save()
-
-            # Save images
-            for image_form in image_formset:
-                if image_form.cleaned_data.get('image'):
-                    image = image_form.save(commit=False)
-                    image.product = product
-                    image.save()
-
+            product = form.save()
+            image_formset.instance = product
+            image_formset.save()
             messages.success(request, 'Product added successfully!')
             return redirect('store:product_dashboard')
     else:
         form = ProductForm()
-        image_formset = ImageFormSet(prefix='images', queryset=ProductImage.objects.none())
+        image_formset = ProductImageFormSet(prefix='images', queryset=ProductImage.objects.none())
 
     return render(request, 'store/dashboard/add_product.html', {
         'form': form,
@@ -510,32 +538,31 @@ def product_dashboard(request):
 @user_passes_test(is_staff)
 def edit_product(request, slug):
     product = get_object_or_404(Product, slug=slug)
+
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES, instance=product)
-        if form.is_valid():
-            product = form.save()
+        image_formset = ProductImageFormSet(
+            request.POST,
+            request.FILES,
+            prefix='images',
+            instance=product
+        )
 
-            # Handle image deletion
-            if 'delete_images' in request.POST:
-                image_ids = request.POST.getlist('delete_images')
-                ProductImage.objects.filter(id__in=image_ids, product=product).delete()
-
-            # Handle new additional images
-            additional_images = request.FILES.getlist('additional_images')
-            for image_file in additional_images:
-                ProductImage.objects.create(product=product, image=image_file)
+        if form.is_valid() and image_formset.is_valid():
+            form.save()
+            image_formset.save()
 
             messages.success(request, f'Product "{product.name}" updated successfully!')
             return redirect('store:product_detail', slug=product.slug)
     else:
         form = ProductForm(instance=product)
+        image_formset = ProductImageFormSet(prefix='images', instance=product)
 
     return render(request, 'store/dashboard/add_product.html', {
         'form': form,
+        'image_formset': image_formset,
         'product': product
     })
-
-
 
 @login_required
 @user_passes_test(is_staff)

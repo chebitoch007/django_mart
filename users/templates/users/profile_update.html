@@ -1,7 +1,7 @@
 {% extends "store/base.html" %}
 {% load crispy_forms_filters %}
 
-{% block title %}Update Profile - DjangoMart{% endblock %}
+{% block title %}Update Profile - ASAI{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -11,7 +11,7 @@
             {% csrf_token %}
             {{ form|crispy }}
             <button type="submit" class="btn btn-primary">Update</button>
-            <a href="{% url 'users:profile' %}" class="btn btn-secondary">Cancel</a>
+            <a href="{% url 'users:account' %}" class="btn btn-secondary">Cancel</a>
         </form>
     </div>
 </div>

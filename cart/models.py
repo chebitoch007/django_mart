@@ -6,27 +6,30 @@ User = get_user_model()
 
 
 class Cart(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_cart')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def add_product(self, product, quantity=1, update_quantity=False):
-        """
-        Add a product to the cart or update its quantity.
-        - `update_quantity=True` will set the quantity instead of adding.
-        """
         cart_item, created = self.items.get_or_create(product=product)
 
-        if created:
+        if update_quantity:
             cart_item.quantity = quantity
         else:
-            if update_quantity:
+            # Only add if the product is not already in cart
+            if created:
                 cart_item.quantity = quantity
             else:
-                cart_item.quantity += quantity
+                # Don't increment quantity if already in cart
+                return cart_item, False  # Return created flag
+
+        # Ensure quantity doesn't exceed available stock
+        if cart_item.quantity > product.stock:
+            cart_item.quantity = product.stock
 
         cart_item.save()
-        self.save()  # Update the cart's updated_at timestamp
+        return cart_item, created
+
 
     @property
     def total_price(self):
@@ -34,7 +37,10 @@ class Cart(models.Model):
 
     @property
     def total_items(self):
-        return self.items.count()
+        return sum(item.quantity for item in self.items.all())
+
+    def clear(self):
+        self.items.all().delete()
 
 
 class CartItem(models.Model):
@@ -43,6 +49,9 @@ class CartItem(models.Model):
     quantity = models.PositiveIntegerField(default=1)
     added_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        unique_together = ('cart', 'product')  # Prevent duplicate products
+
     @property
     def total_price(self):
-        return self.product.price * self.quantity
+        return self.product.get_display_price() * self.quantity

@@ -1,14 +1,17 @@
 from django import forms
 from .models import CartItem
 
-class CartAddProductForm(forms.ModelForm):
-    class Meta:
-        model = CartItem
-        fields = ['quantity']
-        widgets = {
-            'quantity': forms.NumberInput(attrs={
-                'min': 1,
-                'class': 'form-control',
-                'style': 'width: 70px;'
-            })
-        }
+class CartAddProductForm(forms.Form):
+    quantity = forms.IntegerField(
+        min_value=1,
+        initial=1,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'style': 'width: 70px;'
+        })
+    )
+    update = forms.BooleanField(
+        required=False,
+        initial=False,
+        widget=forms.HiddenInput
+    )
