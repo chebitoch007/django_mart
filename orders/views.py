@@ -1,8 +1,10 @@
 from django.http import Http404
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView, DetailView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Prefetch
+
+from cart.utils import get_cart
 from .models import Order, OrderItem
 from cart.models import Cart
 from django.contrib.auth.decorators import login_required
@@ -70,11 +72,14 @@ def get_object(self):
 
 
 def checkout(request):
-    # Get the user's cart
-    try:
-        cart = Cart.objects.get(user=request.user)
-    except Cart.DoesNotExist:
-        return redirect("cart:cart_detail")
+    cart = get_cart(request)
+
+    # Ensure cart belongs to authenticated user
+    if not cart.user or cart.user != request.user:
+        # Reassign cart to logged-in user
+        cart.user = request.user
+        cart.session_key = None
+        cart.save()
 
     # Add payment processing logic here
     context = {
@@ -87,4 +92,8 @@ def checkout(request):
 def order_history(request):
     orders = Order.objects.filter(user=request.user).order_by('-created')
     return render(request, 'orders/history.html', {'orders': orders})
+
+
+class OrderSuccessView(TemplateView):
+    template_name = 'orders/success.html'
 

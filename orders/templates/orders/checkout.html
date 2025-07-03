@@ -66,6 +66,12 @@
         margin-bottom: 20px;
     }
 
+    @media (min-width: 768px) {
+        .methods-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
     .method-radio {
         display: none;
     }
@@ -102,8 +108,36 @@
         color: #1e293b;
     }
 
-    .phone-input-group {
+    /* New styles for card payment fields */
+    .payment-fields {
+        display: none;
         margin-bottom: 25px;
+    }
+
+    .card-details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
+    .card-details-grid .card-expiry {
+        grid-column: span 1;
+    }
+
+    .card-details-grid .card-cvv {
+        grid-column: span 1;
+    }
+
+    .card-details-grid .card-name {
+        grid-column: span 2;
+    }
+
+    .card-details-grid .card-number {
+        grid-column: span 2;
+    }
+
+    .input-group {
+        margin-bottom: 15px;
     }
 
     .input-label {
@@ -113,24 +147,30 @@
         margin-bottom: 8px;
     }
 
-    .input-group {
-        display: flex;
+    .text-input {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
     }
 
-    .input-prefix {
-        padding: 12px 15px;
-        background: #f1f5f9;
-        border: 1px solid #cbd5e1;
-        border-right: none;
-        border-radius: 8px 0 0 8px;
-        font-weight: 500;
+    .text-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .phone-input-group {
+        margin-bottom: 25px;
     }
 
     .phone-input {
-        flex: 1;
+        width: 100%;
         padding: 12px 15px;
         border: 1px solid #cbd5e1;
-        border-radius: 0 8px 8px 0;
+        border-radius: 8px;
         font-size: 1rem;
         transition: all 0.3s ease;
     }
@@ -365,7 +405,7 @@
         <!-- Payment Section -->
         <div class="payment-section">
             <div class="payment-card">
-                <h2 class="payment-title">Mobile Money Payment</h2>
+                <h2 class="payment-title">Payment</h2>
 
                 <form id="paymentForm" method="post" novalidate>
                     {% csrf_token %}
@@ -374,11 +414,12 @@
                     <div class="payment-methods">
                         <div class="methods-title">Select Payment Method</div>
                         <div class="methods-grid">
+                            <!-- Mobile Money Options -->
                             <div>
                                 <input type="radio" class="method-radio" name="payment_method"
                                        id="mpesa" value="mpesa" required>
                                 <label class="method-label" for="mpesa">
-                                    <img src="{% static 'img/mpesa-logo.png' %}" alt="M-Pesa" class="method-logo">
+                                    <img src="{% static 'images/mpesa-logo.png' %}" alt="M-Pesa" class="method-logo">
                                     <div class="method-name">M-Pesa</div>
                                 </label>
                             </div>
@@ -387,26 +428,120 @@
                                 <input type="radio" class="method-radio" name="payment_method"
                                        id="airtel" value="airtel" required>
                                 <label class="method-label" for="airtel">
-                                    <img src="{% static 'img/airtel-money-logo.png' %}" alt="Airtel Money" class="method-logo">
+                                    <img src="{% static 'images/airtel-money-logo.png' %}" alt="Airtel Money" class="method-logo">
                                     <div class="method-name">Airtel Money</div>
+                                </label>
+                            </div>
+
+                            <!-- Card Payment Options -->
+                            <div>
+                                <input type="radio" class="method-radio" name="payment_method"
+                                       id="visa" value="visa" required>
+                                <label class="method-label" for="visa">
+                                    <img src="{% static 'images/visa-logo.png' %}" alt="Visa" class="method-logo">
+                                    <div class="method-name">Visa</div>
+                                </label>
+                            </div>
+
+                            <div>
+                                <input type="radio" class="method-radio" name="payment_method"
+                                       id="mastercard" value="mastercard" required>
+                                <label class="method-label" for="mastercard">
+                                    <img src="{% static 'images/mastercard-logo.png' %}" alt="Mastercard" class="method-logo">
+                                    <div class="method-name">Mastercard</div>
+                                </label>
+                            </div>
+
+                            <div>
+                                <input type="radio" class="method-radio" name="payment_method"
+                                       id="paypal" value="paypal" required>
+                                <label class="method-label" for="paypal">
+                                    <img src="{% static 'images/paypal-logo.png' %}" alt="PayPal" class="method-logo">
+                                    <div class="method-name">PayPal</div>
                                 </label>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Phone Number -->
-                    <div class="phone-input-group">
-                        <label class="input-label">Phone Number</label>
-                        <div class="input-group">
-                            <span class="input-prefix">+254</span>
-                            <input
-                                type="tel"
-                                class="phone-input"
-                                id="phoneNumber"
-                                name="phone_number"
-                                pattern="[7]{1}[0-9]{8}"
-                                placeholder="712345678"
-                                required>
+                    <!-- Mobile Money Fields -->
+                    <div id="mobileMoneyFields" class="payment-fields">
+                        <!-- Phone Number -->
+                        <div class="phone-input-group">
+                            <label class="input-label">Phone Number</label>
+                            <div class="input-group">
+                                <input
+                                    type="tel"
+                                    class="phone-input"
+                                    id="phoneNumber"
+                                    name="phone_number"
+                                    pattern="[0-9]{10}"
+                                    placeholder="712345678"
+                                    required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card Payment Fields -->
+                    <div id="cardPaymentFields" class="payment-fields">
+                        <div class="card-details-grid">
+                            <!-- Card Number -->
+                            <div class="card-number">
+                                <div class="input-group">
+                                    <label class="input-label">Card Number</label>
+                                    <input
+                                        type="text"
+                                        class="text-input"
+                                        id="cardNumber"
+                                        name="card_number"
+                                        placeholder="1234 5678 9012 3456"
+                                        pattern="[0-9\s]{13,19}"
+                                        required>
+                                </div>
+                            </div>
+
+                            <!-- Card Name -->
+                            <div class="card-name">
+                                <div class="input-group">
+                                    <label class="input-label">Name on Card</label>
+                                    <input
+                                        type="text"
+                                        class="text-input"
+                                        id="cardName"
+                                        name="card_name"
+                                        placeholder="John Doe"
+                                        required>
+                                </div>
+                            </div>
+
+                            <!-- Expiry Date -->
+                            <div class="card-expiry">
+                                <div class="input-group">
+                                    <label class="input-label">Expiry Date</label>
+                                    <input
+                                        type="text"
+                                        class="text-input"
+                                        id="cardExpiry"
+                                        name="card_expiry"
+                                        placeholder="MM/YY"
+                                        pattern="(0[1-9]|1[0-2])\/\d{2}"
+                                        required>
+                                </div>
+                            </div>
+
+                            <!-- CVV -->
+                            <div class="card-cvv">
+                                <div class="input-group">
+                                    <label class="input-label">CVV</label>
+                                    <input
+                                        type="text"
+                                        class="text-input"
+                                        id="cardCvv"
+                                        name="card_cvv"
+                                        placeholder="123"
+                                        pattern="\d{3,4}"
+                                        required>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -421,17 +556,6 @@
                             readonly>
                     </div>
 
-                    <!-- Terms -->
-                    <div class="terms-group">
-                        <input
-                            type="checkbox"
-                            class="terms-checkbox"
-                            id="terms"
-                            required>
-                        <label class="terms-label" for="terms">
-                            I agree to the <a href="#" class="terms-link">terms and conditions</a>
-                        </label>
-                    </div>
 
                     <!-- Status Messages -->
                     <div id="paymentStatus" class="payment-status info">
@@ -477,16 +601,6 @@
                     <div class="summary-value">KES {{ cart.total_price|intcomma }}</div>
                 </div>
 
-                <div class="summary-row">
-                    <div class="summary-label">Shipping</div>
-                    <div class="summary-value">KES 0.00</div>
-                </div>
-
-                <div class="summary-row">
-                    <div class="summary-label">Tax</div>
-                    <div class="summary-value">KES 0.00</div>
-                </div>
-
                 <div class="summary-total">
                     <div>Total</div>
                     <div>KES {{ cart.total_price|intcomma }}</div>
@@ -512,6 +626,37 @@ document.addEventListener('DOMContentLoaded', function() {
     const paymentStatus = document.getElementById('paymentStatus');
     const paymentErrors = document.getElementById('paymentErrors');
 
+    // Get payment field sections
+    const mobileMoneyFields = document.getElementById('mobileMoneyFields');
+    const cardPaymentFields = document.getElementById('cardPaymentFields');
+
+    // Get all payment method radio buttons
+    const paymentMethods = document.querySelectorAll('input[name="payment_method"]');
+
+    // Function to show/hide payment fields based on selection
+    function updatePaymentFields() {
+        const selectedMethod = document.querySelector('input[name="payment_method"]:checked').value;
+
+        // Hide all fields first
+        mobileMoneyFields.style.display = 'none';
+        cardPaymentFields.style.display = 'none';
+
+        // Show fields based on selected method
+        if (selectedMethod === 'mpesa' || selectedMethod === 'airtel') {
+            mobileMoneyFields.style.display = 'block';
+        } else if (selectedMethod === 'visa' || selectedMethod === 'mastercard' || selectedMethod === 'paypal') {
+            cardPaymentFields.style.display = 'block';
+        }
+    }
+
+    // Add event listeners to payment methods
+    paymentMethods.forEach(method => {
+        method.addEventListener('change', updatePaymentFields);
+    });
+
+    // Initialize payment fields
+    updatePaymentFields();
+
     paymentForm.addEventListener('submit', function(e) {
         e.preventDefault();
 
@@ -532,18 +677,67 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Phone number validation
-        const phoneInput = document.getElementById('phoneNumber');
-        const phoneRegex = /^7\d{8}$/;
-        if (!phoneRegex.test(phoneInput.value)) {
-            isValid = false;
-            phoneInput.classList.add('invalid');
-        } else {
-            phoneInput.classList.remove('invalid');
+        // Validate specific fields based on payment method
+        const selectedMethod = document.querySelector('input[name="payment_method"]:checked').value;
+
+        // Mobile money validation
+        if (selectedMethod === 'mpesa' || selectedMethod === 'airtel') {
+            const phoneInput = document.getElementById('phoneNumber');
+            const phoneRegex = /^7\d{8}$/;
+            if (!phoneRegex.test(phoneInput.value)) {
+                isValid = false;
+                phoneInput.classList.add('invalid');
+                paymentErrors.innerHTML = 'Please enter a valid phone number (7 followed by 8 digits)';
+            } else {
+                phoneInput.classList.remove('invalid');
+            }
+        }
+
+        // Card payment validation
+        if (selectedMethod === 'visa' || selectedMethod === 'mastercard' || selectedMethod === 'paypal') {
+            const cardNumber = document.getElementById('cardNumber');
+            const cardExpiry = document.getElementById('cardExpiry');
+            const cardCvv = document.getElementById('cardCvv');
+            const cardName = document.getElementById('cardName');
+
+            // Card number validation (simplified)
+            if (!/^\d{13,19}$/.test(cardNumber.value.replace(/\s/g, ''))) {
+                isValid = false;
+                cardNumber.classList.add('invalid');
+                paymentErrors.innerHTML = 'Please enter a valid card number';
+            } else {
+                cardNumber.classList.remove('invalid');
+            }
+
+            // Expiry date validation
+            if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardExpiry.value)) {
+                isValid = false;
+                cardExpiry.classList.add('invalid');
+                paymentErrors.innerHTML = 'Please enter a valid expiry date (MM/YY)';
+            } else {
+                cardExpiry.classList.remove('invalid');
+            }
+
+            // CVV validation
+            if (!/^\d{3,4}$/.test(cardCvv.value)) {
+                isValid = false;
+                cardCvv.classList.add('invalid');
+                paymentErrors.innerHTML = 'Please enter a valid CVV (3 or 4 digits)';
+            } else {
+                cardCvv.classList.remove('invalid');
+            }
+
+            // Card name validation
+            if (cardName.value.trim().length < 3) {
+                isValid = false;
+                cardName.classList.add('invalid');
+                paymentErrors.innerHTML = 'Please enter the name on your card';
+            } else {
+                cardName.classList.remove('invalid');
+            }
         }
 
         if (!isValid) {
-            paymentErrors.innerHTML = 'Please fill in all required fields correctly';
             paymentErrors.style.display = 'block';
             return;
         }
@@ -560,10 +754,9 @@ document.addEventListener('DOMContentLoaded', function() {
             paymentStatus.innerHTML = 'Payment successful! Your order is being processed.';
             paymentStatus.style.display = 'block';
 
-            // Redirect to success page (in a real app)
+            // Redirect to success page
             setTimeout(() => {
-                // window.location.href = "{% url 'orders:success' %}";
-                alert('Payment processed successfully!');
+                window.location.href = "{% url 'orders:success' %}";
             }, 2000);
         }, 3000);
     });

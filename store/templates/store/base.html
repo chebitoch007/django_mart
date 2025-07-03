@@ -2,20 +2,29 @@
 {% load static %}
 <html lang="en" class="scroll-smooth">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Premium e-commerce platform offering quality products with fast delivery">
-    <title>ASAI - Premium Shopping Experience</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Premium e-commerce platform offering quality products with fast delivery">
+  <title>ASAI - Premium Shopping Experience</title>
 
-    <!-- Performance Optimizations -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap">
+  <!-- Performance Preconnects -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-    <!-- CSS -->
+  <!-- Tailwind CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+
 
     <style>
         :root {
@@ -795,29 +804,6 @@
             }
         }
 
-        /* X logo styling */
-        .x-logo {
-            display: inline-block;
-            width: 1em;
-            height: 1em;
-            position: relative;
-        }
-
-        .x-logo::before,
-        .x-logo::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 100%;
-            height: 0.15em;
-            background-color: currentColor;
-            border-radius: 0.1em;
-        }
-
-        .x-logo::before {
-            transform: translate(-50%, -50%) rotate(45deg);
-        }
 
         /* Loading spinner */
         .spinner {
@@ -1016,21 +1002,23 @@
         }
 
         /* NEW SEARCH BAR STYLES */
-        .search-container {
-            flex-grow: 1;
-            max-width: 900px;
-            margin-right: 1rem;
-        }
+    .search-container {
+        flex-grow: 1;
+        max-width: 900px;
+        margin-right: 1rem;
+        position: relative; /* Add this to make dropdown position relative to container */
+    }
 
-        .search-bar {
-            position: relative;
-            display: flex;
-            height: 50px;
-            border: 2px solid #d5d9d9;
-            border-radius: 8px;
-            overflow: hidden;
-            background: white;
-        }
+    .search-bar {
+        display: flex;
+        height: 50px;
+        border: 2px solid #d5d9d9;
+        border-radius: 8px;
+        overflow: visible; /* Changed from hidden */
+        background: white;
+        position: relative; /* Add this */
+        z-index: 100;
+    }
 
         .search-bar select {
             height: 100%;
@@ -1093,8 +1081,566 @@
 
             .search-bar button {
                 width: 50px;
-            }
         }
+
+
+
+
+.search-bar {
+   position: relative; /* Needed for absolute positioning of dropdown */
+   z-index: 100; /* Ensure dropdown appears above other content */
+}
+
+.suggestions-dropdown {
+    position: absolute;
+    top: 100%; /* Position directly below search bar */
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+    margin-top: -1px; /* Overlap with search bar border */
+}
+
+.search-bar.focused {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    border-radius: 8px 8px 0 0; /* Rounded top only when focused */
+}
+
+/* Add bottom rounding when dropdown is visible */
+.search-bar.focused + .suggestions-dropdown {
+    border-radius: 0 0 8px 8px;
+}
+
+.suggestion-item {
+    padding: 12px 15px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s;
+    gap: 15px;
+}
+
+.suggestion-item:hover {
+    background: #f8fafc;
+}
+
+.related-searches {
+    margin: 25px 0;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+}
+
+.related-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #334155;
+}
+
+.related-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.related-tag {
+    padding: 8px 16px;
+    background: #e0f2fe;
+    color: #0369a1;
+    border-radius: 20px;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.related-tag:hover {
+    background: #bae6fd;
+    transform: translateY(-2px);
+}
+
+/* Improve suggestion styling */
+.suggestion-item {
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s;
+    gap: 15px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.suggestion-item:hover {
+    background: #f8fafc;
+}
+
+.suggestion-image {
+    width: 40px;
+    height: 40px;
+    margin right: 12px;
+    border-radius: 4px;
+    object-fit: contain;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.suggestion-image img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.suggestion-image i {
+    font-size: 24px;
+    color: #64748b;
+}
+
+.suggestion-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.suggestion-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.suggestion-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.suggestion-category {
+    font-size: 12px;
+    color: #565959;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.suggestion-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.suggestion-type {
+    font-size: 0.8rem;
+    color: #64748b;
+    background: #e2e8f0;
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: inline-block;
+}
+
+.suggestion-price {
+    font-weight: 700;
+    font-size: 14px;
+    color: #0f1111;
+    margin-left: 10px;
+    white-space: nowrap;
+}
+
+.suggestion-rating {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    color: #f59e0b;
+    font-size: 0.9rem;
+}
+
+.trending-badge {
+    background: #fef3c7;
+    color: #d97706;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.no-suggestions {
+    padding: 20px;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.no-suggestions i {
+    font-size: 24px;
+    color: #cbd5e1;
+}
+
+.search-bar {
+    position: relative; /* Needed for absolute positioning of dropdown */
+    z-index: 100; /* Ensure dropdown appears above other content */
+}
+
+
+
+.search-bar.focused {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    border-radius: 8px 8px 0 0; /* Rounded top only when focused */
+}
+
+/* Add bottom rounding when dropdown is visible */
+.search-bar.focused + .suggestions-dropdown {
+    border-radius: 0 0 8px 8px;
+}
+
+.suggestion-item {
+    padding: 12px 15px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s;
+    gap: 15px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.suggestion-item:hover {
+    background: #f8fafc;
+}
+
+.suggestion-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 4px;
+    object-fit: contain;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.suggestion-image img {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.suggestion-image i {
+    font-size: 24px;
+    color: #64748b;
+}
+
+.suggestion-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.suggestion-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: #1e293b;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.suggestion-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.suggestion-type {
+    font-size: 0.8rem;
+    color: #64748b;
+    background: #e2e8f0;
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: inline-block;
+}
+
+.suggestion-price {
+    font-size: 0.9rem;
+    color: #1d4ed8;
+    font-weight: 600;
+}
+
+.suggestion-rating {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    color: #f59e0b;
+    font-size: 0.9rem;
+}
+
+.trending-badge {
+    background: #fef3c7;
+    color: #d97706;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.no-suggestions {
+    padding: 20px;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.no-suggestions i {
+    font-size: 24px;
+    color: #cbd5e1;
+}
+
+        /* Custom Scrollbar for the Suggestions Dropdown */
+#search-suggestions::-webkit-scrollbar {
+    width: 8px;
+}
+
+#search-suggestions::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+#search-suggestions::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+#search-suggestions::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Base Dropdown Container */
+#search-suggestions {
+    position: absolute;
+    top: 100%; /* Position right below the search bar */
+    left: 0;
+    right: 0;
+    background-color: #fff;
+    border: 1px solid var(--color-primary); /* Use primary color for border */
+    border-top: none; /* No top border, it connects to the search bar */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    max-height: 450px; /* Adjusted height for more visibility */
+    overflow-y: auto;
+    display: none; /* Hidden by default */
+    padding: 0; /* Remove default padding, items will have their own */
+    border-radius: 0 0 8px 8px; /* Rounded corners only at the bottom */
+    transform-origin: top; /* For potential future animation */
+    /* transition: opacity 0.2s ease, transform 0.2s ease; */ /* Optional: for fade/scale effect */
+}
+
+/* When search bar is focused, adjust its border-radius to blend with dropdown */
+.search-bar.focused {
+    border-radius: 8px 8px 0 0; /* Top rounded, bottom sharp */
+    border-color: var(--color-primary); /* Highlight with primary color */
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2); /* Light blue shadow */
+}
+
+/* No suggestions message */
+#search-suggestions .no-suggestions {
+    padding: 20px;
+    text-align: center;
+    color: #64748b;
+    font-style: italic;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+#search-suggestions .no-suggestions i {
+    font-size: 2.2em;
+    color: #cbd5e1;
+}
+
+/* Suggestion Section Header */
+.suggestion-section-header {
+    font-weight: 700; /* Bolder */
+    color: var(--color-dark); /* Darker text */
+    padding: 10px 15px; /* Consistent padding */
+    background-color: #e2e8f0; /* Light gray background */
+    border-bottom: 1px solid #dcdfe4; /* Subtle separator below header */
+    margin-top: 0; /* No top margin */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
+    font-size: 0.8em;
+    letter-spacing: 0.8px; /* More spacing */
+    position: sticky; /* Make headers sticky when scrolling */
+    top: 0;
+    z-index: 10; /* Ensure header stays on top of items */
+}
+
+.suggestion-section-header i {
+    color: #94a3b8; /* Slightly darker icon */
+    font-size: 1em;
+}
+
+/* Individual Suggestion Item */
+.suggestion-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px; /* Adjusted padding */
+    text-decoration: none;
+    color: #333;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    border-bottom: 1px solid #f1f5f9; /* Lighter separator */
+}
+
+/* Last item in the dropdown should not have a bottom border */
+#search-suggestions .suggestion-item:last-of-type {
+    border-bottom: none;
+}
+
+
+.suggestion-item:hover,
+.suggestion-item.highlighted {
+    background-color: #f0f4f8; /* Lighter hover background */
+    cursor: pointer;
+    transform: translateY(-1px); /* Slight lift on hover/highlight */
+}
+
+/* Highlighted text within suggestions (e.g., search query) */
+.suggestion-name strong {
+    color: var(--color-primary); /* Use primary color for highlight */
+    font-weight: 700; /* Ensure it stands out */
+}
+
+/* Product Suggestions */
+.suggestion-item .suggestion-image {
+    width: 50px; /* Slightly larger image */
+    height: 50px;
+    margin-right: 15px; /* More space */
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #eee;
+    border-radius: 4px; /* Slightly rounded corners for images */
+    overflow: hidden;
+    background-color: #fcfcfc; /* Very light background for images */
+}
+
+.suggestion-item .suggestion-image img {
+    max-width: 90%; /* Slightly smaller inside the box */
+    max-height: 90%;
+    object-fit: contain;
+}
+
+.suggestion-item .suggestion-image .default-product-icon {
+    font-size: 2em; /* Larger default icon */
+    color: #aeb9c6; /* Muted color */
+}
+
+.suggestion-item .suggestion-details {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0; /* Allow text to truncate */
+}
+
+.suggestion-item .suggestion-name {
+    font-size: 1em; /* Standard font size */
+    font-weight: 600; /* Semi-bold */
+    color: var(--color-dark);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.suggestion-item .suggestion-category {
+    font-size: 0.85em; /* Slightly larger category text */
+    color: #64748b; /* Muted gray */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.suggestion-item .suggestion-price {
+    font-weight: 700; /* Bolder price */
+    color: var(--color-accent); /* Use accent color for price */
+    margin-left: 15px;
+    flex-shrink: 0;
+    font-size: 1.05em; /* Slightly larger price */
+    white-space: nowrap;
+}
+
+/* Search and Category Suggestions */
+.suggestion-item.search-term .suggestion-icon,
+.suggestion-item.category .suggestion-icon {
+    margin-right: 15px; /* Consistent spacing */
+    color: var(--color-secondary); /* Purple for search/category icons */
+    font-size: 1.1em; /* Slightly larger icons */
+    width: 30px; /* Fixed width for consistent alignment */
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.suggestion-item .suggestion-text {
+    font-size: 1em;
+    color: var(--color-dark);
+    font-weight: 500;
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Optional: Add a subtle border or shadow to the search bar when the dropdown is open */
+.search-container.active .search-bar {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+        i.fas, i.fab {
+    display: inline-block;
+    font-size: inherit;
+    color: inherit;
+    vertical-align: middle;
+}
+
+/* Specifically for cart icon */
+.cart-box i.fa-shopping-cart {
+    font-size: 1.25rem; /* 20px */
+    color: white;
+}
+
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -1115,24 +1661,49 @@
                 </div>
             </a>
 
-            <!-- NEW SEARCH BAR STRUCTURE -->
-            <form action="{% url 'store:product_search' %}" method="get" class="search-container">
-                <div class="search-bar">
-                    <select name="category" aria-label="Select Category">
-                        <option value="">All</option>
-                        {% for category in categories|slice:":15" %}
-                        <option value="{{ category.slug }}"
-                                {% if request.GET.category == category.slug %}selected{% endif %}>
-                            {{ category.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <input type="text" name="q" placeholder="Search products..." value="{{ request.GET.q }}">
-                    <button type="submit" aria-label="Search">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-            </form>
+<!-- NEW SEARCH BAR STRUCTURE -->
+<div class="search-container flex-grow max-w-3xl mx-4 relative">
+    <form action="{% url 'store:product_search' %}" method="get" class="w-full">
+        <div class="search-bar flex rounded-lg overflow-hidden shadow-sm border border-gray-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all duration-200">            <select name="category" class="bg-gray-100 border-r border-gray-300 px-3 py-2 text-sm focus:outline-none appearance-none cursor-pointer">
+                <option value="">All Categories</option>
+                {% for category in categories|slice:":10" %}
+                <option value="{{ category.slug }}" {% if request.GET.category == category.slug %}selected{% endif %}>
+                    {{ category.name }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <input
+                type="text"
+                name="q"
+                value="{{ request.GET.q }}"
+                placeholder="Search for products..."
+                class="flex-grow px-4 py-2 focus:outline-none text-base"
+                hx-get="{% url 'store:search_suggestions' %}"
+                hx-trigger="keyup changed delay:200ms"
+                hx-target="#search-suggestions"
+                hx-indicator=".search-indicator"
+                autocomplete="off"
+            >
+
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 transition-colors duration-200">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </form>
+
+    <!-- Suggestions dropdown -->
+    <div id="search-suggestions"
+         class="absolute z-50 w-full bg-white border border-gray-300 rounded-b-lg shadow-xl max-h-96 overflow-y-auto hidden"
+         style="top: 100%; left: 0; margin-top: -1px;">
+    </div>
+    <!-- Loading indicator -->
+    <div class="search-indicator htmx-indicator absolute right-16 top-2">
+        <i class="fas fa-spinner fa-spin text-gray-400"></i>
+    </div>
+</div>
+
+
 
             <div class="nav-right">
                 {% if user.is_authenticated %}
@@ -1157,15 +1728,9 @@
                     <div class="ml-1">
                         <div class="nav-link-bottom">Cart</div>
                     </div>
-                    <div class="cart-count" id="cart-count">
-                        {% with total_items=cart|length %}
-                            {% if total_items > 0 %}
-                                {{ total_items }}
-                            {% else %}
-                                0
-                            {% endif %}
-                        {% endwith %}
-                    </div>
+                         <div class="cart-count" id="cart-count">
+                          {{ request.cart_total_items|default:0 }}
+                         </div>
                 </a>
             </div>
         </div>
@@ -1241,13 +1806,15 @@
                     </p>
                     <div class="social-icons">
                         <a href="#" class="social-icon facebook" aria-label="Facebook">
-                            <i class="fab fa-facebook-f"></i>
+                            <img src="{% static 'images/facebook.png' %}" alt="PayPal" class="method-logo">
                         </a>
+
                         <a href="#" class="social-icon x" aria-label="X (formerly Twitter)">
-                            <span class="x-logo"></span>
+                            <img src="{% static 'images/X.png' %}" alt="PayPal" class="method-logo">
                         </a>
+
                         <a href="#" class="social-icon instagram" aria-label="Instagram">
-                            <i class="fab fa-instagram"></i>
+                            <img src="{% static 'images/instagram.png' %}" alt="PayPal" class="method-logo">
                         </a>
                     </div>
                 </div>
@@ -1303,19 +1870,19 @@
 
                 <div class="payment-icons">
                     <div class="payment-icon">
-                        <i class="fab fa-cc-visa" aria-hidden="true"></i>
+                        <img src="{% static 'images/mpesa-logo.png' %}" alt="M-Pesa" class="method-logo">
                     </div>
                     <div class="payment-icon">
-                        <i class="fab fa-cc-mastercard" aria-hidden="true"></i>
+                        <img src="{% static 'images/airtel-money-logo.png' %}" alt="Airtel Money" class="method-logo">
                     </div>
                     <div class="payment-icon">
-                        <i class="fab fa-cc-paypal" aria-hidden="true"></i>
+                        <img src="{% static 'images/visa-logo.png' %}" alt="Visa" class="method-logo">
                     </div>
                     <div class="payment-icon">
-                        <i class="fab fa-cc-apple-pay" aria-hidden="true"></i>
+                        <img src="{% static 'images/mastercard-logo.png' %}" alt="Mastercard" class="method-logo">
                     </div>
                     <div class="payment-icon">
-                        <i class="fab fa-cc-m-pesa" aria-hidden="true"></i>
+                        <img src="{% static 'images/paypal-logo.png' %}" alt="PayPal" class="method-logo">
                     </div>
                 </div>
 
@@ -1336,21 +1903,22 @@
     </button>
 
 <script>
-    // Navbar scroll effect
-    window.addEventListener('scroll', function() {
-        const navbar = document.querySelector('.amazon-nav');
-        const scrolled = window.scrollY > 50;
-        navbar.classList.toggle('scrolled', scrolled);
+// ===== NAVIGATION & UI BEHAVIORS =====
+window.addEventListener('scroll', function() {
+    const navbar = document.querySelector('.amazon-nav');
+    const scrolled = window.scrollY > 50;
+    navbar.classList.toggle('scrolled', scrolled);
 
-        // Back to top button visibility
-        const backToTop = document.getElementById('back-to-top');
-        backToTop.classList.toggle('visible', window.scrollY > 500);
-    });
+    // Back to top button visibility
+    const backToTop = document.getElementById('back-to-top');
+    backToTop.classList.toggle('visible', window.scrollY > 500);
+});
 
-    // Mobile menu toggle
-    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-    const mobileMenu = document.getElementById('mobile-menu');
+// Mobile menu toggle
+const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+const mobileMenu = document.getElementById('mobile-menu');
 
+if (mobileMenuToggle && mobileMenu) {
     mobileMenuToggle.addEventListener('click', function() {
         const expanded = this.getAttribute('aria-expanded') === 'true' || false;
         this.setAttribute('aria-expanded', !expanded);
@@ -1377,219 +1945,476 @@
             mobileMenu.setAttribute('aria-hidden', 'true');
         }
     });
+}
 
-    // Back to top functionality
-    document.getElementById('back-to-top').addEventListener('click', function() {
+// Back to top functionality
+const backToTopBtn = document.getElementById('back-to-top');
+if (backToTopBtn) {
+    backToTopBtn.addEventListener('click', function() {
         window.scrollTo({
             top: 0,
             behavior: 'smooth'
         });
         // Focus on main content for screen reader users
-        document.getElementById('main-content').focus();
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) mainContent.focus();
+    });
+}
+
+// ===== CART FUNCTIONALITY =====
+// Global function to update cart count
+function updateGlobalCartCount(count) {
+    // Update navigation bar cart count
+    const cartCountElements = document.querySelectorAll('.cart-count');
+    cartCountElements.forEach(el => {
+        el.textContent = count;
     });
 
-    // Cart functionality - Production Ready
-    document.addEventListener('DOMContentLoaded', function() {
-        // Add to cart buttons in all templates
-        document.querySelectorAll('.add-to-cart-form').forEach(form => {
-            // Track if this form is currently being processed
-            let isProcessing = false;
+    // Update cart page header count
+    const cartHeaderCount = document.querySelector('.cart-item-count');
+    if (cartHeaderCount) {
+        cartHeaderCount.textContent = `${count} item${count !== 1 ? 's' : ''}`;
+    }
 
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
+    // Animate cart icon
+    const cartIcon = document.querySelector('.cart-box');
+    if (cartIcon) {
+        cartIcon.style.transform = 'scale(1.2)';
+        setTimeout(() => {
+            cartIcon.style.transform = 'scale(1)';
+        }, 300);
+    }
+}
 
-                // Prevent multiple submissions
-                if (isProcessing) return;
-                isProcessing = true;
+// Initialize cart count on page load
+function initializeCartCount() {
+    // Fetch cart count from server
+    fetch('{% url "cart:cart_total" %}')
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                updateGlobalCartCount(data.cart_total_items);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching cart count:', error);
+        });
+}
 
-                const button = this.querySelector('.add-to-cart-btn');
-                const cartCountElement = document.getElementById('cart-count');
-                const originalText = button ? button.innerHTML : '';
+// Add to cart functionality
+function setupAddToCartForms() {
+    document.querySelectorAll('.add-to-cart-form').forEach(form => {
+        // Track if this form is currently being processed
+        let isProcessing = false;
 
-                // Only proceed if button is enabled (product in stock)
-                if (button && button.disabled) {
-                    isProcessing = false;
-                    return;
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Prevent multiple submissions
+            if (isProcessing) return;
+            isProcessing = true;
+
+            const button = this.querySelector('.add-to-cart-btn');
+            const originalText = button ? button.innerHTML : '';
+
+            // Only proceed if button is enabled (product in stock)
+            if (button && button.disabled) {
+                isProcessing = false;
+                return;
+            }
+
+            // Show loading state
+            if (button) {
+                button.classList.add('loading');
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+            }
+
+            // Prepare form data
+            const formData = new FormData(this);
+
+            // Send request
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
                 }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Update global cart count
+                    updateGlobalCartCount(data.cart_total_items);
 
-                // Show loading state
-                if (button) {
-                    button.classList.add('loading');
-                    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
-                }
-
-                // Prepare form data
-                const formData = new FormData(this);
-
-                // Send request
-                fetch(this.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': '{{ csrf_token }}'
+                    // Animation for cart icon
+                    const cartIcon = document.querySelector('.cart-box');
+                    if (cartIcon) {
+                        cartIcon.style.transform = 'scale(1.2)';
+                        setTimeout(() => {
+                            cartIcon.style.transform = 'scale(1)';
+                        }, 300);
                     }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Update cart count from server response
-                        if (cartCountElement) {
-                            cartCountElement.textContent = data.cart_total_items;
-                        }
 
-                        // Animation for cart icon
-                        const cartIcon = document.querySelector('.cart-box');
-                        if (cartIcon) {
-                            cartIcon.style.transform = 'scale(1.2)';
+                    // Success feedback
+                    if (button) {
+                        button.innerHTML = '<i class="fas fa-check"></i> Added!';
+                        button.style.background = 'linear-gradient(to right, #10b981, #059669)';
+
+                        // Disable button if it's a new item
+                        if (data.is_new_item) {
                             setTimeout(() => {
-                                cartIcon.style.transform = 'scale(1)';
-                            }, 300);
-                        }
-
-                        // Success feedback
-                        if (button) {
-                            button.innerHTML = '<i class="fas fa-check"></i> Added!';
-                            button.style.background = 'linear-gradient(to right, #10b981, #059669)';
-
-                            // Disable button if it's a new item
-                            if (data.is_new_item) {
-                                setTimeout(() => {
-                                    button.innerHTML = '<i class="fas fa-check"></i> In Cart';
-                                    button.style.background = '';
-                                    button.disabled = true;
-                                    button.classList.remove('loading');
-                                }, 2000);
-                            } else {
-                                setTimeout(() => {
-                                    button.innerHTML = originalText;
-                                    button.style.background = '';
-                                    button.classList.remove('loading');
-                                }, 2000);
-                            }
-                        }
-                    } else {
-                        // Show error message
-                        alert('Error: ' + data.message);
-                        if (button) {
-                            button.innerHTML = originalText;
-                            button.classList.remove('loading');
+                                button.innerHTML = '<i class="fas fa-check"></i> In Cart';
+                                button.style.background = '';
+                                button.disabled = true;
+                                button.classList.remove('loading');
+                            }, 2000);
+                        } else {
+                            setTimeout(() => {
+                                button.innerHTML = originalText;
+                                button.style.background = '';
+                                button.classList.remove('loading');
+                            }, 2000);
                         }
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred. Please try again.');
+                } else {
+                    // Show error message
+                    alert('Error: ' + data.message);
                     if (button) {
                         button.innerHTML = originalText;
                         button.classList.remove('loading');
                     }
-                })
-                .finally(() => {
-                    isProcessing = false;
-                });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+                if (button) {
+                    button.innerHTML = originalText;
+                    button.classList.remove('loading');
+                }
+            })
+            .finally(() => {
+                isProcessing = false;
             });
         });
+    });
+}
 
-        // Cart quantity adjustments
-        document.querySelectorAll('.quantity-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const input = this.parentElement.querySelector('.quantity-input');
-                const form = this.closest('form');
-                let value = parseInt(input.value);
+// Cart item removal (for cart page only)
+function setupCartItemRemoval() {
+    document.querySelectorAll('.cart-remove-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
 
-                if (this.classList.contains('decrease') && value > 1) {
-                    input.value = value - 1;
-                } else if (this.classList.contains('increase')) {
-                    input.value = value + 1;
+            if (!confirm('Are you sure you want to remove this item from your cart?')) {
+                return;
+            }
+
+            const button = this.querySelector('button');
+            const originalHtml = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const row = this.closest('.cart-item-row');
+
+            // Send request
+            fetch(this.action, {
+                method: 'POST',
+                body: new FormData(this),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
                 }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Remove item visually
+                    row.style.opacity = '0';
+                    setTimeout(() => {
+                        row.remove();
 
-                // Submit form if value changed
-                if (parseInt(input.value) !== value) {
-                    form.dispatchEvent(new Event('submit'));
+                        // Update global cart count
+                        updateGlobalCartCount(data.cart_total_items);
+
+                        // Handle empty cart
+                        if (data.cart_total_items === 0) {
+                            window.location.reload();
+                        }
+                    }, 300);
+                } else {
+                    button.innerHTML = originalHtml;
+                    alert('Error: ' + (data.message || 'Failed to remove item'));
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                button.innerHTML = originalHtml;
+                alert('An error occurred. Please try again.');
             });
         });
+    });
+}
 
-        // Cart item removal
-        document.querySelectorAll('.remove-item').forEach(button => {
-            button.addEventListener('click', function() {
-                const form = this.closest('form');
-                const cartItem = this.closest('.cart-item');
-                const productId = form.action.split('/').filter(Boolean).pop();
+// ===== SEARCH SUGGESTIONS (AMAZON-STYLE) =====
+function setupSearchSuggestions() {
+    const searchContainer = document.querySelector('.search-container');
+    const searchBar = document.querySelector('.search-bar');
+    const searchInput = document.querySelector('.search-bar input[name="q"]');
+    const searchButton = document.querySelector('.search-bar button');
+    const suggestionsContainer = document.getElementById('search-suggestions');
 
-                // Visual feedback
-                cartItem.style.opacity = '0.7';
-                cartItem.style.transition = 'opacity 0.3s';
+    if (!searchInput || !suggestionsContainer) return;
 
-                fetch(form.action, {
-                    method: 'POST',
-                    body: new FormData(form),
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    }
-                })
+    // Track UI states
+    let isInputFocused = false;
+    let isMouseOverSuggestions = false;
+    let currentFocus = -1;
+    let lastQuery = '';
+    let lastSuggestions = [];
+    let suggestionTimeout = null;
+
+    // Debounce function for input
+    function debounce(func, delay) {
+        clearTimeout(suggestionTimeout);
+        suggestionTimeout = setTimeout(func, delay);
+    }
+
+    // Function to show trending suggestions
+    function showTrendingSuggestions() {
+        fetch("{% url 'store:search_suggestions' %}?q=")
+            .then(response => response.json())
+            .then(data => {
+                renderSuggestions(data.suggestions);
+                lastSuggestions = data.suggestions;
+            })
+            .catch(console.error);
+    }
+
+    // Function to fetch suggestions
+    function fetchSuggestions(query) {
+        // Cancel previous timeout if any
+        if (suggestionTimeout) clearTimeout(suggestionTimeout);
+
+        debounce(() => {
+            // Only fetch if query has changed
+            if (query === lastQuery) return;
+            lastQuery = query;
+
+            fetch(`{% url 'store:search_suggestions' %}?q=${encodeURIComponent(query)}`)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        // Remove item from UI
-                        cartItem.style.height = cartItem.offsetHeight + 'px';
-                        cartItem.style.margin = '0';
-                        cartItem.style.padding = '0';
-                        cartItem.style.opacity = '0';
-
-                        setTimeout(() => {
-                            cartItem.remove();
-
-                            // Update cart count
-                            document.getElementById('cart-count').textContent = data.cart_count;
-
-                            // Remove from localStorage
-                            const cart = JSON.parse(localStorage.getItem('cart') || '{}');
-                            delete cart[productId];
-                            localStorage.setItem('cart', JSON.stringify(cart));
-
-                            // Update cart summary
-                            const subtotalEl = document.querySelector('.summary-subtotal');
-                            const totalEl = document.querySelector('.summary-total');
-                            if (subtotalEl) subtotalEl.textContent = '$' + data.subtotal;
-                            if (totalEl) totalEl.textContent = '$' + data.total;
-
-                            // Show empty cart message if needed
-                            if (data.cart_count === 0) {
-                                document.querySelector('.cart-items').innerHTML = `
-                                    <div class="empty-cart">
-                                        <div class="empty-cart-icon">
-                                            <i class="fas fa-shopping-cart"></i>
-                                        </div>
-                                        <h3 class="empty-cart-text">Your cart is empty</h3>
-                                        <a href="{% url 'store:product_list' %}" class="btn">
-                                            Continue Shopping
-                                        </a>
-                                    </div>
-                                `;
-                            }
-                        }, 300);
-                    } else {
-                        alert('Error: ' + data.message);
-                        cartItem.style.opacity = '1';
-                    }
+                    renderSuggestions(data.suggestions);
+                    lastSuggestions = data.suggestions;
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred. Please try again.');
-                    cartItem.style.opacity = '1';
+                    console.error('Error fetching suggestions:', error);
+                    suggestionsContainer.style.display = 'none';
                 });
-            });
+        }, 200); // 200ms delay for better performance
+    }
+
+    // Function to render suggestions
+    function renderSuggestions(suggestions) {
+        suggestionsContainer.innerHTML = '';
+
+        if (!suggestions || suggestions.length === 0) {
+            suggestionsContainer.innerHTML = `
+                <div class="no-suggestions">
+                    <i class="fas fa-search"></i>
+                    <div>No suggestions found</div>
+                </div>
+            `;
+            suggestionsContainer.style.display = 'block';
+            return;
+        }
+
+        // Create containers for different suggestion types
+        const productSuggestions = [];
+        const searchSuggestions = [];
+
+        // Categorize suggestions
+        suggestions.forEach(suggestion => {
+            if (suggestion.type === 'product') {
+                productSuggestions.push(suggestion);
+            } else if (suggestion.type === 'search') {
+                searchSuggestions.push(suggestion);
+            }
         });
 
-        // Clear localStorage when cart is emptied
-        const cartCountElement = document.getElementById('cart-count');
-        if (cartCountElement && parseInt(cartCountElement.textContent) === 0) {
-            localStorage.removeItem('cart');
+        // Render Popular Searches section if we have search terms
+        if (searchSuggestions.length > 0) {
+            const sectionDiv = document.createElement('div');
+            sectionDiv.className = 'suggestion-section';
+            sectionDiv.textContent = 'Popular Searches';
+            suggestionsContainer.appendChild(sectionDiv);
+
+            searchSuggestions.forEach(suggestion => {
+                const item = document.createElement('a');
+                item.className = 'suggestion-item search-term';
+                item.href = "{% url 'store:product_search' %}?q=" + encodeURIComponent(suggestion.name);
+
+                item.innerHTML = `
+                    <div class="suggestion-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div class="suggestion-text">
+                        ${suggestion.name}
+                    </div>
+                `;
+
+                suggestionsContainer.appendChild(item);
+            });
+        }
+
+        // Render Products section if we have products
+        if (productSuggestions.length > 0) {
+            const sectionDiv = document.createElement('div');
+            sectionDiv.className = 'suggestion-section';
+            sectionDiv.textContent = 'Products';
+            suggestionsContainer.appendChild(sectionDiv);
+
+            productSuggestions.forEach(suggestion => {
+                const item = document.createElement('a');
+                item.className = 'suggestion-item';
+                item.href = suggestion.url;
+
+                // Highlight matching text
+                let highlightedName = suggestion.name;
+                if (lastQuery) {
+                    const regex = new RegExp(`(${lastQuery})`, 'gi');
+                    highlightedName = suggestion.name.replace(regex, '<strong>$1</strong>');
+                }
+
+                item.innerHTML = `
+                    <div class="suggestion-image">
+                        ${suggestion.image ? `<img src="${suggestion.image}" alt="${suggestion.name}">` : '<i class="fas fa-box"></i>'}
+                    </div>
+                    <div class="suggestion-details">
+                        <div class="suggestion-name">${highlightedName}</div>
+                        <div class="suggestion-category">${suggestion.category || ''}</div>
+                    </div>
+                    <div class="suggestion-price">KES ${suggestion.price}</div>
+                `;
+
+                suggestionsContainer.appendChild(item);
+            });
+        }
+
+        suggestionsContainer.style.display = 'block';
+    }
+
+    // Function to highlight suggestion item
+    function highlightItem(index) {
+        const items = suggestionsContainer.querySelectorAll('.suggestion-item');
+        items.forEach(item => item.classList.remove('highlighted'));
+
+        if (index >= 0 && index < items.length) {
+            items[index].classList.add('highlighted');
+            items[index].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+    }
+
+    // Event listeners
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        if (query.length === 0) {
+            showTrendingSuggestions();
+            return;
+        }
+        fetchSuggestions(query);
+    });
+
+    searchInput.addEventListener('focus', function() {
+        isInputFocused = true;
+        searchBar.classList.add('focused');
+        if (this.value.trim() === '') {
+            showTrendingSuggestions();
         }
     });
+
+    searchInput.addEventListener('blur', function() {
+        isInputFocused = false;
+        searchBar.classList.remove('focused');
+        // Hide after delay to allow click events
+        setTimeout(() => {
+            if (!isMouseOverSuggestions) {
+                suggestionsContainer.style.display = 'none';
+            }
+        }, 200);
+    });
+
+    suggestionsContainer.addEventListener('mouseenter', function() {
+        isMouseOverSuggestions = true;
+    });
+
+    suggestionsContainer.addEventListener('mouseleave', function() {
+        isMouseOverSuggestions = false;
+        if (!isInputFocused) {
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+
+    // Keyboard navigation
+    searchInput.addEventListener('keydown', function(e) {
+        const items = suggestionsContainer.querySelectorAll('.suggestion-item');
+
+        // Only handle if suggestions are visible
+        if (suggestionsContainer.style.display !== 'block') return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            currentFocus = (currentFocus + 1) % items.length;
+            highlightItem(currentFocus);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            currentFocus = (currentFocus - 1 + items.length) % items.length;
+            highlightItem(currentFocus);
+        } else if (e.key === 'Enter') {
+            if (currentFocus > -1) {
+                e.preventDefault();
+                items[currentFocus].click();
+            } else {
+                // Submit the form if no suggestion is selected
+                searchInput.form.submit();
+            }
+        } else if (e.key === 'Escape') {
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+
+    // Clicking the search button should submit the form
+    searchButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        searchInput.form.submit();
+    });
+
+    // Close suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchContainer.contains(e.target)) {
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+}
+
+// ===== INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize cart functionality
+    initializeCartCount();
+    setupAddToCartForms();
+    setupCartItemRemoval();
+
+    // Initialize search suggestions
+    setupSearchSuggestions();
+});
 </script>
 
 </body>

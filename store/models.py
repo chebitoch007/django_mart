@@ -1,4 +1,6 @@
 import uuid
+from django.db.models import Q
+from django.db.models.functions import Greatest
 from django.urls import reverse
 from django.conf import settings
 from django.db import models
@@ -6,6 +8,8 @@ from django.utils.text import slugify
 import secrets
 from .constants import CATEGORIES
 from mptt.models import MPTTModel, TreeForeignKey
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVector, SearchVectorField, SearchRank, SearchQuery, TrigramSimilarity
 
 
 class Category(MPTTModel):  # Change from models.Model to MPTTModel
@@ -72,6 +76,48 @@ class Category(MPTTModel):  # Change from models.Model to MPTTModel
         self._product_count_cache = value
 
 
+class SearchLog(models.Model):
+    query = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['query']),
+            models.Index(fields=['created_at']),
+        ]
+        ordering = ['-created_at']
+
+
+class ProductQuerySet(models.QuerySet):
+    def search(self, query):
+        if not query:
+            return self.none()
+
+        return self.annotate(
+            rank=SearchRank('search_vector', SearchQuery(query, config='english')),
+            similarity=Greatest(
+                TrigramSimilarity('name', query),
+                TrigramSimilarity('category__name', query)
+            )
+        ).filter(
+            Q(rank__gte=0.1) | Q(similarity__gt=0.1)
+        ).order_by('-rank', '-similarity')
+
+
+class ProductManager(models.Manager):
+    def search(self, query):
+        if not query:
+            return self.none()
+
+        return self.filter(
+            Q(name__icontains=query) |
+            Q(description__icontains=query) |
+            Q(short_description__icontains=query) |
+            Q(category__name__icontains=query)
+        ).distinct()
+
+
 class Product(models.Model):
     category = models.ForeignKey(
         Category,
@@ -84,7 +130,7 @@ class Product(models.Model):
     description = models.TextField()
     short_description = models.CharField(max_length=300, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    discount_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, db_index=True )
+    discount_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, db_index=True)
     image = models.ImageField(upload_to='products/main/')
     stock = models.PositiveIntegerField()
     available = models.BooleanField(default=True)
@@ -93,6 +139,7 @@ class Product(models.Model):
     review_count = models.PositiveIntegerField(default=0)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
+    objects = ProductManager()
 
     is_dropship = models.BooleanField(default=False)
     supplier = models.CharField(max_length=100, blank=True)
@@ -101,12 +148,16 @@ class Product(models.Model):
     commission_rate = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=15.00  # Default 15% commission
+        default=15.00
     )
+
+    search_vector = SearchVectorField(null=True, blank=True)
 
     class Meta:
         indexes = [
-            models.Index(fields=['id', 'slug']),
+            GinIndex(fields=['search_vector']),
+            models.Index(fields=['name']),
+            models.Index(fields=['price']),
         ]
         ordering = ['-created']
 
@@ -120,7 +171,21 @@ class Product(models.Model):
             while Product.objects.filter(slug=self.slug).exists():
                 unique_id = str(uuid.uuid4())[:4]
                 self.slug = f"{base_slug}-{unique_id}"
+
         super().save(*args, **kwargs)
+        # Update search vector after save
+        self.update_search_vector()
+
+    def update_search_vector(self):
+        """Update the search vector field for full-text search"""
+        Product.objects.filter(pk=self.pk).update(
+            search_vector=(
+                    SearchVector('name', weight='A') +
+                    SearchVector('short_description', weight='B') +
+                    SearchVector('description', weight='C') +
+                    SearchVector('category__name', weight='A')
+            )
+        )
 
     def get_absolute_url(self):
         return reverse('store:product_detail', args=[self.slug])
@@ -144,12 +209,9 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
-
-
     @property
     def on_sale(self):
         return bool(self.discount_price and self.discount_price < self.price)
-
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='additional_images')

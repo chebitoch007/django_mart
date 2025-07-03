@@ -1,0 +1,47 @@
+{% if suggestions %}
+  {% for suggestion in suggestions %}
+    <a href="{{ suggestion.url }}"
+       class="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition duration-150 cursor-pointer border-b last:border-none">
+
+      <!-- Image or Icon -->
+      <div class="w-10 h-10 flex items-center justify-center bg-gray-100 rounded overflow-hidden text-gray-500">
+        {% if suggestion.image %}
+          <img src="{{ suggestion.image }}" alt="{{ suggestion.name }}" class="w-full h-full object-contain" />
+        {% else %}
+          {% if suggestion.type == 'category' %}
+            <i class="fas fa-tags"></i>
+          {% elif suggestion.type == 'trending' %}
+            <i class="fas fa-fire"></i>
+          {% elif suggestion.type == 'search' %}
+            <i class="fas fa-search"></i>
+          {% else %}
+            <i class="fas fa-box"></i>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      <!-- Text Info -->
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-medium text-gray-900 truncate">{{ suggestion.name }}</div>
+        <div class="text-xs text-gray-500 flex flex-wrap gap-2 items-center">
+          {% if suggestion.type == 'product' %}
+            <span>KES {{ suggestion.price }}</span>
+            <span><i class="fas fa-star text-yellow-400 mr-1"></i>{{ suggestion.rating|floatformat:1 }}</span>
+            <span class="text-gray-400">in {{ suggestion.category }}</span>
+          {% elif suggestion.type == 'category' %}
+            <span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-xs">Category</span>
+          {% elif suggestion.type == 'trending' %}
+            <span class="bg-red-50 text-red-600 px-2 py-0.5 rounded text-xs">Trending</span>
+          {% elif suggestion.type == 'search' %}
+            <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">Popular search</span>
+          {% endif %}
+        </div>
+      </div>
+    </a>
+  {% endfor %}
+{% else %}
+  <div class="px-4 py-6 text-center text-sm text-gray-500">
+    <i class="fas fa-search mb-2 text-lg"></i>
+    <div>No suggestions found</div>
+  </div>
+{% endif %}

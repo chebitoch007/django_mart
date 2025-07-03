@@ -6,18 +6,16 @@ from django.contrib.auth.decorators import login_required
 from store.models import Product
 from .models import Cart, CartItem
 from .forms import CartAddProductForm
+from .utils import get_cart
 
 
-@login_required
 def cart_detail(request):
-    cart, created = Cart.objects.get_or_create(user=request.user)
+    cart = get_cart(request)
     cart_has_stock_issues = False
 
-    # Check for stock issues
     for item in cart.items.all():
         if item.quantity > item.product.stock:
             cart_has_stock_issues = True
-            # Auto-correct quantity to max available
             item.quantity = item.product.stock
             item.save()
 
@@ -27,16 +25,10 @@ def cart_detail(request):
     })
 
 
-@login_required
 def cart_add(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     form = CartAddProductForm(request.POST or None)
-
-    response_data = {
-        'success': False,
-        'message': '',
-        'cart_total_items': 0
-    }
+    response_data = {'success': False, 'message': '', 'cart_total_items': 0}
 
     if request.method == 'POST' and form.is_valid():
         quantity = form.cleaned_data['quantity']
@@ -44,19 +36,13 @@ def cart_add(request, product_id):
 
         try:
             with transaction.atomic():
-                cart, created = Cart.objects.select_for_update().get_or_create(user=request.user)
-
-                # Check if product is already in cart
+                cart = get_cart(request)
                 cart_item_exists = cart.items.filter(product=product).exists()
 
-                # Prevent adding duplicate items
                 if cart_item_exists and not update_quantity:
-                    response_data['success'] = False
                     response_data['message'] = 'Product is already in your cart'
                 else:
                     cart.add_product(product, quantity, update_quantity=update_quantity)
-                    cart.refresh_from_db()
-
                     response_data['success'] = True
                     response_data['message'] = 'Product added to cart!'
                     response_data['cart_total_items'] = cart.total_items
@@ -66,61 +52,88 @@ def cart_add(request, product_id):
             logger.error(f"Cart add error: {str(e)}")
             response_data['message'] = 'Server error. Please try again later.'
 
-        # For AJAX requests
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse(response_data)
-
         return redirect('cart:cart_detail')
 
-    # Handle form errors
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         response_data['message'] = 'Form is invalid'
         return JsonResponse(response_data, status=400)
-
     return redirect(product.get_absolute_url())
 
 
-@login_required
 def cart_remove(request, product_id):
     product = get_object_or_404(Product, id=product_id)
-    cart = get_object_or_404(Cart, user=request.user)
+    cart = get_cart(request)
+    response_data = {'success': False, 'message': 'Item not in cart'}
 
     try:
         item = cart.items.get(product=product)
         item.delete()
+        response_data = {
+            'success': True,
+            'cart_total_items': cart.total_items,
+            'cart_total_price': cart.total_price
+        }
     except CartItem.DoesNotExist:
         pass
 
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse(response_data)
     return redirect('cart:cart_detail')
 
 
-@login_required
 def cart_clear(request):
-    cart = get_object_or_404(Cart, user=request.user)
+    cart = get_cart(request)
     cart.clear()
     return redirect('cart:cart_detail')
 
 
-@login_required
 def cart_update(request, product_id):
     product = get_object_or_404(Product, id=product_id)
-    cart = get_object_or_404(Cart, user=request.user)
+    cart = get_cart(request)
+    response_data = {'success': False, 'message': 'Item not in cart'}
 
     if request.method == 'POST':
         form = CartAddProductForm(request.POST)
         if form.is_valid():
             quantity = form.cleaned_data['quantity']
+            exceeded_stock = False
 
             try:
                 item = cart.items.get(product=product)
                 item.quantity = quantity
 
-                # Ensure quantity doesn't exceed stock
-                if item.quantity > product.stock:
+                if quantity > product.stock:
                     item.quantity = product.stock
+                    exceeded_stock = True
+                elif quantity < 1:
+                    item.quantity = 1
 
                 item.save()
+                response_data = {
+                    'success': True,
+                    'item': {
+                        'item_total': item.total_price,
+                        'quantity': item.quantity,
+                        'product_stock': product.stock
+                    },
+                    'cart_total_items': cart.total_items,
+                    'cart_total_price': cart.total_price,
+                    'message': 'Quantity adjusted due to stock limits' if exceeded_stock else ''
+                }
             except CartItem.DoesNotExist:
                 pass
 
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse(response_data)
     return redirect('cart:cart_detail')
+
+
+# FIXED: Removed trailing comma and extra text
+def cart_total(request):
+    cart = get_cart(request)
+    return JsonResponse({
+        'success': True,
+        'cart_total_items': cart.total_items
+    })

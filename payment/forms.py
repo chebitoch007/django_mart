@@ -1,14 +1,14 @@
 from django import forms
 from django.conf import settings
 from django.core.validators import RegexValidator
-
-from django import forms
-from .models import PaymentMethod, logger
-from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 import re
 import datetime
+import logging
+from payment.models import PaymentMethod
+
+logger = logging.getLogger(__name__)
 
 
 def luhn_checksum(card_number):
@@ -30,7 +30,7 @@ class PaymentMethodForm(forms.ModelForm):
     # Never store CVV long-term - this is for temporary processing only
     cvv = forms.CharField(
         max_length=4,
-        required=True,
+        required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': '***',
@@ -40,17 +40,33 @@ class PaymentMethodForm(forms.ModelForm):
         })
     )
 
+    method_type = forms.ChoiceField(
+        choices=(
+            ('VISA', 'Visa'),
+            ('MASTERCARD', 'MasterCard'),
+            ('PAYPAL', 'PayPal'),
+            ('MPESA', 'M-Pesa'),
+            ('AIRTEL', 'Airtel Money'),
+        ),
+        widget=forms.RadioSelect(attrs={'class': 'payment-method-select'})
+    )
+
     class Meta:
         model = PaymentMethod
-        fields = ['card_type', 'cardholder_name', 'is_default']
+        fields = ['method_type', 'cardholder_name', 'paypal_email', 'phone_number', 'is_default']
         widgets = {
-            'card_type': forms.Select(attrs={
-                'class': 'form-select',
-                'aria-label': 'Card type'
-            }),
+            'method_type': forms.HiddenInput(),
             'cardholder_name': forms.TextInput(attrs={
                 'class': 'form-control',
                 'aria-label': 'Cardholder name'
+            }),
+            'paypal_email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'your@email.com'
+            }),
+            'phone_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Phone number'
             }),
             'is_default': forms.CheckboxInput(attrs={
                 'aria-label': 'Set as default payment method'
@@ -61,35 +77,72 @@ class PaymentMethodForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
+        # Card fields
         self.fields['card_number'] = forms.CharField(
             max_length=19,
-            required=True,
+            required=False,
             widget=forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': '**** **** **** ****',
-                'data-mask': '0000 0000 0000 0000',
                 'aria-label': 'Card number'
             })
         )
         self.fields['expiry_date'] = forms.CharField(
             max_length=7,
-            required=True,
+            required=False,
             widget=forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'MM/YYYY',
-                'data-mask': '00/0000',
+                'placeholder': 'MM/YY',
                 'aria-label': 'Expiry date'
             })
         )
 
         # Set initial values if editing
         if self.instance.pk:
-            self.fields['card_number'].initial = self.instance.get_decrypted_card_number()
-            self.fields['expiry_date'].initial = self.instance.get_decrypted_expiry_date()
+            if self.instance.method_type in ['VISA', 'MASTERCARD']:
+                self.fields['card_number'].initial = self.instance.get_decrypted_card_number()
+                self.fields['expiry_date'].initial = self.instance.get_decrypted_expiry_date()
+                self.fields['cvv'].required = False
+            elif self.instance.method_type == 'PAYPAL':
+                self.fields['paypal_email'].initial = self.instance.paypal_email
+
+        # Set initial method type
+        if not self.instance.pk:
+            self.fields['method_type'].initial = 'VISA'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        method_type = cleaned_data.get('method_type')
+
+        if method_type in ['VISA', 'MASTERCARD']:
+            # Card validation
+            if not cleaned_data.get('card_number'):
+                self.add_error('card_number', 'Card number is required')
+            if not cleaned_data.get('expiry_date'):
+                self.add_error('expiry_date', 'Expiry date is required')
+            if not cleaned_data.get('cardholder_name'):
+                self.add_error('cardholder_name', 'Cardholder name is required')
+
+        elif method_type == 'PAYPAL':
+            # PayPal validation
+            if not cleaned_data.get('paypal_email'):
+                self.add_error('paypal_email', 'PayPal email is required')
+
+        elif method_type in ['MPESA', 'AIRTEL']:
+            # Mobile money validation
+            if not cleaned_data.get('phone_number'):
+                self.add_error('phone_number', 'Phone number is required')
+
+        return cleaned_data
 
     def clean_card_number(self):
-        card_number = self.cleaned_data['card_number'].replace(' ', '')
+        card_number = self.cleaned_data.get('card_number', '').replace(' ', '')
+        if not card_number:
+            return None
+
         if not card_number.isdigit() or len(card_number) < 13 or len(card_number) > 19:
             raise ValidationError(
                 _("Please enter a valid card number"),
@@ -106,7 +159,10 @@ class PaymentMethodForm(forms.ModelForm):
         return card_number
 
     def clean_expiry_date(self):
-        expiry_date = self.cleaned_data['expiry_date']
+        expiry_date = self.cleaned_data.get('expiry_date', '')
+        if not expiry_date:
+            return None
+
         try:
             if '/' in expiry_date:
                 month, year = map(int, expiry_date.split('/'))
@@ -121,11 +177,12 @@ class PaymentMethodForm(forms.ModelForm):
                 raise ValueError
 
             # Handle two-digit year input
+            current_year = datetime.date.today().year % 100
+            current_century = datetime.date.today().year // 100 * 100
+
             if year < 100:
-                current_year = datetime.date.today().year
-                century = current_year // 100 * 100
-                year += century
-                if year < current_year:
+                year += current_century
+                if year < datetime.date.today().year:
                     year += 100
 
             # Validate expiration date
@@ -140,12 +197,15 @@ class PaymentMethodForm(forms.ModelForm):
 
         except (ValueError, IndexError):
             raise ValidationError(
-                _("Please enter a valid expiration date in MM/YYYY format"),
+                _("Please enter a valid expiration date in MM/YY format"),
                 code='invalid_expiry'
             )
 
     def clean_cvv(self):
-        cvv = self.cleaned_data['cvv']
+        cvv = self.cleaned_data.get('cvv', '')
+        if not cvv:
+            return None
+
         if not cvv.isdigit() or len(cvv) not in (3, 4):
             raise ValidationError(
                 _("Please enter a valid CVV"),
@@ -154,44 +214,40 @@ class PaymentMethodForm(forms.ModelForm):
         return cvv
 
     def save(self, commit=True):
-        # Process payment immediately and clear CVV
-        cvv = self.cleaned_data.pop('cvv', None)
-        instance = super().save(commit=commit)
+        instance = super().save(commit=False)
+        method_type = self.cleaned_data.get('method_type')
 
-        # Process payment only for new cards
-        if not self.instance.pk and cvv:
-            try:
-                # Tokenize card with payment gateway
-                token = self._process_payment(
-                    self.cleaned_data['card_number'],
-                    self.cleaned_data['expiry_date'],
-                    cvv
-                )
-                # Save token to user profile for future use
-                instance.token = token
-                if commit:
-                    instance.save()
-            except Exception as e:
-                logger.error(f"Payment processing failed: {str(e)}")
-                raise ValidationError(
-                    _("Payment method could not be processed. Please try again."),
-                    code='payment_processing_error'
-                )
+        if method_type in ['VISA', 'MASTERCARD']:
+            instance.encrypted_card_number = self.cleaned_data.get('card_number')
+            instance.encrypted_expiry_date = self.cleaned_data.get('expiry_date')
+            instance.encrypted_cvv = self.cleaned_data.get('cvv')
+            instance.cardholder_name = self.cleaned_data.get('cardholder_name')
+
+            # Determine card type
+            card_number = self.cleaned_data.get('card_number', '')
+            if card_number.startswith('4'):
+                instance.card_type = 'visa'
+            elif card_number.startswith('5'):
+                instance.card_type = 'mastercard'
+            else:
+                instance.card_type = 'other'
+
+        elif method_type == 'PAYPAL':
+            instance.paypal_email = self.cleaned_data.get('paypal_email')
+
+        elif method_type in ['MPESA', 'AIRTEL']:
+            instance.phone_number = self.cleaned_data.get('phone_number')
+            instance.provider_code = method_type
+
+        # Set user
+        if self.user:
+            instance.user = self.user
+
+        if commit:
+            instance.save()
 
         return instance
 
-
-    def _process_payment(self, card_number, expiry, cvv):
-        """Tokenize card with payment gateway (mock implementation)"""
-        if settings.DEBUG:
-            logger.debug(f"Mock payment processing for card: {card_number[-4:]}")
-            return f"tok_mock_{card_number[-4:]}"
-        else:
-            # Implement real payment gateway integration here
-            # Example:
-            # import payment_gateway
-            # return payment_gateway.tokenize(card_number, expiry, cvv)
-            return f"tok_prod_{card_number[-4:]}"
 
 class MobileMoneyVerificationForm(forms.Form):
     verification_code = forms.CharField(
@@ -209,30 +265,15 @@ class MobileMoneyVerificationForm(forms.Form):
     )
 
 
-class MobilePaymentForm(forms.Form):
-    PROVIDER_CHOICES = [
-        ('MP', 'M-Pesa'),
-        ('AT', 'Airtel Money'),
-    ]
-
-    provider = forms.ChoiceField(
-        choices=PROVIDER_CHOICES,
-        widget=forms.RadioSelect(attrs={'class': 'btn-check'})
-    )
-
-    phone_number = forms.CharField(
-        validators=[
-            RegexValidator(
-                regex=r'^\+?2547\d{8}$',
-                message="Enter a valid Kenyan phone number (e.g. 254712345678)"
-            )
-        ],
-        widget=forms.TextInput(attrs={
-            'placeholder': '2547XXXXXXXX',
+class PayPalPaymentForm(forms.Form):
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={
+            'placeholder': 'your@email.com',
             'class': 'form-control'
         })
     )
-
-    def clean_phone_number(self):
-        phone = self.cleaned_data['phone_number']
-        return phone if phone.startswith('254') else f'254{phone[1:]}'
+    save_method = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Save payment method for future use"
+    )

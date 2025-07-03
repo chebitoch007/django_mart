@@ -606,6 +606,8 @@
                                        min="1"
                                        max="{{ item.product.stock }}"
                                        class="quantity-input"
+                                       data-product-id="{{ item.product.id }}"
+                                       data-unit-price="{{ item.product.get_display_price }}"
                                        {% if not item.product.available %}disabled{% endif %}>
                                 <button type="button" class="quantity-btn increase"
                                     {% if not item.product.available %}disabled{% endif %}>
@@ -632,19 +634,19 @@
                     </td>
 
                     <!-- Total Column -->
-                    <td class="cart-item-cell cart-item-total">
+                    <td class="cart-item-cell cart-item-total" id="total-{{ item.product.id }}">
                         KES {{ item.total_price|intcomma }}
                     </td>
 
                     <!-- Remove Column -->
-                    <td class="cart-item-cell">
-                        <form method="post" action="{% url 'cart:cart_remove' item.product.id %}">
-                            {% csrf_token %}
-                            <button type="submit" class="cart-remove-btn" aria-label="Remove item">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </form>
-                    </td>
+<td class="cart-item-cell">
+    <form method="post" action="{% url 'cart:cart_remove' item.product.id %}">
+        {% csrf_token %}
+        <button type="submit" class="cart-remove-btn" aria-label="Remove item">
+            <i class="fas fa-trash"></i>
+        </button>
+    </form>
+</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -667,7 +669,7 @@
 
                     <div class="summary-row">
                         <span>Subtotal:</span>
-                        <span class="cart-item-total">KES {{ cart.total_price|intcomma }}</span>
+                        <span class="cart-item-total" id="cart-subtotal">KES {{ cart.total_price|intcomma }}</span>
                     </div>
                     <div class="summary-row">
                         <span>Shipping:</span>
@@ -680,7 +682,7 @@
 
                     <div class="summary-row summary-total-row">
                         <span>Total:</span>
-                        <span class="cart-item-total">KES {{ cart.total_price|intcomma }}</span>
+                        <span class="cart-item-total" id="cart-total">KES {{ cart.total_price|intcomma }}</span>
                     </div>
 
                     <!-- Checkout Button -->
@@ -692,16 +694,19 @@
                     <!-- Payment Methods -->
                     <div class="payment-methods">
                         <div class="payment-method">
-                            <i class="fab fa-cc-visa payment-icon"></i>
+                            <img src="{% static 'images/mpesa-logo.png' %}" alt="mpesa" class="method-logo">
                         </div>
                         <div class="payment-method">
-                            <i class="fab fa-cc-mastercard payment-icon"></i>
+                            <img src="{% static 'images/airtel-money-logo.png' %}" alt="airtel-money" class="method-logo">
                         </div>
                         <div class="payment-method">
-                            <i class="fab fa-cc-paypal payment-icon"></i>
+                            <img src="{% static 'images/visa-logo.png' %}" alt="visa" class="method-logo">
                         </div>
                         <div class="payment-method">
-                            <i class="fab fa-cc-apple-pay payment-icon"></i>
+                            <img src="{% static 'images/mastercard-logo.png' %}" alt="mastercard" class="method-logo">
+                        </div>
+                        <div class="payment-method">
+                            <img src="{% static 'images/PayPal-logo.png' %}" alt="PayPal" class="method-logo">
                         </div>
                     </div>
                 </div>
@@ -750,82 +755,224 @@
 </div>
 {% endblock %}
 
+
+
 {% block extra_js %}
 <script>
+// Update the updateCartOnServer function
+function updateCartOnServer(productId, quantity) {
+    const url = `{% url 'cart:cart_update' 0 %}`.replace('0', productId);
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: `quantity=${quantity}&csrfmiddlewaretoken=${csrfToken}`
+    })
+    .then(response => response.json())
+}
+
+// Update event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    // Quantity input controls
-    document.querySelectorAll('.increase').forEach(button => {
+    // Quantity buttons
+    document.querySelectorAll('.quantity-btn').forEach(button => {
         button.addEventListener('click', function() {
             const form = this.closest('form');
             const input = form.querySelector('input[name="quantity"]');
-            const max = parseInt(input.max);
-            const currentValue = parseInt(input.value);
 
-            if (currentValue < max) {
-                input.value = currentValue + 1;
-                form.dispatchEvent(new Event('submit'));
-            } else {
-                showStockWarning(input, max);
+            if (!input || input.disabled) return;
+
+            const productId = input.dataset.productId;
+            let quantity = parseInt(input.value);
+
+            if (this.classList.contains('increase')) {
+                quantity = Math.min(quantity + 1, parseInt(input.max));
+            } else if (this.classList.contains('decrease') && quantity > 1) {
+                quantity = Math.max(quantity - 1, 1);
             }
+
+            input.value = quantity;
+            updateCartOnServer(productId, quantity)
+                .then(data => updateCartUI(data, productId, input));
         });
     });
 
-    document.querySelectorAll('.decrease').forEach(button => {
-        button.addEventListener('click', function() {
-            const form = this.closest('form');
-            const input = form.querySelector('input[name="quantity"]');
-            const currentValue = parseInt(input.value);
-
-            if (currentValue > 1) {
-                input.value = currentValue - 1;
-                form.dispatchEvent(new Event('submit'));
-            }
-        });
-    });
-
-    // Submit form when quantity input changes
-    document.querySelectorAll('input[name="quantity"]').forEach(input => {
+    // Quantity input changes
+    document.querySelectorAll('.quantity-input').forEach(input => {
         input.addEventListener('change', function() {
             const form = this.closest('form');
-            const max = parseInt(this.max);
-            const value = parseInt(this.value);
+            const productId = this.dataset.productId;
+            let quantity = parseInt(this.value) || 1;
+            quantity = Math.max(1, Math.min(quantity, parseInt(this.max)));
+            this.value = quantity;
 
-            if (value > max) {
-                this.value = max;
-                showStockWarning(this, max);
-            }
-
-            form.submit();
+            updateCartOnServer(productId, quantity)
+                .then(data => updateCartUI(data, productId, this));
         });
     });
 
-    // Cart item removal confirmation
-    document.querySelectorAll('.cart-remove-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            if (!confirm('Are you sure you want to remove this item from your cart?')) {
-                e.preventDefault();
-            }
+    // Remove item forms
+    document.querySelectorAll('.cart-remove-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const productId = this.action.split('/').filter(Boolean).pop();
+
+            fetch(this.action, {
+                method: 'POST',
+                body: new FormData(this),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.closest('.cart-item-row').remove();
+                    updateGlobalCartCount(data.cart_total_items);
+
+                    // Update cart totals
+                    const subtotal = document.getElementById('cart-subtotal');
+                    const total = document.getElementById('cart-total');
+                    if (subtotal && total) {
+                        subtotal.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString()}`;
+                        total.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString()}`;
+                    }
+
+                    // Show empty cart if needed
+                    if (data.cart_total_items === 0) {
+                        location.reload(); // Or show empty cart UI
+                    }
+                }
+            });
         });
     });
+});
 
-    // Helper function to show stock warning
-    function showStockWarning(input, max) {
-        const form = input.closest('form');
-        const warning = document.createElement('div');
-        warning.className = 'stock-warning';
-        warning.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Only ${max} available`;
+function updateCartUI(data, productId, input) {
+    if (data.success) {
+        const totalElement = document.getElementById(`total-${productId}`);
+        if (totalElement) {
+            totalElement.textContent = `KES ${parseFloat(data.item.item_total).toLocaleString('en-US')}`;
+        }
 
-        // Remove existing warnings
-        const existingWarnings = form.parentElement.querySelectorAll('.stock-warning');
-        existingWarnings.forEach(el => el.remove());
+        const subtotalElement = document.getElementById('cart-subtotal');
+        const totalCartElement = document.getElementById('cart-total');
+        if (subtotalElement && totalCartElement) {
+            subtotalElement.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString('en-US')}`;
+            totalCartElement.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString('en-US')}`;
+        }
 
-        form.parentElement.appendChild(warning);
+        updateGlobalCartCount(data.cart_total_items);
+        input.max = data.item.product_stock;
+        input.value = data.item.quantity;
 
-        // Remove warning after 3 seconds
-        setTimeout(() => {
-            warning.remove();
-        }, 3000);
+        const formRow = input.closest('.cart-item-cell');
+        if (formRow) {
+            const existingWarnings = formRow.querySelectorAll('.stock-warning');
+            existingWarnings.forEach(el => el.remove());
+
+            if (input.value >= data.item.product_stock) {
+                showStockWarning(input, data.item.product_stock);
+            }
+        }
+
+        if (data.message) {
+            showTemporaryAlert(data.message);
+        }
+    } else if (data.message) {
+        alert(`Error: ${data.message}`);
     }
+}
+
+function updateGlobalCartCount(count) {
+    const cartCountEl = document.querySelector('.cart-item-count');
+    if (cartCountEl) {
+        cartCountEl.textContent = `${count} item${count !== 1 ? 's' : ''}`;
+    }
+}
+
+function showStockWarning(input, max) {
+    const formRow = input.closest('.cart-item-cell');
+    if (!formRow) return;
+
+    const warning = document.createElement('div');
+    warning.className = 'stock-warning';
+    warning.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Only ${max} available`;
+
+    formRow.querySelectorAll('.stock-warning').forEach(el => el.remove());
+    formRow.appendChild(warning);
+
+    setTimeout(() => {
+        if (warning.parentNode === formRow) {
+            warning.remove();
+        }
+    }, 3000);
+}
+
+function showTemporaryAlert(message) {
+    const alertBox = document.createElement('div');
+    alertBox.className = 'cart-alert';
+    alertBox.textContent = message;
+    alertBox.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        padding: 10px 20px;
+        border-radius: 6px;
+        z-index: 9999;
+    `;
+    document.body.appendChild(alertBox);
+    setTimeout(() => alertBox.remove(), 3000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.quantity-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const form = this.closest('form');
+            if (!form) return;
+
+            const input = form.querySelector('input[name="quantity"]');
+            if (!input || input.disabled) return;
+
+            const productId = input.dataset.productId;
+            const currentValue = parseInt(input.value) || 1;
+            const maxStock = parseInt(input.max) || 99999;
+
+            if (this.classList.contains('increase')) {
+                if (currentValue < maxStock) {
+                    input.value = currentValue + 1;
+                    updateCartOnServer(productId, input.value, form)
+                        .then(data => updateCartUI(data, productId, input));
+                }
+            } else if (this.classList.contains('decrease') && currentValue > 1) {
+                input.value = currentValue - 1;
+                updateCartOnServer(productId, input.value, form)
+                    .then(data => updateCartUI(data, productId, input));
+            }
+        });
+    });
+
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.addEventListener('change', function() {
+            const form = this.closest('form');
+            if (!form) return;
+
+            const productId = this.dataset.productId;
+            let value = parseInt(this.value);
+            if (isNaN(value) || value < 1) value = 1;
+            if (value > parseInt(this.max)) value = parseInt(this.max);
+
+            this.value = value;
+            updateCartOnServer(productId, value, form)
+                .then(data => updateCartUI(data, productId, this));
+        });
+    });
 });
 </script>
 {% endblock %}

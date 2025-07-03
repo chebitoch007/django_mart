@@ -1,57 +1,361 @@
-import unicodedata
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Avg, Q, Count, F, ExpressionWrapper, DecimalField, Prefetch
-from django.views.generic import TemplateView
-from .models import Category, Product, Review, NewsletterSubscription, ProductImage
+from django.views.generic import TemplateView, ListView
+from .models import Category, Product, Review, NewsletterSubscription, ProductImage, SearchLog
 from cart.forms import CartAddProductForm
 from .forms import ReviewForm
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.contrib import messages
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from django.utils import timezone
 from .utils import send_email_async
 import logging
 from django.http import HttpRequest, JsonResponse
 from django.urls import reverse
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, Greatest
 from store.constants import CATEGORIES
 from django.contrib.auth.decorators import login_required, user_passes_test
-
 from django.forms import inlineformset_factory
 from .forms import ProductForm, ProductImageFormSet
-
 from .aliexpress import generate_affiliate_link
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, TrigramSimilarity
+from django.core.cache import cache
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 
+from django.db import connection
+import json
 
-
-
-
-
-# Constants for sorting options
 SORT_OPTIONS = {
     'price_asc': 'price',
     'price_desc': '-price',
     'name': 'name',
     'rating': '-avg_rating',
-    'popular': '-review_count_annotation',
+    'popular': '-review_count',
     'newest': '-created',
     'discount': '-discount_percentage',
 }
 
+# Constants
+SEARCH_WEIGHTS = [0.1, 0.2, 0.4, 1.0]  # D, C, B, A weights
+SUGGESTION_THRESHOLD = 0.15  # Minimum similarity for suggestions
+TRENDING_CACHE_KEY = 'trending_products'
+TRENDING_CACHE_TIMEOUT = 3600  # 1 hour
 
-def get_sorted_products(products, sort_key):
+
+@require_GET
+def product_search(request):
+    query = request.GET.get('q', '').strip()
+    category_slug = request.GET.get('category')
+    sort_by = request.GET.get('sort', '-created')
+    max_price = request.GET.get('max_price')
+    min_rating = request.GET.get('min_rating')
+    in_stock = request.GET.get('in_stock') == 'true'
+
+    if not query:
+        return redirect('store:product_list')
+
+    # Full-text search with PostgreSQL
+    search_query = SearchQuery(query, config='english')
+    vector = (
+            SearchVector('name', weight='A') +
+            SearchVector('short_description', weight='B') +
+            SearchVector('description', weight='C') +
+            SearchVector('category__name', weight='A')
+    )
+
+    products = Product.objects.annotate(
+        rank=SearchRank(vector, search_query, weights=SEARCH_WEIGHTS),
+        similarity=Greatest(
+            TrigramSimilarity('name', query),
+            TrigramSimilarity('short_description', query),
+            TrigramSimilarity('description', query),
+            TrigramSimilarity('category__name', query)
+        )
+    ).filter(
+        (Q(rank__gte=0.1) | Q(similarity__gt=SUGGESTION_THRESHOLD)),
+        available=True
+    )
+
+    # Apply filters
+    if category_slug:
+        products = products.filter(category__slug=category_slug)
+
+    if max_price and max_price.isdigit():
+        products = products.filter(price__lte=int(max_price))
+
+    if in_stock:
+        products = products.filter(stock__gt=0)
+
+    if min_rating and min_rating.isdigit():
+        min_rating = int(min_rating)
+        products = products.annotate(
+            avg_rating=Avg('reviews__rating')
+        ).filter(avg_rating__gte=min_rating)
+
+    # Apply sorting
+    products = get_sorted_products(products, sort_by)
+
+    # Pagination
+    paginator = Paginator(products, 24)
+    page_number = request.GET.get('page')
+    products_page = paginator.get_page(page_number)
+
+    # Get categories for filter dropdown
+    categories = Category.objects.annotate(
+        product_count=Count('products')
+    ).filter(product_count__gt=0)
+
+    # Get related searches
+    related_searches = []
+    if query:
+        cache_key = f"search_suggestions:{query[:20]}"
+        related_searches = cache.get(cache_key)
+        if not related_searches:
+            # Get popular searches related to this query
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT query, COUNT(*) 
+                    FROM store_searchlog 
+                    WHERE query %% %s
+                    GROUP BY query
+                    ORDER BY COUNT(*) DESC
+                    LIMIT 5
+                """, [query])
+                related_searches = [row[0] for row in cursor.fetchall()]
+            cache.set(cache_key, related_searches, 3600)
+
+    return render(request, 'store/search/results.html', {
+        'products': products_page,
+        'query': query,
+        'categories': categories,
+        'sort_by': sort_by,
+        'sort_options': SORT_OPTIONS,
+        'max_price': max_price,
+        'min_rating': min_rating,
+        'in_stock': in_stock,
+        'related_searches': related_searches,
+    })
+
+
+@require_GET
+def search_suggestions(request):
+    query = request.GET.get('q', '').strip()
+    suggestions = []
+
+    # Get trending products when no query
+    if not query:
+        trending = cache.get('trending_products')
+        if not trending:
+            trending = Product.objects.filter(
+                available=True
+            ).annotate(
+                review_count=Count('reviews')
+            ).order_by('-review_count')[:5]
+            cache.set('trending_products', trending, 3600)
+
+        return JsonResponse({
+            'suggestions': [{
+                'section': 'Trending Products',
+                'type': 'product',
+                'name': p.name,
+                'url': p.get_absolute_url(),
+                'image': p.image.url if p.image else '',
+                'price': str(p.get_display_price()),
+                'category': p.category.name
+            } for p in trending]
+        })
+
+    # Log search query
+    if query and len(query) > 2:
+        SearchLog.objects.create(
+            query=query,
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+
+    # Build sections
+    sections = []
+
+    # 1. Popular Searches Section
+    popular_searches = []
+    if len(query) > 3:
+        cache_key = f"popular_searches:{query[:20]}"
+        popular_searches = cache.get(cache_key)
+        if not popular_searches:
+            popular_searches = SearchLog.objects.filter(
+                query__trigram_similar=query
+            ).values('query').annotate(
+                count=Count('id')
+            ).order_by('-count')[:3]
+            popular_searches = [{
+                'type': 'search',
+                'name': item['query'],
+                'url': reverse('store:product_search') + f'?q={item["query"]}'
+            } for item in popular_searches]
+            cache.set(cache_key, popular_searches, 3600)
+
+    if popular_searches:
+        sections.append({
+            'name': 'Popular Searches',
+            'items': popular_searches
+        })
+
+    # 2. Categories Section
+    categories = Category.objects.annotate(
+        similarity=TrigramSimilarity('name', query)
+    ).filter(similarity__gt=0.2).order_by('-similarity')[:2]
+
+    if categories.exists():
+        sections.append({
+            'name': 'Categories',
+            'items': [{
+                'type': 'category',
+                'name': c.name,
+                'url': c.get_absolute_url(),
+            } for c in categories]
+        })
+
+    # 3. Products Section
+    products = Product.objects.annotate(
+        similarity=Greatest(
+            TrigramSimilarity('name', query),
+            TrigramSimilarity('short_description', query),
+            TrigramSimilarity('description', query),
+            TrigramSimilarity('category__name', query)
+        )
+    ).filter(
+        similarity__gt=SUGGESTION_THRESHOLD,
+        available=True
+    ).order_by('-similarity')[:8]
+
+    if products.exists():
+        sections.append({
+            'name': 'Products',
+            'items': [{
+                'type': 'product',
+                'name': p.name,
+                'url': p.get_absolute_url(),
+                'image': p.image.url if p.image else '',
+                'price': str(p.get_display_price()),
+                'category': p.category.name
+            } for p in products]
+        })
+
+    return JsonResponse({'sections': sections})
+
+class ProductSearchView(ListView):
+    model = Product
+    template_name = 'store/product/search.html'
+    paginate_by = 16
+    context_object_name = 'products'
+
+    @method_decorator(cache_page(60 * 15))  # Cache for 15 minutes
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '').strip()
+        if not query:
+            return Product.objects.none()
+
+        # Use PostgreSQL full-text search with trigram fallback
+        search_query = SearchQuery(query, config='english')
+
+        # Build search vector without 'tags' field
+        vector = (
+                SearchVector('name', weight='A') +
+                SearchVector('short_description', weight='B') +
+                SearchVector('description', weight='B') +
+                SearchVector('category__name', weight='C')
+        )
+
+        # Base queryset with ranking
+        products = Product.objects.annotate(
+            rank=SearchRank(vector, search_query, weights=SEARCH_WEIGHTS),
+            similarity=Greatest(
+                TrigramSimilarity('name', query),
+                TrigramSimilarity('short_description', query),
+                TrigramSimilarity('description', query),
+                TrigramSimilarity('category__name', query)
+            )
+        ).filter(
+            (Q(rank__gte=0.1) | Q(similarity__gt=SUGGESTION_THRESHOLD)),
+            available=True
+        ).select_related('category').order_by('-rank', '-similarity')
+
+        # Apply filters
+        return self.apply_filters(products)
+
+    def apply_filters(self, queryset):
+        # Category filter
+        category_slug = self.request.GET.get('category')
+        if category_slug:
+            queryset = queryset.filter(category__slug=category_slug)
+
+        # Price filter
+        max_price = self.request.GET.get('max_price')
+        if max_price and max_price.isdigit():
+            queryset = queryset.filter(price__lte=int(max_price))
+
+        # Availability filter
+        in_stock = self.request.GET.get('in_stock')
+        if in_stock == 'true':
+            queryset = queryset.filter(stock__gt=0)
+
+        # Rating filter
+        min_rating = self.request.GET.get('min_rating')
+        if min_rating and min_rating.isdigit():
+            min_rating = int(min_rating)
+            queryset = queryset.annotate(
+                avg_rating=Coalesce(Avg('reviews__rating'), 0.0)
+            ).filter(avg_rating__gte=min_rating)
+
+        # Sort options
+        sort_by = self.request.GET.get('sort', '-created')
+        return get_sorted_products(queryset, sort_by)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        query = self.request.GET.get('q', '')
+        context['query'] = query
+        context['sort_options'] = SORT_OPTIONS
+        context['sort_by'] = self.request.GET.get('sort', '-created')
+
+        # Add popular search terms to context
+        if query:
+            cache_key = f"search_suggestions:{query[:20]}"
+            suggestions = cache.get(cache_key)
+            if not suggestions:
+                # Get popular searches related to this query
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT query, COUNT(*) 
+                        FROM store_searchlog 
+                        WHERE query %% %s
+                        GROUP BY query
+                        ORDER BY COUNT(*) DESC
+                        LIMIT 5
+                    """, [query])
+                    suggestions = [row[0] for row in cursor.fetchall()]
+                cache.set(cache_key, suggestions, 3600)
+            context['related_searches'] = suggestions
+
+        return context
+
+
+def get_sorted_products(queryset, sort_key):
     """Enhanced sorting with annotations for discount percentage"""
-    products = products.annotate(
+    queryset = queryset.annotate(
         avg_rating=Coalesce(Avg('reviews__rating'), 0.0),
         review_count_annotation=Count('reviews'),
     )
 
     # Only annotate discount_percentage when needed
-    if sort_key == 'discount':  # Note: Fix typo to 'discount'
-        products = products.annotate(
+    if sort_key == 'discount':
+        queryset = queryset.annotate(
             discount_percentage=ExpressionWrapper(
                 (F('price') - F('discount_price')) / F('price') * 100,
                 output_field=DecimalField()
@@ -59,7 +363,7 @@ def get_sorted_products(products, sort_key):
         )
 
     sort_field = SORT_OPTIONS.get(sort_key, '-created')
-    return products.order_by(sort_field)
+    return queryset.order_by(sort_field)
 
 
 def product_list(request, category_slug=None):
@@ -78,12 +382,20 @@ def product_list(request, category_slug=None):
     # Apply price filter
     max_price = request.GET.get('max_price')
     if max_price and max_price.isdigit():
-        products = products.filter(price__lte=max_price)
+        products = products.filter(price__lte=int(max_price))
 
     # Apply stock filter
     in_stock = request.GET.get('in_stock')
     if in_stock == 'true':
         products = products.filter(stock__gt=0)
+
+    # Apply rating filter
+    min_rating = request.GET.get('min_rating')
+    if min_rating and min_rating.isdigit():
+        min_rating = int(min_rating)
+        products = products.annotate(
+            avg_rating=Coalesce(Avg('reviews__rating'), 0.0)
+        ).filter(avg_rating__gte=min_rating)
 
     # Validate and apply sorting
     sort_by = request.GET.get('sort', '-created')
@@ -106,6 +418,7 @@ def product_list(request, category_slug=None):
         'sort_options': SORT_OPTIONS,
         'max_price': max_price or 1000,
         'in_stock': in_stock == 'true',
+        'min_rating': min_rating,
     }
     return render(request, 'store/product/list.html', context)
 
@@ -132,9 +445,10 @@ def product_detail(request, slug):
         available=True
     ).exclude(id=product.id).order_by('?')[:4]  # Random 4 products
 
+    # Handle affiliate link
+    affiliate_link = None
     if product.is_dropship:
         affiliate_link = generate_affiliate_link(product.supplier_url)
-        context['affiliate_link'] = affiliate_link
 
     if request.method == 'POST' and request.user.is_authenticated:
         review_form = ReviewForm(request.POST)
@@ -158,9 +472,9 @@ def product_detail(request, slug):
         'cart_product_form': CartAddProductForm(),
         'review_form': review_form,
         'discount_percentage': discount_percentage,
+        'affiliate_link': affiliate_link,
     }
     return render(request, 'store/product/detail.html', context)
-
 
 
 def legacy_product_redirect(request, id, slug):
@@ -169,83 +483,96 @@ def legacy_product_redirect(request, id, slug):
     return redirect('store:product_detail', slug=product.slug, permanent=True)
 
 
-def product_search(request):
-    """Handle product search queries with proper filtering and sorting"""
-    query = request.GET.get('q', '').strip()
-
-    if not query:
-        messages.info(request, "Please enter a search term")
-        return redirect('store:product_list')
-
-    # Normalize query for better matching
-    normalized_query = unicodedata.normalize('NFKD', query).encode('ascii', 'ignore').decode('ascii')
-
-    # Create search query with Q objects
-    search_query = (
-            Q(name__icontains=query) |
-            Q(name__icontains=normalized_query) |
-            Q(description__icontains=query) |
-            Q(short_description__icontains=query) |
-            Q(category__name__icontains=query)
-    )
-
-    # Apply filters and annotations
-    products = Product.objects.filter(
-        available=True
-    ).filter(
-        search_query
-    ).select_related('category')
-
-    # Apply category filter if exists
-    category_slug = request.GET.get('category')
-    if category_slug:
-        products = products.filter(category__slug=category_slug)
-
-    # Apply price filter if exists
-    max_price = request.GET.get('max_price')
-    if max_price and max_price.isdigit():
-        products = products.filter(price__lte=max_price)
-
-    # Apply sorting
-    sort_by = request.GET.get('sort', '-created')
-    products = get_sorted_products(products, sort_by)
-
-    # Pagination
-    paginator = Paginator(products, 16)
-    page_number = request.GET.get('page')
-
-    try:
-        products_page = paginator.page(page_number)
-    except PageNotAnInteger:
-        products_page = paginator.page(1)
-    except EmptyPage:
-        products_page = paginator.page(paginator.num_pages)
-
-    return render(request, 'store/product/search.html', {
-        'products': products_page,
-        'query': query,
-        'sort_options': SORT_OPTIONS,
-        'sort_by': sort_by,
-    })
-
-
 def search_suggestions(request):
     query = request.GET.get('q', '').strip()
     suggestions = []
 
-    if query:
-        # Get product name suggestions
-        products = Product.objects.filter(
-            Q(name__icontains=query) |
-            Q(category__name__icontains=query),
-            available=True
-        )[:5]
+    # Get trending products when no query
+    if not query:
+        trending = cache.get('trending_products')
+        if not trending:
+            trending = Product.objects.filter(
+                available=True
+            ).annotate(
+                review_count=Count('reviews')
+            ).order_by('-review_count')[:5]
+            cache.set('trending_products', trending, 3600)  # Cache for 1 hour
 
         suggestions = [{
+            'type': 'trending',
             'name': p.name,
             'url': p.get_absolute_url(),
-            'image': p.image.url if p.image else ''
-        } for p in products]
+            'image': p.image.url if p.image else '',
+            'price': str(p.get_display_price()),
+            'rating': float(p.rating),
+            'category': p.category.name
+        } for p in trending]
+        return JsonResponse({'suggestions': suggestions})
+
+    # Log search query for analytics
+    if query and len(query) > 2:
+        from .models import SearchLog
+        SearchLog.objects.create(query=query, ip_address=request.META.get('REMOTE_ADDR'))
+
+    # Get products with trigram similarity
+    products = Product.objects.annotate(
+        similarity=Greatest(
+            TrigramSimilarity('name', query),
+            TrigramSimilarity('short_description', query),
+            TrigramSimilarity('description', query),
+            TrigramSimilarity('category__name', query)
+        )
+    ).filter(
+        similarity__gt=SUGGESTION_THRESHOLD,
+        available=True
+    ).order_by('-similarity')[:8]
+
+    # Get categories
+    categories = Category.objects.annotate(
+        similarity=TrigramSimilarity('name', query)
+    ).filter(
+        similarity__gt=0.2
+    ).order_by('-similarity')[:2]  # Reduced from 3 to 2
+
+    # Get popular searches
+    popular_searches = []
+    if len(query) > 3:
+        cache_key = f"popular_searches:{query[:20]}"
+        popular_searches = cache.get(cache_key)
+        if not popular_searches:
+            # Get popular searches from the database
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT query, COUNT(*) 
+                    FROM store_searchlog 
+                    WHERE query %% %s
+                    GROUP BY query
+                    ORDER BY COUNT(*) DESC
+                    LIMIT 3
+                """, [query])
+                popular_searches = [{'type': 'search', 'name': row[0]} for row in cursor.fetchall()]
+            cache.set(cache_key, popular_searches, 3600)
+
+    # Build suggestions with type information
+    for p in products:
+        suggestions.append({
+            'type': 'product',
+            'name': p.name,
+            'url': p.get_absolute_url(),
+            'price': str(p.get_display_price()),
+            'rating': float(p.rating),
+            'category': p.category.name
+        })
+
+    for c in categories:
+        suggestions.append({
+            'type': 'category',
+            'name': c.name,
+            'url': c.get_absolute_url(),
+        })
+
+    # Add popular searches to suggestions
+    suggestions.extend(popular_searches)
 
     return JsonResponse({'suggestions': suggestions})
 
@@ -275,6 +602,7 @@ def submit_review(request, slug):
 
     return redirect('store:product_detail', slug=product.slug)
 
+
 def product_categories(request):
     categories = Category.objects.annotate(
         num_products=Count('products')
@@ -290,6 +618,7 @@ def product_categories(request):
 
 
 logger = logging.getLogger('newsletter')
+
 
 def create_confirmation_email_content(request: HttpRequest, subscription: NewsletterSubscription) -> tuple[str, str]:
     confirmation_link = request.build_absolute_uri(
@@ -377,6 +706,7 @@ def subscribe(request):
 
     return redirect('store:home')
 
+
 def confirm_subscription(request, token):
     try:
         subscription = NewsletterSubscription.objects.get(
@@ -453,37 +783,46 @@ class TemplateTestView(TemplateView):
             'timestamp': timezone.now()
         }
 
+
 def contact(request):
     return render(request, 'store/contact.html', {'title': 'Contact Us'})
+
 
 def faq(request):
     return render(request, 'store/faq.html', {'title': 'FAQs'})
 
+
 def shipping(request):
     return render(request, 'store/shipping.html', {'title': 'Shipping Policy'})
+
 
 def returns(request):
     return render(request, 'store/returns.html', {'title': 'Return Policy'})
 
+
 def warranty(request):
     return render(request, 'store/warranty.html', {'title': 'Warranty'})
+
 
 def tracking(request):
     return render(request, 'store/tracking.html', {'title': 'Track Order'})
 
 
-
 def privacy(request):
     return render(request, 'store/privacy.html', {'title': 'Privacy Policy'})
+
 
 def terms(request):
     return render(request, 'store/terms.html', {'title': 'Terms of Service'})
 
+
 def cookies(request):
     return render(request, 'store/cookies.html', {'title': 'Cookie Policy'})
 
+
 def accessibility(request):
     return render(request, 'store/accessibility.html', {'title': 'Accessibility'})
+
 
 def sitemap(request):
     return render(request, 'store/sitemap.html', {'title': 'Sitemap'})
@@ -505,8 +844,6 @@ def is_staff(user):
 
 @login_required
 @user_passes_test(is_staff)
-@login_required
-@user_passes_test(is_staff)
 def add_product(request):
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES)
@@ -526,6 +863,7 @@ def add_product(request):
         'form': form,
         'image_formset': image_formset
     })
+
 
 @login_required
 @user_passes_test(is_staff)
@@ -564,6 +902,7 @@ def edit_product(request, slug):
         'product': product
     })
 
+
 @login_required
 @user_passes_test(is_staff)
 def delete_product(request, slug):
@@ -577,10 +916,25 @@ def delete_product(request, slug):
     return render(request, 'store/dashboard/delete_product.html', {'product': product})
 
 
-
-
 def custom_404(request, exception):
     return render(request, '404.html', status=404)
 
+
 def custom_500(request):
     return render(request, '500.html', status=500)
+
+
+@require_POST
+def search_analytics(request):
+    data = json.loads(request.body)
+    query = data.get('query', '')[:255]
+    results_count = data.get('results_count', 0)
+
+    if query:
+        SearchLog.objects.create(
+            query=query,
+            results_count=results_count,
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'invalid'}, status=400)

@@ -1,0 +1,2305 @@
+INFO 2025-07-02 17:16:20,023 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 17:16:24,712 basehttp "GET / HTTP/1.1" 200 138704
+WARNING 2025-07-02 17:16:26,122 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 17:16:26,123 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 17:16:26,366 basehttp "GET /media/products/main/Ergonomic_Mesh_Gaming_Chair.jfif HTTP/1.1" 200 8209
+INFO 2025-07-02 17:16:26,391 basehttp "GET /media/products/main/Lumbar_Pillow__Neck_Rest.jfif HTTP/1.1" 200 5761
+INFO 2025-07-02 17:16:26,405 basehttp "GET /media/products/main/RGB_LED_Gaming_Chair.jfif HTTP/1.1" 200 9281
+INFO 2025-07-02 17:16:26,428 basehttp "GET /media/products/main/QHD_Curved_Monitor.jfif HTTP/1.1" 200 12432
+INFO 2025-07-02 17:16:26,444 basehttp "GET /media/products/main/USB_Audio_Adapter.jfif HTTP/1.1" 200 4992
+INFO 2025-07-02 17:16:26,461 basehttp "GET /media/products/main/In-ear_Gaming_Earphones_with_Mic.png HTTP/1.1" 200 10673
+INFO 2025-07-02 17:16:26,471 basehttp "GET /media/products/main/Detachable_Microphone.jfif HTTP/1.1" 200 3787
+INFO 2025-07-02 17:16:26,482 basehttp "GET /media/products/main/RGB_Ring_Light.jfif HTTP/1.1" 200 15383
+INFO 2025-07-02 17:16:26,517 basehttp "GET /media/products/main/Green_Screen_Backdrop.jfif HTTP/1.1" 200 5731
+INFO 2025-07-02 17:16:26,530 basehttp "GET /media/products/main/Boom_Arm_Stand_for_Mic.jfif HTTP/1.1" 200 3933
+INFO 2025-07-02 17:16:26,540 basehttp "GET /media/products/main/USB-C_Gaming_Dock.jfif HTTP/1.1" 200 3072
+INFO 2025-07-02 17:16:26,550 basehttp "GET /media/products/main/USB_Hub.jfif HTTP/1.1" 200 6179
+WARNING 2025-07-02 17:16:26,617 log Not Found: /media/categories/default.png
+INFO 2025-07-02 17:16:26,617 basehttp "GET /cart/total/ HTTP/1.1" 302 0
+WARNING 2025-07-02 17:16:26,618 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 17:16:27,080 basehttp "GET /accounts/login/?next=/cart/total/ HTTP/1.1" 200 12690
+WARNING 2025-07-02 17:16:27,244 base Session data corrupted
+INFO 2025-07-02 17:16:27,391 basehttp "GET / HTTP/1.1" 200 138704
+WARNING 2025-07-02 17:16:27,534 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 17:16:27,534 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-02 17:16:27,667 base Session data corrupted
+INFO 2025-07-02 17:16:27,669 basehttp "GET /cart/total/ HTTP/1.1" 302 0
+WARNING 2025-07-02 17:16:28,147 log Not Found: /favicon.ico
+WARNING 2025-07-02 17:16:28,149 basehttp "GET /favicon.ico HTTP/1.1" 404 10801
+WARNING 2025-07-02 17:16:28,153 base Session data corrupted
+INFO 2025-07-02 17:16:28,159 basehttp "GET /accounts/login/?next=/cart/total/ HTTP/1.1" 200 12690
+WARNING 2025-07-02 17:16:28,234 log Not Found: /favicon.ico
+WARNING 2025-07-02 17:16:28,235 basehttp "GET /favicon.ico HTTP/1.1" 404 10801
+WARNING 2025-07-02 17:16:59,311 base Session data corrupted
+INFO 2025-07-02 17:16:59,325 basehttp "GET /search/?category=&q= HTTP/1.1" 200 97193
+WARNING 2025-07-02 17:16:59,562 base Session data corrupted
+INFO 2025-07-02 17:16:59,564 basehttp "GET /cart/total/ HTTP/1.1" 302 0
+WARNING 2025-07-02 17:16:59,670 base Session data corrupted
+INFO 2025-07-02 17:16:59,674 basehttp "GET /accounts/login/?next=/cart/total/ HTTP/1.1" 200 12690
+WARNING 2025-07-02 17:17:08,227 base Session data corrupted
+ERROR 2025-07-02 17:17:08,263 log Internal Server Error: /search-suggestions/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 496, in search_suggestions
+    ).annotate(
+      ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1645, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1690, in _annotate
+    raise ValueError(
+ValueError: The annotation 'review_count' conflicts with a field on the model.
+ERROR 2025-07-02 17:17:08,270 basehttp "GET /search-suggestions/?q= HTTP/1.1" 500 95476
+INFO 2025-07-02 17:17:09,242 basehttp "GET /search-suggestions/?q=U HTTP/1.1" 200 19
+INFO 2025-07-02 17:17:09,810 basehttp "GET /search-suggestions/?q=US HTTP/1.1" 200 166
+INFO 2025-07-02 17:17:15,822 basehttp "GET /search-suggestions/?q=USB HTTP/1.1" 200 686
+WARNING 2025-07-02 17:17:30,314 base Session data corrupted
+ERROR 2025-07-02 17:17:30,586 log Internal Server Error: /products/usb-c-gaming-dock/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 477, in product_detail
+    return render(request, 'store/product/detail.html', context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader.py", line 62, in render_to_string
+    return template.render(context, request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\backends\django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\defaulttags.py", line 327, in render
+    return nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\urls\base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\urls\resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'login' not found. 'login' is not a valid view function or pattern name.
+ERROR 2025-07-02 17:17:30,605 basehttp "GET /products/usb-c-gaming-dock/ HTTP/1.1" 500 221338
+INFO 2025-07-02 17:17:44,101 basehttp "GET /search-suggestions/?q=US HTTP/1.1" 200 166
+INFO 2025-07-02 17:17:47,407 basehttp "GET /search-suggestions/?q=U HTTP/1.1" 200 19
+WARNING 2025-07-02 17:17:49,502 base Session data corrupted
+ERROR 2025-07-02 17:17:49,536 log Internal Server Error: /search-suggestions/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 496, in search_suggestions
+    ).annotate(
+      ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1645, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1690, in _annotate
+    raise ValueError(
+ValueError: The annotation 'review_count' conflicts with a field on the model.
+ERROR 2025-07-02 17:17:49,539 basehttp "GET /search-suggestions/?q= HTTP/1.1" 500 95476
+WARNING 2025-07-02 17:17:59,546 base Session data corrupted
+INFO 2025-07-02 17:17:59,645 basehttp "GET / HTTP/1.1" 200 138704
+WARNING 2025-07-02 17:17:59,800 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 17:17:59,801 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-02 17:17:59,896 base Session data corrupted
+ERROR 2025-07-02 17:17:59,940 log Internal Server Error: /search-suggestions/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 496, in search_suggestions
+    ).annotate(
+      ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1645, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1690, in _annotate
+    raise ValueError(
+ValueError: The annotation 'review_count' conflicts with a field on the model.
+ERROR 2025-07-02 17:17:59,942 basehttp "GET /search-suggestions/?q= HTTP/1.1" 500 95476
+WARNING 2025-07-02 17:18:00,183 base Session data corrupted
+INFO 2025-07-02 17:18:00,185 basehttp "GET /cart/total/ HTTP/1.1" 302 0
+WARNING 2025-07-02 17:18:00,268 base Session data corrupted
+INFO 2025-07-02 17:18:00,272 basehttp "GET /accounts/login/?next=/cart/total/ HTTP/1.1" 200 12690
+WARNING 2025-07-02 17:18:05,630 base Session data corrupted
+INFO 2025-07-02 17:18:05,631 basehttp "POST /cart/add/21/ HTTP/1.1" 302 0
+WARNING 2025-07-02 17:18:05,726 base Session data corrupted
+INFO 2025-07-02 17:18:05,728 basehttp "GET /accounts/login/?next=/cart/add/21/ HTTP/1.1" 200 12691
+WARNING 2025-07-02 17:18:09,762 base Session data corrupted
+INFO 2025-07-02 17:18:09,764 basehttp "POST /cart/add/20/ HTTP/1.1" 302 0
+WARNING 2025-07-02 17:18:09,901 base Session data corrupted
+INFO 2025-07-02 17:18:09,905 basehttp "GET /accounts/login/?next=/cart/add/20/ HTTP/1.1" 200 12691
+WARNING 2025-07-02 17:18:12,764 base Session data corrupted
+INFO 2025-07-02 17:18:12,767 basehttp "GET /cart/ HTTP/1.1" 302 0
+WARNING 2025-07-02 17:18:12,971 base Session data corrupted
+INFO 2025-07-02 17:18:12,978 basehttp "GET /accounts/login/?next=/cart/ HTTP/1.1" 200 12684
+INFO 2025-07-02 17:19:59,101 basehttp "GET /register/ HTTP/1.1" 301 0
+WARNING 2025-07-02 17:19:59,287 base Session data corrupted
+INFO 2025-07-02 17:19:59,289 basehttp "GET /accounts/register/ HTTP/1.1" 200 12270
+WARNING 2025-07-02 17:20:18,953 base Session data corrupted
+INFO 2025-07-02 17:20:19,037 basehttp "GET / HTTP/1.1" 200 138704
+WARNING 2025-07-02 17:20:19,143 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 17:20:19,144 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-02 17:20:19,452 base Session data corrupted
+INFO 2025-07-02 17:20:19,454 basehttp "GET /cart/total/ HTTP/1.1" 302 0
+WARNING 2025-07-02 17:20:19,542 base Session data corrupted
+INFO 2025-07-02 17:20:19,546 basehttp "GET /accounts/login/?next=/cart/total/ HTTP/1.1" 200 12690
+WARNING 2025-07-02 17:20:24,130 base Session data corrupted
+INFO 2025-07-02 17:20:24,131 basehttp "GET /cart/ HTTP/1.1" 302 0
+WARNING 2025-07-02 17:20:24,257 base Session data corrupted
+INFO 2025-07-02 17:20:24,261 basehttp "GET /accounts/login/?next=/cart/ HTTP/1.1" 200 12684
+WARNING 2025-07-02 17:20:34,315 base Session data corrupted
+INFO 2025-07-02 17:20:34,317 basehttp "GET /orders/history/ HTTP/1.1" 302 0
+WARNING 2025-07-02 17:20:34,449 base Session data corrupted
+INFO 2025-07-02 17:20:34,452 basehttp "GET /accounts/login/?next=/orders/history/ HTTP/1.1" 200 12694
+WARNING 2025-07-02 17:20:40,284 base Session data corrupted
+INFO 2025-07-02 17:20:40,286 basehttp "GET /accounts/login/ HTTP/1.1" 200 12678
+INFO 2025-07-02 17:21:54,934 autoreload C:\Users\user\Desktop\djangomart\users\views.py changed, reloading.
+INFO 2025-07-02 17:21:58,669 autoreload Watching for file changes with StatReloader
+WARNING 2025-07-02 17:22:01,089 base Session data corrupted
+INFO 2025-07-02 17:22:01,171 basehttp "GET /accounts/login/ HTTP/1.1" 200 12678
+WARNING 2025-07-02 17:22:09,604 base Session data corrupted
+INFO 2025-07-02 17:22:09,607 basehttp "GET /orders/history/ HTTP/1.1" 302 0
+WARNING 2025-07-02 17:22:09,755 base Session data corrupted
+INFO 2025-07-02 17:22:09,759 basehttp "GET /accounts/login/?next=/orders/history/ HTTP/1.1" 200 12694
+WARNING 2025-07-02 17:22:19,970 base Session data corrupted
+INFO 2025-07-02 17:22:20,006 basehttp "GET /accounts/password/reset/ HTTP/1.1" 200 68604
+WARNING 2025-07-02 17:22:20,269 base Session data corrupted
+INFO 2025-07-02 17:22:20,271 basehttp "GET /cart/total/ HTTP/1.1" 302 0
+WARNING 2025-07-02 17:22:20,674 base Session data corrupted
+INFO 2025-07-02 17:22:20,682 basehttp "GET /accounts/login/?next=/cart/total/ HTTP/1.1" 200 12690
+INFO 2025-07-02 17:23:07,833 autoreload C:\Users\user\Desktop\djangomart\users\views.py changed, reloading.
+INFO 2025-07-02 17:23:09,892 autoreload Watching for file changes with StatReloader
+WARNING 2025-07-02 17:24:08,436 base Session data corrupted
+INFO 2025-07-02 17:24:08,495 basehttp "GET /accounts/login/ HTTP/1.1" 200 12678
+WARNING 2025-07-02 17:24:21,519 base Session data corrupted
+INFO 2025-07-02 17:24:21,523 basehttp "GET /accounts/login/ HTTP/1.1" 200 12678
+WARNING 2025-07-02 17:24:25,491 base Session data corrupted
+INFO 2025-07-02 17:24:25,496 basehttp "GET /accounts/register/ HTTP/1.1" 200 12270
+INFO 2025-07-02 17:26:41,960 autoreload C:\Users\user\Desktop\djangomart\cart\views.py changed, reloading.
+INFO 2025-07-02 17:26:48,615 autoreload Watching for file changes with StatReloader
+WARNING 2025-07-02 17:26:52,042 base Session data corrupted
+INFO 2025-07-02 17:26:52,259 basehttp "GET / HTTP/1.1" 200 138704
+WARNING 2025-07-02 17:26:52,423 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 17:26:52,424 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-02 17:26:52,766 base Session data corrupted
+ERROR 2025-07-02 17:26:53,038 log Internal Server Error: /cart/total/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2128, in get_prep_value
+    return int(value)
+           ^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'SimpleLazyObject'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\cart\views.py", line 169, in cart_total
+    cart = get_object_or_404(Cart, user=request.user)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 619, in get
+    clone = self._chain() if self.query.combinator else self.filter(*args, **kwargs)
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1491, in filter
+    return self._filter_or_exclude(False, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1509, in _filter_or_exclude
+    clone._filter_or_exclude_inplace(negate, args, kwargs)
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1516, in _filter_or_exclude_inplace
+    self._query.add_q(Q(*args, **kwargs))
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1643, in add_q
+    clause, _ = self._add_q(q_object, can_reuse)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1675, in _add_q
+    child_clause, needed_inner = self.build_filter(
+                                 ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1585, in build_filter
+    condition = self.build_lookup(lookups, col, value)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1412, in build_lookup
+    lookup = lookup_class(lhs, rhs)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\lookups.py", line 38, in __init__
+    self.rhs = self.get_prep_lookup()
+               ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\fields\related_lookups.py", line 112, in get_prep_lookup
+    self.rhs = target_field.get_prep_value(self.rhs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2130, in get_prep_value
+    raise e.__class__(
+TypeError: Field 'id' expected a number but got <SimpleLazyObject: <django.contrib.auth.models.AnonymousUser object at 0x000001ED87053F90>>.
+ERROR 2025-07-02 17:26:53,081 basehttp "GET /cart/total/ HTTP/1.1" 500 146508
+WARNING 2025-07-02 17:26:58,187 base Session data corrupted
+ERROR 2025-07-02 17:26:58,272 log Internal Server Error: /cart/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2128, in get_prep_value
+    return int(value)
+           ^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'SimpleLazyObject'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\cart\views.py", line 13, in cart_detail
+    cart, created = Cart.objects.get_or_create(user=request.user)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 946, in get_or_create
+    return self.get(**kwargs), False
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 619, in get
+    clone = self._chain() if self.query.combinator else self.filter(*args, **kwargs)
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1491, in filter
+    return self._filter_or_exclude(False, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1509, in _filter_or_exclude
+    clone._filter_or_exclude_inplace(negate, args, kwargs)
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1516, in _filter_or_exclude_inplace
+    self._query.add_q(Q(*args, **kwargs))
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1643, in add_q
+    clause, _ = self._add_q(q_object, can_reuse)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1675, in _add_q
+    child_clause, needed_inner = self.build_filter(
+                                 ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1585, in build_filter
+    condition = self.build_lookup(lookups, col, value)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1412, in build_lookup
+    lookup = lookup_class(lhs, rhs)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\lookups.py", line 38, in __init__
+    self.rhs = self.get_prep_lookup()
+               ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\fields\related_lookups.py", line 112, in get_prep_lookup
+    self.rhs = target_field.get_prep_value(self.rhs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2130, in get_prep_value
+    raise e.__class__(
+TypeError: Field 'id' expected a number but got <SimpleLazyObject: <django.contrib.auth.models.AnonymousUser object at 0x000001ED871E9810>>.
+ERROR 2025-07-02 17:26:58,278 basehttp "GET /cart/ HTTP/1.1" 500 151535
+INFO 2025-07-02 17:45:10,075 autoreload C:\Users\user\Desktop\djangomart\cart\models.py changed, reloading.
+INFO 2025-07-02 17:45:19,423 autoreload Watching for file changes with StatReloader
+WARNING 2025-07-02 17:48:56,099 base Session data corrupted
+ERROR 2025-07-02 17:48:56,496 log Internal Server Error: /cart/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2128, in get_prep_value
+    return int(value)
+           ^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'SimpleLazyObject'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\cart\views.py", line 13, in cart_detail
+    cart, created = Cart.objects.get_or_create(user=request.user)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 946, in get_or_create
+    return self.get(**kwargs), False
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 619, in get
+    clone = self._chain() if self.query.combinator else self.filter(*args, **kwargs)
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1491, in filter
+    return self._filter_or_exclude(False, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1509, in _filter_or_exclude
+    clone._filter_or_exclude_inplace(negate, args, kwargs)
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1516, in _filter_or_exclude_inplace
+    self._query.add_q(Q(*args, **kwargs))
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1643, in add_q
+    clause, _ = self._add_q(q_object, can_reuse)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1675, in _add_q
+    child_clause, needed_inner = self.build_filter(
+                                 ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1585, in build_filter
+    condition = self.build_lookup(lookups, col, value)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1412, in build_lookup
+    lookup = lookup_class(lhs, rhs)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\lookups.py", line 38, in __init__
+    self.rhs = self.get_prep_lookup()
+               ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\fields\related_lookups.py", line 112, in get_prep_lookup
+    self.rhs = target_field.get_prep_value(self.rhs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2130, in get_prep_value
+    raise e.__class__(
+TypeError: Field 'id' expected a number but got <SimpleLazyObject: <django.contrib.auth.models.AnonymousUser object at 0x000001AB36C3E010>>.
+ERROR 2025-07-02 17:48:56,535 basehttp "GET /cart/ HTTP/1.1" 500 152950
+INFO 2025-07-02 17:51:24,651 autoreload C:\Users\user\Desktop\djangomart\cart\views.py changed, reloading.
+INFO 2025-07-02 17:51:27,733 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 18:00:27,043 autoreload C:\Users\user\Desktop\djangomart\cart\models.py changed, reloading.
+INFO 2025-07-02 18:00:29,368 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 18:01:15,516 autoreload C:\Users\user\Desktop\djangomart\cart\models.py changed, reloading.
+INFO 2025-07-02 18:01:18,929 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 18:02:12,923 autoreload C:\Users\user\Desktop\djangomart\cart\utils.py changed, reloading.
+INFO 2025-07-02 18:02:15,330 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 18:03:16,185 autoreload C:\Users\user\Desktop\djangomart\cart\views.py changed, reloading.
+INFO 2025-07-02 18:03:19,479 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 18:03:58,507 autoreload C:\Users\user\Desktop\djangomart\cart\views.py changed, reloading.
+INFO 2025-07-02 18:04:01,597 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 18:05:18,024 autoreload C:\Users\user\Desktop\djangomart\cart\views.py changed, reloading.
+INFO 2025-07-02 18:05:21,842 autoreload Watching for file changes with StatReloader
+WARNING 2025-07-02 18:05:46,130 base Session data corrupted
+ERROR 2025-07-02 18:05:46,342 log Internal Server Error: /cart/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column "session_key" of relation "cart_cart" does not exist
+LINE 1: INSERT INTO "cart_cart" ("user_id", "session_key", "created_...
+                                            ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\cart\views.py", line 14, in cart_detail
+    cart = get_cart(request)
+           ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\cart\utils.py", line 62, in get_cart
+    cart = Cart.objects.create(session_key=session_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 663, in create
+    obj.save(force_insert=True, using=self.db)
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1864, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column "session_key" of relation "cart_cart" does not exist
+LINE 1: INSERT INTO "cart_cart" ("user_id", "session_key", "created_...
+                                            ^
+
+ERROR 2025-07-02 18:05:46,356 basehttp "GET /cart/ HTTP/1.1" 500 169447
+WARNING 2025-07-02 18:05:48,981 base Session data corrupted
+ERROR 2025-07-02 18:05:49,209 log Internal Server Error: /cart/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column "session_key" of relation "cart_cart" does not exist
+LINE 1: INSERT INTO "cart_cart" ("user_id", "session_key", "created_...
+                                            ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\cart\views.py", line 14, in cart_detail
+    cart = get_cart(request)
+           ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\cart\utils.py", line 62, in get_cart
+    cart = Cart.objects.create(session_key=session_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 663, in create
+    obj.save(force_insert=True, using=self.db)
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1864, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column "session_key" of relation "cart_cart" does not exist
+LINE 1: INSERT INTO "cart_cart" ("user_id", "session_key", "created_...
+                                            ^
+
+ERROR 2025-07-02 18:05:49,222 basehttp "GET /cart/ HTTP/1.1" 500 169447
+INFO 2025-07-02 18:07:29,704 autoreload Watching for file changes with StatReloader
+WARNING 2025-07-02 18:07:34,926 base Session data corrupted
+INFO 2025-07-02 18:07:35,200 basehttp "GET /cart/ HTTP/1.1" 200 81176
+INFO 2025-07-02 18:07:35,580 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 18:08:55,514 basehttp "GET /cart/ HTTP/1.1" 200 81167
+INFO 2025-07-02 18:08:58,236 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 18:16:25,386 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 18:16:56,421 autoreload C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\conf\__init__.py changed, reloading.
+INFO 2025-07-02 18:43:53,030 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 18:44:00,640 basehttp "GET /cart/ HTTP/1.1" 200 81259
+WARNING 2025-07-02 18:44:00,674 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 18:44:00,741 log Not Found: /favicon.ico
+WARNING 2025-07-02 18:44:00,741 basehttp "GET /favicon.ico HTTP/1.1" 404 10801
+INFO 2025-07-02 18:44:02,550 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 18:44:05,296 basehttp "GET /cart/ HTTP/1.1" 200 81259
+WARNING 2025-07-02 18:44:05,339 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+INFO 2025-07-02 18:44:05,506 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 18:47:03,761 basehttp "GET / HTTP/1.1" 200 138896
+WARNING 2025-07-02 18:47:04,012 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 18:47:04,035 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 18:47:04,036 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 18:47:04,546 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 18:49:45,185 basehttp "GET / HTTP/1.1" 200 138896
+WARNING 2025-07-02 18:49:45,211 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 18:49:45,218 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 18:49:45,218 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 18:49:45,287 basehttp "GET /media/products/main/Ergonomic_Mesh_Gaming_Chair.jfif HTTP/1.1" 200 8209
+INFO 2025-07-02 18:49:45,297 basehttp "GET /media/products/main/Lumbar_Pillow__Neck_Rest.jfif HTTP/1.1" 200 5761
+INFO 2025-07-02 18:49:45,309 basehttp "GET /media/products/main/RGB_LED_Gaming_Chair.jfif HTTP/1.1" 200 9281
+INFO 2025-07-02 18:49:45,318 basehttp "GET /media/products/main/QHD_Curved_Monitor.jfif HTTP/1.1" 200 12432
+INFO 2025-07-02 18:49:45,329 basehttp "GET /media/products/main/USB_Audio_Adapter.jfif HTTP/1.1" 200 4992
+INFO 2025-07-02 18:49:45,339 basehttp "GET /media/products/main/In-ear_Gaming_Earphones_with_Mic.png HTTP/1.1" 200 10673
+INFO 2025-07-02 18:49:45,346 basehttp "GET /media/products/main/Detachable_Microphone.jfif HTTP/1.1" 200 3787
+INFO 2025-07-02 18:49:45,357 basehttp "GET /media/products/main/RGB_Ring_Light.jfif HTTP/1.1" 200 15383
+INFO 2025-07-02 18:49:45,364 basehttp "GET /media/products/main/Green_Screen_Backdrop.jfif HTTP/1.1" 200 5731
+INFO 2025-07-02 18:49:45,371 basehttp "GET /media/products/main/Boom_Arm_Stand_for_Mic.jfif HTTP/1.1" 200 3933
+INFO 2025-07-02 18:49:45,377 basehttp "GET /media/products/main/USB-C_Gaming_Dock.jfif HTTP/1.1" 200 3072
+INFO 2025-07-02 18:49:45,382 basehttp "GET /media/products/main/USB_Hub.jfif HTTP/1.1" 200 6179
+WARNING 2025-07-02 18:49:45,710 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 18:49:45,710 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 18:49:45,823 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+WARNING 2025-07-02 18:49:46,010 log Not Found: /favicon.ico
+WARNING 2025-07-02 18:49:46,011 basehttp "GET /favicon.ico HTTP/1.1" 404 10801
+INFO 2025-07-02 18:51:31,102 basehttp "GET / HTTP/1.1" 200 139459
+WARNING 2025-07-02 18:51:31,129 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 18:51:31,135 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 18:51:31,136 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 18:51:31,235 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 18:53:52,188 basehttp "GET / HTTP/1.1" 200 139175
+WARNING 2025-07-02 18:53:52,219 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 18:53:52,221 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 18:53:52,410 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 18:55:48,680 basehttp "GET / HTTP/1.1" 200 139415
+WARNING 2025-07-02 18:55:48,709 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 18:55:48,710 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 18:55:48,848 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 18:56:17,102 basehttp "GET / HTTP/1.1" 200 139415
+WARNING 2025-07-02 18:56:17,132 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 18:56:17,132 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 18:56:17,223 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 18:56:20,417 basehttp "GET / HTTP/1.1" 200 139415
+WARNING 2025-07-02 18:56:20,447 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 18:56:20,449 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 18:56:20,536 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 18:57:41,390 basehttp "GET / HTTP/1.1" 200 139415
+WARNING 2025-07-02 18:57:41,416 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 18:57:41,416 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 18:57:41,421 basehttp "GET /media/products/main/Ergonomic_Mesh_Gaming_Chair.jfif HTTP/1.1" 200 8209
+INFO 2025-07-02 18:57:41,428 basehttp "GET /media/products/main/Lumbar_Pillow__Neck_Rest.jfif HTTP/1.1" 200 5761
+INFO 2025-07-02 18:57:41,434 basehttp "GET /media/products/main/RGB_LED_Gaming_Chair.jfif HTTP/1.1" 200 9281
+INFO 2025-07-02 18:57:41,450 basehttp "GET /media/products/main/QHD_Curved_Monitor.jfif HTTP/1.1" 200 12432
+INFO 2025-07-02 18:57:41,462 basehttp "GET /media/products/main/USB_Audio_Adapter.jfif HTTP/1.1" 200 4992
+INFO 2025-07-02 18:57:41,469 basehttp "GET /media/products/main/In-ear_Gaming_Earphones_with_Mic.png HTTP/1.1" 200 10673
+INFO 2025-07-02 18:57:41,479 basehttp "GET /media/products/main/Detachable_Microphone.jfif HTTP/1.1" 200 3787
+INFO 2025-07-02 18:57:41,485 basehttp "GET /media/products/main/RGB_Ring_Light.jfif HTTP/1.1" 200 15383
+INFO 2025-07-02 18:57:41,499 basehttp "GET /media/products/main/Green_Screen_Backdrop.jfif HTTP/1.1" 200 5731
+INFO 2025-07-02 18:57:41,513 basehttp "GET /media/products/main/Boom_Arm_Stand_for_Mic.jfif HTTP/1.1" 200 3933
+INFO 2025-07-02 18:57:41,524 basehttp "GET /media/products/main/USB-C_Gaming_Dock.jfif HTTP/1.1" 200 3072
+INFO 2025-07-02 18:57:41,533 basehttp "GET /media/products/main/USB_Hub.jfif HTTP/1.1" 200 6179
+WARNING 2025-07-02 18:57:42,318 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 18:57:42,320 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 18:57:42,578 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 19:00:46,879 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 19:00:54,736 basehttp "GET / HTTP/1.1" 200 139487
+WARNING 2025-07-02 19:00:54,766 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 19:00:54,775 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 19:00:54,775 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 19:00:58,146 basehttp "GET / HTTP/1.1" 200 139487
+INFO 2025-07-02 19:00:58,147 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+WARNING 2025-07-02 19:00:58,179 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 19:00:58,186 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 19:00:58,186 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 19:00:58,293 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 19:01:00,316 basehttp "GET /cart/ HTTP/1.1" 200 81959
+WARNING 2025-07-02 19:01:00,349 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+INFO 2025-07-02 19:01:00,620 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 19:01:13,126 basehttp "GET / HTTP/1.1" 200 139487
+WARNING 2025-07-02 19:01:13,157 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 19:01:13,157 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-02 19:01:13,161 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 19:01:13,175 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 19:01:13,175 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 19:01:13,398 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 19:03:17,844 basehttp "GET / HTTP/1.1" 200 139516
+WARNING 2025-07-02 19:03:17,869 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 19:03:17,878 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 19:03:17,878 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 19:03:17,983 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 19:06:05,256 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 19:08:49,480 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 19:08:58,864 basehttp "GET / HTTP/1.1" 200 139516
+WARNING 2025-07-02 19:08:58,896 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 19:08:58,902 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-02 19:08:58,903 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 19:08:58,918 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 19:08:58,919 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 19:08:59,024 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+ERROR 2025-07-02 19:10:30,238 log Internal Server Error: /search-suggestions/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 496, in search_suggestions
+    ).annotate(
+      ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1645, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1690, in _annotate
+    raise ValueError(
+ValueError: The annotation 'review_count' conflicts with a field on the model.
+ERROR 2025-07-02 19:10:30,241 basehttp "GET /search-suggestions/?q= HTTP/1.1" 500 95452
+INFO 2025-07-02 19:10:32,181 basehttp "GET /search-suggestions/?q=U HTTP/1.1" 200 19
+INFO 2025-07-02 19:10:33,442 basehttp "GET /search-suggestions/?q=US HTTP/1.1" 200 166
+INFO 2025-07-02 19:10:35,941 basehttp "GET /search-suggestions/?q=USB HTTP/1.1" 200 686
+INFO 2025-07-02 19:16:44,615 basehttp "GET / HTTP/1.1" 200 38048
+INFO 2025-07-02 19:17:13,042 basehttp "GET / HTTP/1.1" 200 38048
+INFO 2025-07-02 19:17:20,401 basehttp "GET / HTTP/1.1" 200 38048
+INFO 2025-07-02 19:17:57,626 basehttp "GET / HTTP/1.1" 200 38048
+INFO 2025-07-02 19:18:15,637 basehttp "GET / HTTP/1.1" 200 139516
+WARNING 2025-07-02 19:18:15,662 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 19:18:15,678 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 19:18:15,678 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 19:18:15,838 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 20:27:58,451 basehttp "GET /?sort= HTTP/1.1" 200 139500
+WARNING 2025-07-02 20:28:00,248 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 20:28:00,250 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 20:28:00,252 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-02 20:28:00,340 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 20:28:00,342 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 20:28:00,587 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 20:28:04,083 basehttp "GET /search/?category=&q= HTTP/1.1" 200 98005
+WARNING 2025-07-02 20:28:04,181 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+INFO 2025-07-02 20:28:04,485 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 20:28:15,218 basehttp "GET / HTTP/1.1" 200 139516
+WARNING 2025-07-02 20:28:15,292 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 20:28:15,313 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 20:28:15,314 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 20:28:15,487 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+WARNING 2025-07-02 20:28:17,634 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+INFO 2025-07-02 20:28:17,796 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 20:32:20,071 basehttp "GET /search/?category=&q= HTTP/1.1" 200 98005
+WARNING 2025-07-02 20:32:20,160 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+INFO 2025-07-02 20:32:20,564 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 20:32:21,182 basehttp "GET /search/?category=&q= HTTP/1.1" 200 98005
+WARNING 2025-07-02 20:32:21,288 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+INFO 2025-07-02 20:32:21,529 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 20:32:23,019 basehttp "GET /search/?category=&q= HTTP/1.1" 200 98005
+WARNING 2025-07-02 20:32:23,057 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+INFO 2025-07-02 20:32:23,887 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 20:32:45,082 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 20:32:50,779 basehttp "GET /search/?category=&q= HTTP/1.1" 200 98161
+INFO 2025-07-02 20:32:50,941 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 20:33:48,748 basehttp "GET / HTTP/1.1" 200 139672
+WARNING 2025-07-02 20:33:48,819 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 20:33:48,820 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 20:33:49,347 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 20:35:49,419 basehttp "GET /?min_price=0&max_price=1000 HTTP/1.1" 200 104862
+WARNING 2025-07-02 20:35:49,466 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 20:35:49,470 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 20:35:49,700 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 20:36:10,068 basehttp "GET / HTTP/1.1" 200 139516
+WARNING 2025-07-02 20:36:10,128 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 20:36:10,153 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 20:36:10,154 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-02 20:36:10,264 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 20:36:10,266 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 20:36:10,595 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 20:38:00,047 basehttp "GET / HTTP/1.1" 200 139516
+WARNING 2025-07-02 20:38:00,128 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 20:38:00,140 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 20:38:00,140 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 20:38:00,292 basehttp "GET /media/products/main/Ergonomic_Mesh_Gaming_Chair.jfif HTTP/1.1" 200 8209
+INFO 2025-07-02 20:38:00,300 basehttp "GET /media/products/main/Lumbar_Pillow__Neck_Rest.jfif HTTP/1.1" 200 5761
+INFO 2025-07-02 20:38:00,312 basehttp "GET /media/products/main/RGB_LED_Gaming_Chair.jfif HTTP/1.1" 200 9281
+INFO 2025-07-02 20:38:00,323 basehttp "GET /media/products/main/QHD_Curved_Monitor.jfif HTTP/1.1" 200 12432
+INFO 2025-07-02 20:38:00,329 basehttp "GET /media/products/main/USB_Audio_Adapter.jfif HTTP/1.1" 200 4992
+INFO 2025-07-02 20:38:00,343 basehttp "GET /media/products/main/In-ear_Gaming_Earphones_with_Mic.png HTTP/1.1" 200 10673
+INFO 2025-07-02 20:38:00,354 basehttp "GET /media/products/main/Detachable_Microphone.jfif HTTP/1.1" 200 3787
+INFO 2025-07-02 20:38:00,366 basehttp "GET /media/products/main/RGB_Ring_Light.jfif HTTP/1.1" 200 15383
+INFO 2025-07-02 20:38:00,373 basehttp "GET /media/products/main/Green_Screen_Backdrop.jfif HTTP/1.1" 200 5731
+INFO 2025-07-02 20:38:00,380 basehttp "GET /media/products/main/Boom_Arm_Stand_for_Mic.jfif HTTP/1.1" 200 3933
+INFO 2025-07-02 20:38:00,385 basehttp "GET /media/products/main/USB-C_Gaming_Dock.jfif HTTP/1.1" 200 3072
+INFO 2025-07-02 20:38:00,391 basehttp "GET /media/products/main/USB_Hub.jfif HTTP/1.1" 200 6179
+WARNING 2025-07-02 20:38:00,409 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 20:38:00,413 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-02 20:38:00,527 log Not Found: /favicon.ico
+WARNING 2025-07-02 20:38:00,528 basehttp "GET /favicon.ico HTTP/1.1" 404 10801
+INFO 2025-07-02 20:38:00,631 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 20:38:05,623 basehttp "GET / HTTP/1.1" 200 139516
+WARNING 2025-07-02 20:38:05,676 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 20:38:05,706 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 20:38:05,707 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-02 20:38:05,742 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 20:38:05,743 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 20:38:05,894 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 20:38:20,157 basehttp "GET / HTTP/1.1" 200 139516
+WARNING 2025-07-02 20:38:20,216 basehttp "GET /static/fontawesomefree/css/all.min.css HTTP/1.1" 404 1907
+WARNING 2025-07-02 20:38:20,235 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 20:38:20,237 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 20:38:20,530 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 20:43:36,742 basehttp "GET / HTTP/1.1" 200 139410
+WARNING 2025-07-02 20:43:36,802 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 20:43:36,802 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-02 20:43:38,608 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 20:43:38,610 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-02 20:43:39,251 log Not Found: /favicon.ico
+WARNING 2025-07-02 20:43:39,253 basehttp "GET /favicon.ico HTTP/1.1" 404 10801
+INFO 2025-07-02 20:43:39,934 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 20:44:45,992 basehttp "GET / HTTP/1.1" 200 120034
+WARNING 2025-07-02 20:44:46,061 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 20:44:46,062 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 21:00:44,646 basehttp "GET / HTTP/1.1" 200 140611
+WARNING 2025-07-02 21:00:44,789 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 21:00:44,794 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 21:00:45,028 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 21:00:47,899 basehttp "GET / HTTP/1.1" 200 140611
+WARNING 2025-07-02 21:00:47,972 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 21:00:47,973 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 21:00:48,169 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+ERROR 2025-07-02 21:44:54,106 log Internal Server Error: /search-suggestions/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 496, in search_suggestions
+    ).annotate(
+      ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1645, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1690, in _annotate
+    raise ValueError(
+ValueError: The annotation 'review_count' conflicts with a field on the model.
+ERROR 2025-07-02 21:44:54,220 basehttp "GET /search-suggestions/?q= HTTP/1.1" 500 95452
+INFO 2025-07-02 21:44:54,857 basehttp "GET /search-suggestions/?q=U HTTP/1.1" 200 19
+INFO 2025-07-02 21:44:57,130 basehttp "GET /search-suggestions/?q=US HTTP/1.1" 200 166
+INFO 2025-07-02 21:44:59,290 basehttp "GET /search-suggestions/?q=USB HTTP/1.1" 200 686
+INFO 2025-07-02 21:45:42,643 basehttp "GET / HTTP/1.1" 200 139626
+WARNING 2025-07-02 21:45:42,781 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 21:45:42,782 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-02 21:45:42,900 log Not Found: /favicon.ico
+WARNING 2025-07-02 21:45:42,900 basehttp "GET /favicon.ico HTTP/1.1" 404 10801
+INFO 2025-07-02 21:45:43,030 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+ERROR 2025-07-02 21:45:46,920 log Internal Server Error: /search-suggestions/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 496, in search_suggestions
+    ).annotate(
+      ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1645, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1690, in _annotate
+    raise ValueError(
+ValueError: The annotation 'review_count' conflicts with a field on the model.
+ERROR 2025-07-02 21:45:46,925 basehttp "GET /search-suggestions/?q= HTTP/1.1" 500 95452
+INFO 2025-07-02 21:45:49,584 basehttp "GET /?sort= HTTP/1.1" 200 139610
+WARNING 2025-07-02 21:45:51,375 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 21:45:51,377 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 21:45:51,439 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 21:45:55,884 basehttp "GET / HTTP/1.1" 200 139626
+WARNING 2025-07-02 21:45:55,965 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 21:45:55,966 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 21:45:56,156 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+ERROR 2025-07-02 21:49:18,948 log Internal Server Error: /search-suggestions/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 496, in search_suggestions
+    ).annotate(
+      ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1645, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1690, in _annotate
+    raise ValueError(
+ValueError: The annotation 'review_count' conflicts with a field on the model.
+ERROR 2025-07-02 21:49:18,973 basehttp "GET /search-suggestions/?q= HTTP/1.1" 500 95452
+ERROR 2025-07-02 21:49:47,741 log Internal Server Error: /search-suggestions/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 496, in search_suggestions
+    ).annotate(
+      ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1645, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1690, in _annotate
+    raise ValueError(
+ValueError: The annotation 'review_count' conflicts with a field on the model.
+ERROR 2025-07-02 21:49:47,923 basehttp "GET /search-suggestions/?q= HTTP/1.1" 500 95452
+ERROR 2025-07-02 22:03:32,312 log Internal Server Error: /search-suggestions/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 496, in search_suggestions
+    ).annotate(
+      ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1645, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1690, in _annotate
+    raise ValueError(
+ValueError: The annotation 'review_count' conflicts with a field on the model.
+ERROR 2025-07-02 22:03:32,317 basehttp "GET /search-suggestions/?q= HTTP/1.1" 500 95452
+ERROR 2025-07-02 22:04:03,143 log Internal Server Error: /search-suggestions/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 496, in search_suggestions
+    ).annotate(
+      ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1645, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1690, in _annotate
+    raise ValueError(
+ValueError: The annotation 'review_count' conflicts with a field on the model.
+ERROR 2025-07-02 22:04:03,153 basehttp "GET /search-suggestions/?q= HTTP/1.1" 500 95452
+INFO 2025-07-02 22:06:33,048 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 22:09:44,094 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 22:09:44,916 basehttp "GET / HTTP/1.1" 200 139622
+WARNING 2025-07-02 22:09:44,976 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 22:09:44,977 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 22:09:45,151 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+WARNING 2025-07-02 22:09:48,588 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 22:09:48,589 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 22:20:09,682 basehttp "GET / HTTP/1.1" 200 139622
+WARNING 2025-07-02 22:20:09,750 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 22:20:09,751 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 22:20:10,669 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 22:46:23,778 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 22:46:32,200 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 22:49:20,843 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 22:49:24,842 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 22:50:03,818 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 22:50:09,596 basehttp "GET / HTTP/1.1" 200 139622
+WARNING 2025-07-02 22:50:09,830 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 22:50:09,831 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 22:50:10,595 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 22:50:15,873 basehttp "GET / HTTP/1.1" 200 139622
+WARNING 2025-07-02 22:50:15,938 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 22:50:15,939 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 22:50:17,708 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 22:55:03,458 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 22:55:12,576 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 22:56:03,448 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 22:56:06,352 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 22:56:15,190 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 22:56:20,283 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 22:58:39,754 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 22:58:44,968 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 22:59:13,217 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 23:00:20,654 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 23:00:25,150 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 23:01:46,460 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 23:01:49,136 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 23:13:42,527 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 23:18:48,187 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 23:18:51,123 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 23:20:41,350 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 23:21:15,332 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 23:21:29,124 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 23:26:20,095 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 23:26:23,712 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 23:26:38,234 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 23:42:38,609 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 23:42:44,320 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 23:42:53,780 basehttp "GET / HTTP/1.1" 200 139622
+WARNING 2025-07-02 23:42:53,848 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 23:42:53,849 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-02 23:42:53,999 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 23:42:54,000 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 23:42:54,532 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 23:44:01,855 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 23:44:05,772 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 23:44:35,538 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 23:44:38,324 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 23:44:43,906 basehttp "GET / HTTP/1.1" 200 139059
+WARNING 2025-07-02 23:44:44,006 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 23:44:44,008 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-02 23:44:45,460 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 23:44:45,463 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 23:44:47,479 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+ERROR 2025-07-02 23:44:55,936 log Internal Server Error: /search-suggestions/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 496, in search_suggestions
+    ).annotate(
+      ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1645, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1690, in _annotate
+    raise ValueError(
+ValueError: The annotation 'review_count' conflicts with a field on the model.
+ERROR 2025-07-02 23:44:55,950 basehttp "GET /search-suggestions/?q= HTTP/1.1" 500 94073
+INFO 2025-07-02 23:44:58,553 basehttp "GET /search-suggestions/?q=U HTTP/1.1" 200 19
+INFO 2025-07-02 23:44:58,751 basehttp "GET /search-suggestions/?q=U HTTP/1.1" 200 19
+INFO 2025-07-02 23:45:00,847 basehttp "GET /search-suggestions/?q=US HTTP/1.1" 200 166
+INFO 2025-07-02 23:45:00,966 basehttp "GET /search-suggestions/?q=US HTTP/1.1" 200 166
+INFO 2025-07-02 23:45:02,833 basehttp "GET /search-suggestions/?q=USB HTTP/1.1" 200 686
+INFO 2025-07-02 23:45:03,055 basehttp "GET /search-suggestions/?q=USB HTTP/1.1" 200 686
+INFO 2025-07-02 23:45:23,013 basehttp "GET / HTTP/1.1" 200 139059
+WARNING 2025-07-02 23:45:23,086 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 23:45:23,087 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 23:45:23,256 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+ERROR 2025-07-02 23:45:24,948 log Internal Server Error: /search-suggestions/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 496, in search_suggestions
+    ).annotate(
+      ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1645, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1690, in _annotate
+    raise ValueError(
+ValueError: The annotation 'review_count' conflicts with a field on the model.
+ERROR 2025-07-02 23:45:24,951 basehttp "GET /search-suggestions/?q= HTTP/1.1" 500 94073
+INFO 2025-07-02 23:45:26,413 basehttp "GET /search-suggestions/?q=C HTTP/1.1" 200 19
+INFO 2025-07-02 23:45:26,717 basehttp "GET /search-suggestions/?q=C HTTP/1.1" 200 19
+INFO 2025-07-02 23:45:29,263 basehttp "GET /search-suggestions/?q=CH HTTP/1.1" 200 19
+INFO 2025-07-02 23:45:29,447 basehttp "GET /search-suggestions/?q=CH HTTP/1.1" 200 19
+INFO 2025-07-02 23:45:31,311 basehttp "GET /search-suggestions/?q=CHA HTTP/1.1" 200 858
+INFO 2025-07-02 23:45:31,523 basehttp "GET /search-suggestions/?q=CHA HTTP/1.1" 200 858
+INFO 2025-07-02 23:46:02,787 basehttp "GET /?min_price=0&max_price=1000 HTTP/1.1" 200 104249
+WARNING 2025-07-02 23:46:02,876 log Not Found: /media/categories/default.png
+WARNING 2025-07-02 23:46:02,877 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-02 23:46:03,104 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-02 23:46:45,658 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 23:46:48,558 autoreload Watching for file changes with StatReloader
+INFO 2025-07-02 23:52:27,114 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-02 23:52:29,490 autoreload Watching for file changes with StatReloader
+ERROR 2025-07-02 23:52:37,954 log Internal Server Error: /
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\utils\deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\csp\middleware.py", line 95, in process_response
+    csp_ro = build_policy(**asdict(policy_parts_ro), report_only=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\csp\utils.py", line 79, in build_policy
+    config = default_config(config.get("DIRECTIVES", {})) if config else None
+                            ^^^^^^^^^^
+AttributeError: 'bool' object has no attribute 'get'
+ERROR 2025-07-02 23:52:37,958 basehttp "GET / HTTP/1.1" 500 92503
+INFO 2025-07-03 00:08:16,419 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-03 00:08:18,822 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 00:08:26,974 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-03 00:08:29,786 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 00:08:57,897 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-03 00:09:01,150 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 00:09:39,556 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-03 00:09:41,928 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 00:10:03,452 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-03 00:10:05,873 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 00:45:51,357 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-03 00:45:57,397 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 00:46:05,190 basehttp "GET / HTTP/1.1" 200 139059
+WARNING 2025-07-03 00:46:05,300 log Not Found: /media/categories/default.png
+WARNING 2025-07-03 00:46:05,301 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-03 00:46:06,700 basehttp "GET /media/products/main/Ergonomic_Mesh_Gaming_Chair.jfif HTTP/1.1" 200 8209
+INFO 2025-07-03 00:46:06,716 basehttp "GET /media/products/main/Lumbar_Pillow__Neck_Rest.jfif HTTP/1.1" 200 5761
+INFO 2025-07-03 00:46:06,730 basehttp "GET /media/products/main/RGB_LED_Gaming_Chair.jfif HTTP/1.1" 200 9281
+INFO 2025-07-03 00:46:06,737 basehttp "GET /media/products/main/QHD_Curved_Monitor.jfif HTTP/1.1" 200 12432
+INFO 2025-07-03 00:46:06,748 basehttp "GET /media/products/main/USB_Audio_Adapter.jfif HTTP/1.1" 200 4992
+INFO 2025-07-03 00:46:06,763 basehttp "GET /media/products/main/In-ear_Gaming_Earphones_with_Mic.png HTTP/1.1" 200 10673
+INFO 2025-07-03 00:46:06,773 basehttp "GET /media/products/main/Detachable_Microphone.jfif HTTP/1.1" 200 3787
+INFO 2025-07-03 00:46:06,788 basehttp "GET /media/products/main/RGB_Ring_Light.jfif HTTP/1.1" 200 15383
+INFO 2025-07-03 00:46:06,804 basehttp "GET /media/products/main/Green_Screen_Backdrop.jfif HTTP/1.1" 200 5731
+INFO 2025-07-03 00:46:06,830 basehttp "GET /media/products/main/Boom_Arm_Stand_for_Mic.jfif HTTP/1.1" 200 3933
+INFO 2025-07-03 00:46:06,839 basehttp "GET /media/products/main/USB-C_Gaming_Dock.jfif HTTP/1.1" 200 3072
+INFO 2025-07-03 00:46:06,900 basehttp "GET /media/products/main/USB_Hub.jfif HTTP/1.1" 200 6179
+WARNING 2025-07-03 00:46:06,910 log Not Found: /media/categories/default.png
+WARNING 2025-07-03 00:46:06,911 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-03 00:46:07,338 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 00:46:33,117 basehttp "POST /cart/add/19/ HTTP/1.1" 200 98
+INFO 2025-07-03 00:46:34,878 basehttp "POST /cart/add/20/ HTTP/1.1" 200 98
+INFO 2025-07-03 00:46:36,231 basehttp "POST /cart/add/21/ HTTP/1.1" 200 98
+INFO 2025-07-03 00:51:07,468 basehttp "GET / HTTP/1.1" 200 138538
+WARNING 2025-07-03 00:51:07,516 log Not Found: /media/categories/default.png
+WARNING 2025-07-03 00:51:07,517 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-03 00:51:07,579 log Not Found: /media/categories/default.png
+WARNING 2025-07-03 00:51:07,581 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-03 00:51:07,723 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 00:51:09,736 basehttp "POST /cart/add/20/ HTTP/1.1" 200 98
+INFO 2025-07-03 00:51:11,389 basehttp "POST /cart/add/21/ HTTP/1.1" 200 98
+INFO 2025-07-03 00:51:13,636 basehttp "POST /cart/add/19/ HTTP/1.1" 200 98
+INFO 2025-07-03 00:53:40,677 autoreload C:\Users\user\Desktop\djangomart\cart\views.py changed, reloading.
+INFO 2025-07-03 00:53:48,608 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 00:54:19,065 autoreload C:\Users\user\Desktop\djangomart\cart\models.py changed, reloading.
+INFO 2025-07-03 00:54:22,392 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 00:55:23,451 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 01:00:30,571 autoreload C:\Users\user\Desktop\djangomart\cart\views.py changed, reloading.
+INFO 2025-07-03 01:00:32,980 autoreload Watching for file changes with StatReloader
+ERROR 2025-07-03 01:20:56,869 log Internal Server Error: /cart/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\cart\views.py", line 14, in cart_detail
+    cart = get_cart(request)
+           ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\cart\utils.py", line 53, in get_cart
+    return Cart.objects.get(
+           ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 619, in get
+    clone = self._chain() if self.query.combinator else self.filter(*args, **kwargs)
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1491, in filter
+    return self._filter_or_exclude(False, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1509, in _filter_or_exclude
+    clone._filter_or_exclude_inplace(negate, args, kwargs)
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1516, in _filter_or_exclude_inplace
+    self._query.add_q(Q(*args, **kwargs))
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1643, in add_q
+    clause, _ = self._add_q(q_object, can_reuse)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1675, in _add_q
+    child_clause, needed_inner = self.build_filter(
+                                 ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1523, in build_filter
+    lookups, parts, reffed_expression = self.solve_lookup_type(arg, summarize)
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1330, in solve_lookup_type
+    _, field, _, lookup_parts = self.names_to_path(lookup_splitted, self.get_meta())
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1802, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'session_key' into field. Choices are: created_at, id, items, updated_at, user, user_id
+ERROR 2025-07-03 01:20:56,875 basehttp "GET /cart/ HTTP/1.1" 500 137322
+INFO 2025-07-03 01:23:10,072 autoreload C:\Users\user\Desktop\djangomart\cart\utils.py changed, reloading.
+INFO 2025-07-03 01:23:13,187 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 01:23:50,122 autoreload C:\Users\user\Desktop\djangomart\cart\models.py changed, reloading.
+INFO 2025-07-03 01:23:51,832 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 01:32:00,077 autoreload C:\Users\user\Desktop\djangomart\cart\models.py changed, reloading.
+INFO 2025-07-03 01:32:01,648 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 01:32:37,636 autoreload C:\Users\user\Desktop\djangomart\cart\models.py changed, reloading.
+INFO 2025-07-03 01:32:39,057 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 01:33:59,424 autoreload C:\Users\user\Desktop\djangomart\cart\views.py changed, reloading.
+INFO 2025-07-03 01:34:01,067 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 01:35:32,473 autoreload C:\Users\user\Desktop\djangomart\cart\utils.py changed, reloading.
+INFO 2025-07-03 01:35:34,090 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 01:39:15,682 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 01:39:21,991 basehttp "GET /cart/ HTTP/1.1" 200 87360
+INFO 2025-07-03 01:39:22,382 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 01:39:34,266 basehttp "POST /cart/add/19/ HTTP/1.1" 200 87
+INFO 2025-07-03 01:39:40,307 basehttp "POST /cart/add/20/ HTTP/1.1" 200 98
+INFO 2025-07-03 01:39:42,049 basehttp "POST /cart/add/21/ HTTP/1.1" 200 98
+INFO 2025-07-03 01:39:45,463 basehttp "POST /cart/add/16/ HTTP/1.1" 200 98
+INFO 2025-07-03 01:39:46,759 basehttp "POST /cart/add/17/ HTTP/1.1" 200 98
+INFO 2025-07-03 01:39:48,284 basehttp "POST /cart/add/18/ HTTP/1.1" 200 98
+INFO 2025-07-03 01:39:49,868 basehttp "GET /cart/ HTTP/1.1" 200 105153
+INFO 2025-07-03 01:39:50,007 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+ERROR 2025-07-03 01:40:20,180 log Internal Server Error: /search-suggestions/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 496, in search_suggestions
+    ).annotate(
+      ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1645, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1690, in _annotate
+    raise ValueError(
+ValueError: The annotation 'review_count' conflicts with a field on the model.
+ERROR 2025-07-03 01:40:20,182 basehttp "GET /search-suggestions/?q= HTTP/1.1" 500 94168
+INFO 2025-07-03 01:40:21,688 basehttp "GET /search-suggestions/?q=u HTTP/1.1" 200 19
+INFO 2025-07-03 01:40:21,763 basehttp "GET /search-suggestions/?q=u HTTP/1.1" 200 19
+INFO 2025-07-03 01:40:23,067 basehttp "GET /search-suggestions/?q=us HTTP/1.1" 200 166
+INFO 2025-07-03 01:40:23,157 basehttp "GET /search-suggestions/?q=us HTTP/1.1" 200 166
+INFO 2025-07-03 01:40:24,239 basehttp "GET /search-suggestions/?q=usb HTTP/1.1" 200 686
+INFO 2025-07-03 01:40:24,332 basehttp "GET /search-suggestions/?q=usb HTTP/1.1" 200 686
+INFO 2025-07-03 01:40:25,408 basehttp "GET /search-suggestions/?q=us HTTP/1.1" 200 166
+INFO 2025-07-03 01:40:25,593 basehttp "GET /search-suggestions/?q=u HTTP/1.1" 200 19
+ERROR 2025-07-03 01:40:25,611 log Internal Server Error: /search-suggestions/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 496, in search_suggestions
+    ).annotate(
+      ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1645, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1690, in _annotate
+    raise ValueError(
+ValueError: The annotation 'review_count' conflicts with a field on the model.
+ERROR 2025-07-03 01:40:25,613 basehttp "GET /search-suggestions/?q= HTTP/1.1" 500 94168
+ERROR 2025-07-03 01:40:25,881 log Internal Server Error: /search-suggestions/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\views.py", line 496, in search_suggestions
+    ).annotate(
+      ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1645, in annotate
+    return self._annotate(args, kwargs, select=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1690, in _annotate
+    raise ValueError(
+ValueError: The annotation 'review_count' conflicts with a field on the model.
+ERROR 2025-07-03 01:40:25,882 basehttp "GET /search-suggestions/?q= HTTP/1.1" 500 94726
+INFO 2025-07-03 01:40:48,398 basehttp "POST /cart/remove/19/ HTTP/1.1" 302 0
+INFO 2025-07-03 01:40:48,526 basehttp "GET /cart/ HTTP/1.1" 200 101538
+INFO 2025-07-03 01:40:48,730 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 01:40:55,609 basehttp "GET /accounts/login/ HTTP/1.1" 200 12678
+INFO 2025-07-03 01:41:03,638 basehttp "GET /orders/history/ HTTP/1.1" 302 0
+INFO 2025-07-03 01:41:03,857 basehttp "GET /accounts/login/?next=/orders/history/ HTTP/1.1" 200 12694
+INFO 2025-07-03 01:45:30,659 basehttp "GET /cart/ HTTP/1.1" 200 101637
+INFO 2025-07-03 01:45:30,873 basehttp "GET /static/images/mpesa-logo.png HTTP/1.1" 200 8931
+INFO 2025-07-03 01:45:30,946 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 01:46:58,142 basehttp "GET /cart/ HTTP/1.1" 200 101733
+INFO 2025-07-03 01:46:58,172 basehttp "GET /static/images/visa-logo.png HTTP/1.1" 200 8452
+INFO 2025-07-03 01:46:58,359 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 01:47:15,007 basehttp "GET /cart/ HTTP/1.1" 200 101659
+INFO 2025-07-03 01:47:15,217 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 01:48:48,567 basehttp "GET /cart/ HTTP/1.1" 200 101618
+INFO 2025-07-03 01:48:48,603 basehttp "GET /static/images/airtel-money-logo.png HTTP/1.1" 200 6823
+INFO 2025-07-03 01:48:48,703 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 01:49:34,686 basehttp "GET /cart/ HTTP/1.1" 200 101714
+INFO 2025-07-03 01:49:34,900 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 01:50:17,917 basehttp "GET /cart/ HTTP/1.1" 200 101667
+INFO 2025-07-03 01:50:17,960 basehttp "GET /static/images/mastercard-logo.png HTTP/1.1" 200 4127
+INFO 2025-07-03 01:50:18,114 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 01:50:58,126 basehttp "GET /cart/ HTTP/1.1" 200 101668
+INFO 2025-07-03 01:50:58,168 basehttp "GET /static/images/paypal-logo.png HTTP/1.1" 200 26230
+INFO 2025-07-03 01:50:58,369 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 01:51:32,178 basehttp "GET /cart/ HTTP/1.1" 200 101668
+INFO 2025-07-03 01:51:32,433 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 01:57:05,201 basehttp "GET /cart/ HTTP/1.1" 200 101761
+INFO 2025-07-03 01:57:05,232 basehttp "GET /static/images/X.png HTTP/1.1" 200 4195
+INFO 2025-07-03 01:57:05,346 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 01:57:36,008 basehttp "GET /cart/ HTTP/1.1" 200 101782
+INFO 2025-07-03 01:57:36,067 basehttp "GET /static/images/X.png HTTP/1.1" 304 0
+INFO 2025-07-03 01:57:36,214 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 01:58:06,978 basehttp "GET /cart/ HTTP/1.1" 200 101719
+INFO 2025-07-03 01:58:07,003 basehttp "GET /static/images/X.png HTTP/1.1" 304 0
+INFO 2025-07-03 01:58:07,862 basehttp "GET /static/images/instagram.png HTTP/1.1" 200 5861
+INFO 2025-07-03 01:58:08,127 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 01:58:45,910 basehttp "GET /cart/ HTTP/1.1" 200 101641
+INFO 2025-07-03 01:58:45,947 basehttp "GET /static/images/facebook.png HTTP/1.1" 200 3117
+INFO 2025-07-03 01:58:45,955 basehttp "GET /static/images/X.png HTTP/1.1" 304 0
+INFO 2025-07-03 01:58:45,956 basehttp "GET /static/images/instagram.png HTTP/1.1" 304 0
+INFO 2025-07-03 01:58:46,116 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 01:59:01,699 basehttp "GET /cart/ HTTP/1.1" 200 101579
+INFO 2025-07-03 01:59:01,830 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 02:01:48,927 basehttp "POST /cart/update/20/ HTTP/1.1" 302 0
+INFO 2025-07-03 02:01:51,326 basehttp "GET /cart/ HTTP/1.1" 200 101579
+INFO 2025-07-03 02:01:53,358 basehttp "GET /static/images/facebook.png HTTP/1.1" 304 0
+INFO 2025-07-03 02:01:53,367 basehttp "GET /static/images/X.png HTTP/1.1" 304 0
+INFO 2025-07-03 02:01:53,371 basehttp "GET /static/images/instagram.png HTTP/1.1" 304 0
+INFO 2025-07-03 02:01:53,504 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 02:04:16,402 basehttp "GET /cart/ HTTP/1.1" 200 101745
+INFO 2025-07-03 02:04:16,430 basehttp "GET /static/images/facebook.png HTTP/1.1" 304 0
+INFO 2025-07-03 02:04:16,461 basehttp "GET /static/images/X.png HTTP/1.1" 304 0
+INFO 2025-07-03 02:04:16,465 basehttp "GET /static/images/instagram.png HTTP/1.1" 304 0
+INFO 2025-07-03 02:04:16,590 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 02:04:32,625 basehttp "GET / HTTP/1.1" 200 139100
+WARNING 2025-07-03 02:04:32,670 log Not Found: /media/categories/default.png
+WARNING 2025-07-03 02:04:32,671 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-03 02:04:32,840 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 02:07:33,539 basehttp "GET /cart/ HTTP/1.1" 200 101973
+INFO 2025-07-03 02:07:33,575 basehttp "GET /static/images/PayPal-logo.png HTTP/1.1" 200 26230
+INFO 2025-07-03 02:07:33,582 basehttp "GET /static/images/facebook.png HTTP/1.1" 304 0
+INFO 2025-07-03 02:07:33,585 basehttp "GET /static/images/X.png HTTP/1.1" 304 0
+INFO 2025-07-03 02:07:33,589 basehttp "GET /static/images/instagram.png HTTP/1.1" 304 0
+INFO 2025-07-03 02:07:33,742 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 02:07:39,568 basehttp "GET /cart/ HTTP/1.1" 200 101973
+INFO 2025-07-03 02:07:39,725 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-03 02:07:50,334 basehttp "GET /cart/ HTTP/1.1" 200 101896
+INFO 2025-07-03 02:07:50,478 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+ERROR 2025-07-03 02:08:35,174 log Internal Server Error: /orders/checkout/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2128, in get_prep_value
+    return int(value)
+           ^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'SimpleLazyObject'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\orders\views.py", line 75, in checkout
+    cart = Cart.objects.get(user=request.user)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 619, in get
+    clone = self._chain() if self.query.combinator else self.filter(*args, **kwargs)
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1491, in filter
+    return self._filter_or_exclude(False, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1509, in _filter_or_exclude
+    clone._filter_or_exclude_inplace(negate, args, kwargs)
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\query.py", line 1516, in _filter_or_exclude_inplace
+    self._query.add_q(Q(*args, **kwargs))
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1643, in add_q
+    clause, _ = self._add_q(q_object, can_reuse)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1675, in _add_q
+    child_clause, needed_inner = self.build_filter(
+                                 ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1585, in build_filter
+    condition = self.build_lookup(lookups, col, value)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1412, in build_lookup
+    lookup = lookup_class(lhs, rhs)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\lookups.py", line 38, in __init__
+    self.rhs = self.get_prep_lookup()
+               ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\fields\related_lookups.py", line 112, in get_prep_lookup
+    self.rhs = target_field.get_prep_value(self.rhs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2130, in get_prep_value
+    raise e.__class__(
+TypeError: Field 'id' expected a number but got <SimpleLazyObject: <django.contrib.auth.models.AnonymousUser object at 0x000001D4F8CB6190>>.
+ERROR 2025-07-03 02:08:35,179 basehttp "GET /orders/checkout/ HTTP/1.1" 500 149223
+INFO 2025-07-03 02:10:17,696 basehttp "GET /admin HTTP/1.1" 301 0
+INFO 2025-07-03 02:10:17,762 basehttp "GET /admin/ HTTP/1.1" 302 0
+INFO 2025-07-03 02:10:17,858 basehttp "GET /admin/login/?next=/admin/ HTTP/1.1" 200 4177
+INFO 2025-07-03 02:10:17,883 basehttp "GET /static/admin/css/base.css HTTP/1.1" 200 22120
+INFO 2025-07-03 02:10:17,888 basehttp "GET /static/admin/css/dark_mode.css HTTP/1.1" 200 2808
+INFO 2025-07-03 02:10:17,890 basehttp "GET /static/admin/css/nav_sidebar.css HTTP/1.1" 200 2810
+INFO 2025-07-03 02:10:17,893 basehttp "GET /static/admin/css/login.css HTTP/1.1" 200 951
+INFO 2025-07-03 02:10:17,895 basehttp "GET /static/admin/css/responsive.css HTTP/1.1" 200 16565
+INFO 2025-07-03 02:10:17,898 basehttp "GET /static/admin/js/theme.js HTTP/1.1" 200 1653
+INFO 2025-07-03 02:10:17,901 basehttp "GET /static/admin/js/nav_sidebar.js HTTP/1.1" 200 3063
+INFO 2025-07-03 02:11:27,775 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 02:11:32,819 basehttp "POST /admin/login/?next=/admin/ HTTP/1.1" 302 0
+INFO 2025-07-03 02:11:33,158 basehttp "GET /admin/ HTTP/1.1" 200 12302
+INFO 2025-07-03 02:11:33,249 basehttp "GET /static/admin/css/dashboard.css HTTP/1.1" 200 441
+INFO 2025-07-03 02:11:33,255 basehttp "GET /static/admin/img/icon-addlink.svg HTTP/1.1" 200 331
+INFO 2025-07-03 02:11:33,256 basehttp "GET /static/admin/img/icon-changelink.svg HTTP/1.1" 200 380
+INFO 2025-07-03 02:11:56,543 basehttp "GET /admin/users/profile/ HTTP/1.1" 200 16046
+INFO 2025-07-03 02:11:56,572 basehttp "GET /static/admin/css/changelists.css HTTP/1.1" 200 6878
+INFO 2025-07-03 02:11:56,588 basehttp "GET /static/admin/js/vendor/jquery/jquery.js HTTP/1.1" 200 285314
+INFO 2025-07-03 02:11:56,592 basehttp "GET /static/admin/js/jquery.init.js HTTP/1.1" 200 347
+INFO 2025-07-03 02:11:56,599 basehttp "GET /static/admin/js/core.js HTTP/1.1" 200 6208
+INFO 2025-07-03 02:11:56,607 basehttp "GET /static/admin/js/admin/RelatedObjectLookups.js HTTP/1.1" 200 9777
+INFO 2025-07-03 02:11:56,610 basehttp "GET /static/admin/js/actions.js HTTP/1.1" 200 8076
+INFO 2025-07-03 02:11:56,613 basehttp "GET /static/admin/js/urlify.js HTTP/1.1" 200 7887
+INFO 2025-07-03 02:11:56,616 basehttp "GET /static/admin/js/prepopulate.js HTTP/1.1" 200 1531
+INFO 2025-07-03 02:11:56,622 basehttp "GET /static/admin/js/vendor/xregexp/xregexp.js HTTP/1.1" 200 325171
+INFO 2025-07-03 02:11:56,625 basehttp "GET /static/admin/img/icon-yes.svg HTTP/1.1" 200 436
+INFO 2025-07-03 02:11:56,632 basehttp "GET /static/admin/img/icon-no.svg HTTP/1.1" 200 560
+INFO 2025-07-03 02:11:56,632 basehttp "GET /static/admin/img/search.svg HTTP/1.1" 200 458
+INFO 2025-07-03 02:11:56,638 basehttp "GET /static/admin/js/filters.js HTTP/1.1" 200 978
+INFO 2025-07-03 02:11:56,676 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 02:11:56,725 basehttp "GET /static/admin/img/tooltag-add.svg HTTP/1.1" 200 331
+INFO 2025-07-03 02:11:56,727 basehttp "GET /static/admin/img/icon-viewlink.svg HTTP/1.1" 200 581
+INFO 2025-07-03 02:12:04,486 basehttp "GET /admin/users/address/ HTTP/1.1" 200 13543
+INFO 2025-07-03 02:12:04,681 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 02:12:09,684 basehttp "GET /admin/store/category/ HTTP/1.1" 200 25345
+INFO 2025-07-03 02:12:09,714 basehttp "GET /static/mptt/draggable-admin.css HTTP/1.1" 200 1559
+INFO 2025-07-03 02:12:09,716 basehttp "GET /static/mptt/draggable-admin.js HTTP/1.1" 200 13196
+INFO 2025-07-03 02:12:09,779 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 02:12:09,806 basehttp "GET /static/mptt/arrow-move-white.png HTTP/1.1" 200 740
+INFO 2025-07-03 02:12:15,657 basehttp "GET /admin/store/product/ HTTP/1.1" 200 34372
+INFO 2025-07-03 02:12:15,684 basehttp "GET /static/admin/css/forms.css HTTP/1.1" 200 8525
+INFO 2025-07-03 02:12:15,696 basehttp "GET /static/admin/css/widgets.css HTTP/1.1" 200 11991
+INFO 2025-07-03 02:12:15,757 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 02:12:22,363 basehttp "GET /admin/payment/payment/ HTTP/1.1" 200 14858
+INFO 2025-07-03 02:12:22,469 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 02:12:24,419 basehttp "GET /admin/payment/paymentmethod/ HTTP/1.1" 200 13868
+INFO 2025-07-03 02:12:24,510 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 02:12:27,648 basehttp "GET /admin/orders/order/ HTTP/1.1" 200 14827
+INFO 2025-07-03 02:12:27,734 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 02:12:30,098 basehttp "GET /admin/auth/group/ HTTP/1.1" 200 12681
+INFO 2025-07-03 02:12:30,186 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 02:12:34,222 basehttp "GET /admin/orders/order/ HTTP/1.1" 200 14827
+INFO 2025-07-03 02:13:52,447 autoreload C:\Users\user\Desktop\djangomart\cart\utils.py changed, reloading.
+INFO 2025-07-03 02:13:53,996 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 02:16:57,670 autoreload C:\Users\user\Desktop\djangomart\orders\views.py changed, reloading.
+INFO 2025-07-03 02:16:59,350 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 02:17:47,462 autoreload C:\Users\user\Desktop\djangomart\cart\models.py changed, reloading.
+INFO 2025-07-03 02:17:49,378 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 02:18:30,475 autoreload C:\Users\user\Desktop\djangomart\cart\models.py changed, reloading.
+INFO 2025-07-03 02:18:32,469 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 02:19:35,375 autoreload C:\Users\user\Desktop\djangomart\orders\urls.py changed, reloading.
+INFO 2025-07-03 02:19:38,630 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 02:20:02,732 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 02:20:12,319 basehttp "GET / HTTP/1.1" 200 139111
+WARNING 2025-07-03 02:20:12,360 log Not Found: /media/categories/default.png
+WARNING 2025-07-03 02:20:12,360 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-03 02:20:12,442 basehttp "GET /static/images/facebook.png HTTP/1.1" 304 0
+INFO 2025-07-03 02:20:12,443 basehttp "GET /static/images/X.png HTTP/1.1" 304 0
+INFO 2025-07-03 02:20:12,443 basehttp "GET /static/images/instagram.png HTTP/1.1" 304 0
+WARNING 2025-07-03 02:20:12,457 log Not Found: /media/categories/default.png
+WARNING 2025-07-03 02:20:12,458 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-03 02:20:12,790 basehttp "GET /cart/total/ HTTP/1.1" 200 41
+INFO 2025-07-03 02:20:15,606 basehttp "GET /cart/ HTTP/1.1" 200 126615
+INFO 2025-07-03 02:20:15,777 basehttp "GET /cart/total/ HTTP/1.1" 200 41
+INFO 2025-07-03 02:20:29,532 basehttp "POST /cart/add/20/ HTTP/1.1" 200 87
+INFO 2025-07-03 02:20:33,134 basehttp "GET /cart/ HTTP/1.1" 200 126615
+INFO 2025-07-03 02:20:33,287 basehttp "GET /cart/total/ HTTP/1.1" 200 41
+INFO 2025-07-03 02:20:39,270 basehttp "GET /orders/checkout/ HTTP/1.1" 200 99153
+INFO 2025-07-03 02:20:39,440 basehttp "GET /cart/total/ HTTP/1.1" 200 41
+INFO 2025-07-03 02:20:56,035 basehttp "POST /orders/checkout/ HTTP/1.1" 200 99153
+INFO 2025-07-03 02:20:56,196 basehttp "GET /cart/total/ HTTP/1.1" 200 41
+INFO 2025-07-03 02:27:01,029 basehttp "POST /orders/checkout/ HTTP/1.1" 200 99153
+INFO 2025-07-03 02:27:01,055 basehttp "GET /static/images/facebook.png HTTP/1.1" 304 0
+INFO 2025-07-03 02:27:01,095 basehttp "GET /static/images/X.png HTTP/1.1" 304 0
+INFO 2025-07-03 02:27:01,098 basehttp "GET /static/images/instagram.png HTTP/1.1" 304 0
+INFO 2025-07-03 02:27:01,284 basehttp "GET /cart/total/ HTTP/1.1" 200 41
+INFO 2025-07-03 02:27:19,611 basehttp "POST /orders/checkout/ HTTP/1.1" 200 99153
+INFO 2025-07-03 02:27:19,806 basehttp "GET /cart/total/ HTTP/1.1" 200 41
+INFO 2025-07-03 02:27:30,700 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 02:27:36,471 basehttp "POST /orders/checkout/ HTTP/1.1" 200 99153
+INFO 2025-07-03 02:27:36,612 basehttp "GET /cart/total/ HTTP/1.1" 200 41
+INFO 2025-07-03 02:27:52,498 basehttp "GET / HTTP/1.1" 200 139111
+WARNING 2025-07-03 02:27:52,561 log Not Found: /media/categories/default.png
+WARNING 2025-07-03 02:27:52,561 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+WARNING 2025-07-03 02:27:52,665 log Not Found: /media/categories/default.png
+WARNING 2025-07-03 02:27:52,666 basehttp "GET /media/categories/default.png HTTP/1.1" 404 11075
+INFO 2025-07-03 02:27:52,950 basehttp "GET /cart/total/ HTTP/1.1" 200 41
+INFO 2025-07-03 02:28:01,231 basehttp "GET /cart/ HTTP/1.1" 200 126615
+INFO 2025-07-03 02:28:01,498 basehttp "GET /cart/total/ HTTP/1.1" 200 41
+INFO 2025-07-03 02:28:07,199 basehttp "GET /orders/checkout/ HTTP/1.1" 200 99153
+INFO 2025-07-03 02:28:07,354 basehttp "GET /cart/total/ HTTP/1.1" 200 41
+INFO 2025-07-03 02:36:55,238 autoreload C:\Users\user\Desktop\djangomart\cart\admin.py changed, reloading.
+INFO 2025-07-03 02:36:57,003 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 02:44:01,171 autoreload C:\Users\user\Desktop\djangomart\cart\apps.py changed, reloading.
+INFO 2025-07-03 02:44:04,192 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 02:47:17,845 autoreload C:\Users\user\Desktop\djangomart\cart\admin.py changed, reloading.
+INFO 2025-07-03 02:47:19,853 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 02:47:45,032 basehttp "GET /admin/ HTTP/1.1" 200 13909
+INFO 2025-07-03 02:47:49,905 basehttp "GET /admin/cart/cartitem/ HTTP/1.1" 200 28372
+INFO 2025-07-03 02:47:50,035 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+ERROR 2025-07-03 02:48:03,772 log Internal Server Error: /admin/cart/cart/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\options.py", line 683, in get_field
+    return self.fields_map[field_name]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+KeyError: 'owner_info'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\utils.py", line 290, in lookup_field
+    f = _get_non_gfk_field(opts, name)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\utils.py", line 330, in _get_non_gfk_field
+    field = opts.get_field(name)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\options.py", line 685, in get_field
+    raise FieldDoesNotExist(
+django.core.exceptions.FieldDoesNotExist: Cart has no field named 'owner_info'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\backends\django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\base.py", line 45, in render
+    return super().render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\library.py", line 359, in render
+    _dict = self.func(*resolved_args, **resolved_kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 354, in result_list
+    "results": list(results(cl)),
+               ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 330, in results
+    yield ResultList(None, items_for_result(cl, res, None))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 321, in __init__
+    super().__init__(*items)
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 219, in items_for_result
+    f, attr, value = lookup_field(field_name, result, cl.model_admin)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\utils.py", line 299, in lookup_field
+    value = attr(obj)
+            ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\cart\admin.py", line 98, in owner_info
+    url = reverse('admin:auth_user_change', args=[obj.user.id])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\urls\base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\urls\resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'auth_user_change' not found. 'auth_user_change' is not a valid view function or pattern name.
+ERROR 2025-07-03 02:48:03,788 basehttp "GET /admin/cart/cart/ HTTP/1.1" 500 477792
+INFO 2025-07-03 02:51:39,063 autoreload C:\Users\user\Desktop\djangomart\cart\admin.py changed, reloading.
+INFO 2025-07-03 02:51:41,698 autoreload Watching for file changes with StatReloader
+ERROR 2025-07-03 02:51:42,866 log Internal Server Error: /admin/cart/cart/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\options.py", line 683, in get_field
+    return self.fields_map[field_name]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+KeyError: 'owner_info'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\utils.py", line 290, in lookup_field
+    f = _get_non_gfk_field(opts, name)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\utils.py", line 330, in _get_non_gfk_field
+    field = opts.get_field(name)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\options.py", line 685, in get_field
+    raise FieldDoesNotExist(
+django.core.exceptions.FieldDoesNotExist: Cart has no field named 'owner_info'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\backends\django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\base.py", line 45, in render
+    return super().render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\library.py", line 359, in render
+    _dict = self.func(*resolved_args, **resolved_kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 354, in result_list
+    "results": list(results(cl)),
+               ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 330, in results
+    yield ResultList(None, items_for_result(cl, res, None))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 321, in __init__
+    super().__init__(*items)
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 219, in items_for_result
+    f, attr, value = lookup_field(field_name, result, cl.model_admin)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\utils.py", line 299, in lookup_field
+    value = attr(obj)
+            ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\cart\admin.py", line 101, in owner_info
+    url = reverse('admin:auth_user_change', args=[obj.user.id])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\urls\base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\urls\resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'auth_user_change' not found. 'auth_user_change' is not a valid view function or pattern name.
+ERROR 2025-07-03 02:51:42,875 basehttp "GET /admin/cart/cart/ HTTP/1.1" 500 477983
+INFO 2025-07-03 02:51:50,117 basehttp "GET /admin/cart/cartitem/ HTTP/1.1" 200 28372
+ERROR 2025-07-03 02:51:54,215 log Internal Server Error: /admin/cart/cart/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\options.py", line 683, in get_field
+    return self.fields_map[field_name]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+KeyError: 'owner_info'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\utils.py", line 290, in lookup_field
+    f = _get_non_gfk_field(opts, name)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\utils.py", line 330, in _get_non_gfk_field
+    field = opts.get_field(name)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\options.py", line 685, in get_field
+    raise FieldDoesNotExist(
+django.core.exceptions.FieldDoesNotExist: Cart has no field named 'owner_info'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\backends\django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\base.py", line 45, in render
+    return super().render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\library.py", line 359, in render
+    _dict = self.func(*resolved_args, **resolved_kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 354, in result_list
+    "results": list(results(cl)),
+               ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 330, in results
+    yield ResultList(None, items_for_result(cl, res, None))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 321, in __init__
+    super().__init__(*items)
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 219, in items_for_result
+    f, attr, value = lookup_field(field_name, result, cl.model_admin)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\utils.py", line 299, in lookup_field
+    value = attr(obj)
+            ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\cart\admin.py", line 101, in owner_info
+    url = reverse('admin:auth_user_change', args=[obj.user.id])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\urls\base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\urls\resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'auth_user_change' not found. 'auth_user_change' is not a valid view function or pattern name.
+ERROR 2025-07-03 02:51:54,224 basehttp "GET /admin/cart/cart/ HTTP/1.1" 500 477846
+INFO 2025-07-03 02:55:40,113 autoreload C:\Users\user\Desktop\djangomart\cart\admin.py changed, reloading.
+INFO 2025-07-03 02:55:49,075 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 02:55:50,465 basehttp "GET /admin/cart/cart/ HTTP/1.1" 200 60356
+INFO 2025-07-03 02:55:50,512 basehttp "GET /static/admin/css/base.css HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,523 basehttp "GET /static/admin/js/theme.js HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,523 basehttp "GET /static/admin/css/nav_sidebar.css HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,524 basehttp "GET /static/admin/css/dark_mode.css HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,534 basehttp "GET /static/admin/css/changelists.css HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,534 basehttp "GET /static/admin/css/responsive.css HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,539 basehttp "GET /static/admin/js/jquery.init.js HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,539 basehttp "GET /static/admin/js/vendor/jquery/jquery.js HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,541 basehttp "GET /static/admin/js/core.js HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,546 basehttp "GET /static/admin/js/actions.js HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,547 basehttp "GET /static/admin/js/admin/RelatedObjectLookups.js HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,552 basehttp "GET /static/admin/js/prepopulate.js HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,553 basehttp "GET /static/admin/js/urlify.js HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,560 basehttp "GET /static/admin/js/vendor/xregexp/xregexp.js HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,569 basehttp "GET /static/admin/img/search.svg HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,576 basehttp "GET /static/admin/js/nav_sidebar.js HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,586 basehttp "GET /static/admin/js/filters.js HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,674 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 02:55:50,724 basehttp "GET /static/admin/img/icon-addlink.svg HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,725 basehttp "GET /static/admin/img/tooltag-add.svg HTTP/1.1" 304 0
+INFO 2025-07-03 02:55:50,733 basehttp "GET /static/admin/img/icon-viewlink.svg HTTP/1.1" 304 0
+INFO 2025-07-03 02:57:41,051 basehttp - Broken pipe from ('127.0.0.1', 58264)
+INFO 2025-07-03 02:57:41,052 basehttp "GET /admin/orders/order/ HTTP/1.1" 200 16100
+INFO 2025-07-03 02:57:41,466 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 02:57:48,173 basehttp "GET /admin/cart/cart/ HTTP/1.1" 200 60356
+INFO 2025-07-03 02:58:12,177 basehttp "GET /admin/users/profile/ HTTP/1.1" 200 17319
+INFO 2025-07-03 02:58:12,205 basehttp "GET /static/admin/img/icon-yes.svg HTTP/1.1" 304 0
+INFO 2025-07-03 02:58:12,208 basehttp "GET /static/admin/img/icon-no.svg HTTP/1.1" 304 0
+INFO 2025-07-03 02:58:12,283 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 02:59:15,776 basehttp "GET /admin/users/address/ HTTP/1.1" 200 14816
+INFO 2025-07-03 02:59:16,226 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 02:59:25,979 basehttp "GET /admin/users/ HTTP/1.1" 200 6046
+INFO 2025-07-03 02:59:26,019 basehttp "GET /static/admin/css/dashboard.css HTTP/1.1" 304 0
+INFO 2025-07-03 02:59:26,036 basehttp "GET /static/admin/img/icon-changelink.svg HTTP/1.1" 304 0
+INFO 2025-07-03 02:59:29,270 basehttp "GET /admin/ HTTP/1.1" 200 13909
+INFO 2025-07-03 02:59:34,054 basehttp "GET /admin/auth/group/ HTTP/1.1" 200 13954
+INFO 2025-07-03 02:59:34,555 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 03:00:06,378 basehttp "GET /admin/store/category/ HTTP/1.1" 200 26618
+INFO 2025-07-03 03:00:06,649 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 03:05:17,324 autoreload C:\Users\user\Desktop\djangomart\store\admin.py changed, reloading.
+INFO 2025-07-03 03:05:19,079 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 03:13:42,446 autoreload C:\Users\user\Desktop\djangomart\store\admin.py changed, reloading.
+INFO 2025-07-03 03:13:43,980 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 03:14:54,044 autoreload C:\Users\user\Desktop\djangomart\store\admin.py changed, reloading.
+INFO 2025-07-03 03:14:57,025 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 03:15:22,837 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 03:18:17,385 autoreload C:\Users\user\Desktop\djangomart\store\admin.py changed, reloading.
+INFO 2025-07-03 03:18:19,531 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 03:35:06,328 autoreload C:\Users\user\Desktop\djangomart\store\admin.py changed, reloading.
+INFO 2025-07-03 03:35:12,702 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 03:36:26,479 autoreload C:\Users\user\Desktop\djangomart\store\admin.py changed, reloading.
+INFO 2025-07-03 03:36:28,643 autoreload Watching for file changes with StatReloader
+ERROR 2025-07-03 03:36:39,780 log Internal Server Error: /admin/store/category/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\options.py", line 683, in get_field
+    return self.fields_map[field_name]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+KeyError: 'level_display'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\utils.py", line 290, in lookup_field
+    f = _get_non_gfk_field(opts, name)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\utils.py", line 330, in _get_non_gfk_field
+    field = opts.get_field(name)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\options.py", line 685, in get_field
+    raise FieldDoesNotExist(
+django.core.exceptions.FieldDoesNotExist: Category has no field named 'level_display'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\backends\django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\base.py", line 45, in render
+    return super().render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\library.py", line 359, in render
+    _dict = self.func(*resolved_args, **resolved_kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 354, in result_list
+    "results": list(results(cl)),
+               ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 330, in results
+    yield ResultList(None, items_for_result(cl, res, None))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 321, in __init__
+    super().__init__(*items)
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 219, in items_for_result
+    f, attr, value = lookup_field(field_name, result, cl.model_admin)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\utils.py", line 299, in lookup_field
+    value = attr(obj)
+            ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\admin.py", line 46, in level_display
+    return f"Level {instance.level}"
+                    ^^^^^^^^^^^^^^
+AttributeError: 'Category' object has no attribute 'level'
+ERROR 2025-07-03 03:36:39,825 basehttp "GET /admin/store/category/ HTTP/1.1" 500 467131
+INFO 2025-07-03 03:40:29,727 autoreload C:\Users\user\Desktop\djangomart\store\admin.py changed, reloading.
+INFO 2025-07-03 03:40:32,774 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 03:40:33,491 basehttp "GET /admin/store/category/ HTTP/1.1" 200 30613
+INFO 2025-07-03 03:40:33,695 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+ERROR 2025-07-03 03:40:43,435 log Internal Server Error: /admin/store/searchlog/
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\options.py", line 683, in get_field
+    return self.fields_map[field_name]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+KeyError: 'result_count'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\utils.py", line 290, in lookup_field
+    f = _get_non_gfk_field(opts, name)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\utils.py", line 330, in _get_non_gfk_field
+    field = opts.get_field(name)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\db\models\options.py", line 685, in get_field
+    raise FieldDoesNotExist(
+django.core.exceptions.FieldDoesNotExist: SearchLog has no field named 'result_count'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\core\handlers\base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\backends\django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\base.py", line 45, in render
+    return super().render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\template\library.py", line 359, in render
+    _dict = self.func(*resolved_args, **resolved_kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 354, in result_list
+    "results": list(results(cl)),
+               ^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 330, in results
+    yield ResultList(None, items_for_result(cl, res, None))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 321, in __init__
+    super().__init__(*items)
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\templatetags\admin_list.py", line 219, in items_for_result
+    f, attr, value = lookup_field(field_name, result, cl.model_admin)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\.venv\Lib\site-packages\django\contrib\admin\utils.py", line 299, in lookup_field
+    value = attr(obj)
+            ^^^^^^^^^
+  File "C:\Users\user\Desktop\djangomart\store\admin.py", line 344, in result_count
+    return Product.objects.search(obj.query).count()
+           ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Manager' object has no attribute 'search'
+ERROR 2025-07-03 03:40:43,461 basehttp "GET /admin/store/searchlog/ HTTP/1.1" 500 466172
+INFO 2025-07-03 10:39:31,252 autoreload C:\Users\user\Desktop\djangomart\store\admin.py changed, reloading.
+INFO 2025-07-03 10:39:51,155 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 10:39:59,722 basehttp "GET /admin/store/searchlog/ HTTP/1.1" 200 61586
+INFO 2025-07-03 10:40:02,116 basehttp "GET /static/admin/css/dark_mode.css HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,121 basehttp "GET /static/admin/css/base.css HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,123 basehttp "GET /static/admin/css/nav_sidebar.css HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,130 basehttp "GET /static/admin/js/theme.js HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,147 basehttp "GET /static/admin/css/changelists.css HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,165 basehttp "GET /static/admin/css/responsive.css HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,169 basehttp "GET /static/admin/js/vendor/jquery/jquery.js HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,180 basehttp "GET /static/admin/js/jquery.init.js HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,181 basehttp "GET /static/admin/js/core.js HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,188 basehttp "GET /static/admin/js/admin/RelatedObjectLookups.js HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,190 basehttp "GET /static/admin/js/actions.js HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,198 basehttp "GET /static/admin/js/prepopulate.js HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,202 basehttp "GET /static/admin/js/urlify.js HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,209 basehttp "GET /static/admin/js/vendor/xregexp/xregexp.js HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,211 basehttp "GET /static/admin/img/search.svg HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,237 basehttp "GET /static/admin/js/nav_sidebar.js HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,244 basehttp "GET /static/admin/js/filters.js HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,324 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 10:40:02,384 basehttp "GET /static/admin/img/tooltag-add.svg HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,391 basehttp "GET /static/admin/img/icon-addlink.svg HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:02,403 basehttp "GET /static/admin/img/icon-viewlink.svg HTTP/1.1" 304 0
+INFO 2025-07-03 10:40:03,547 basehttp "GET /static/admin/img/sorting-icons.svg HTTP/1.1" 200 1097
+INFO 2025-07-03 10:40:42,101 basehttp "GET /admin/store/productvariant/ HTTP/1.1" 200 18421
+INFO 2025-07-03 10:40:42,376 basehttp "GET /static/admin/css/forms.css HTTP/1.1" 200 8525
+INFO 2025-07-03 10:40:42,429 basehttp "GET /static/admin/css/widgets.css HTTP/1.1" 200 11991
+INFO 2025-07-03 10:40:42,611 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 10:40:46,774 basehttp "GET /admin/store/searchlog/ HTTP/1.1" 200 61586
+INFO 2025-07-03 10:40:55,931 basehttp "GET /admin/store/productimage/ HTTP/1.1" 200 38433
+INFO 2025-07-03 10:40:56,003 basehttp "GET /media/products/AttackSharkX3_TriMode_Wireless_Mouse.3.jfif HTTP/1.1" 200 4216
+INFO 2025-07-03 10:40:56,006 basehttp "GET /media/products/AttackSharkX3_TriMode_Wireless_Mouse.2.jfif HTTP/1.1" 200 9885
+INFO 2025-07-03 10:40:56,018 basehttp "GET /media/products/AttackSharkX3_TriMode_Wireless_Mouse.jfif HTTP/1.1" 200 5220
+INFO 2025-07-03 10:40:56,020 basehttp "GET /media/products/AttackSharkX3_TriMode_Wireless_Mouse_ToG6mCy.2.jfif HTTP/1.1" 200 9885
+INFO 2025-07-03 10:40:56,032 basehttp "GET /media/products/AttackSharkX3_TriMode_Wireless_Mouse_WdgoftI.3.jfif HTTP/1.1" 200 4216
+INFO 2025-07-03 10:40:56,040 basehttp "GET /media/products/AttackSharkX3_TriMode_Wireless_Mouse_YVa2wT0.jfif HTTP/1.1" 200 5220
+INFO 2025-07-03 10:40:56,056 basehttp "GET /media/products/AttackSharkX3_TriMode_Wireless_Mouse_RSCu8sG.2.jfif HTTP/1.1" 200 9885
+INFO 2025-07-03 10:40:56,064 basehttp "GET /media/products/AttackSharkX3_TriMode_Wireless_Mouse_JTrXTL1.3.jfif HTTP/1.1" 200 4216
+INFO 2025-07-03 10:40:56,076 basehttp "GET /media/products/AttackSharkX3_TriMode_Wireless_Mouse_DxY9TCl.jfif HTTP/1.1" 200 5220
+INFO 2025-07-03 10:40:56,088 basehttp "GET /media/products/AttackSharkX3_TriMode_Wireless_Mouse_mYRzuI2.2.jfif HTTP/1.1" 200 9885
+INFO 2025-07-03 10:40:56,097 basehttp "GET /media/products/AttackSharkX3_TriMode_Wireless_Mouse_Y2Sn4yd.3.jfif HTTP/1.1" 200 4216
+INFO 2025-07-03 10:40:56,106 basehttp "GET /media/products/AttackSharkX3_TriMode_Wireless_Mouse_g8sFkQT.jfif HTTP/1.1" 200 5220
+INFO 2025-07-03 10:40:56,115 basehttp "GET /media/products/AttackSharkX3_TriMode_Wireless_Mouse_REeqWaC.3.jfif HTTP/1.1" 200 4216
+INFO 2025-07-03 10:40:56,125 basehttp "GET /media/products/PS5_RGB_Controller.jfif HTTP/1.1" 200 6015
+INFO 2025-07-03 10:40:56,136 basehttp "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2025-07-03 10:40:56,139 basehttp "GET /media/products/HDMI_Switch_for_Multiple_Consoles.jfif HTTP/1.1" 200 6166
+INFO 2025-07-03 10:40:56,152 basehttp "GET /media/products/Bluetooth_USB_Adapter.jfif HTTP/1.1" 200 5582
+INFO 2025-07-03 10:40:56,171 basehttp "GET /media/products/Green_Screen_Backdrop_M9e9FHp.jfif HTTP/1.1" 200 5731
+INFO 2025-07-03 10:40:56,171 basehttp "GET /media/products/HDMI_Switch_for_Multiple_Consoles_3rEtHeE.jfif HTTP/1.1" 200 6166
+INFO 2025-07-03 10:40:56,173 basehttp "GET /media/products/Green_Screen_Backdrop.jfif HTTP/1.1" 200 5731
+INFO 2025-07-03 10:40:56,174 basehttp "GET /media/products/RGB_Ring_Light_WwPOami.jfif HTTP/1.1" 200 15383
+INFO 2025-07-03 10:40:56,174 basehttp "GET /media/products/Green_Screen_Backdrop_voCz3AW.jfif HTTP/1.1" 200 5731
+INFO 2025-07-03 10:40:56,175 basehttp "GET /media/products/RGB_Ring_Light.jfif HTTP/1.1" 200 15383
+INFO 2025-07-03 10:40:56,185 basehttp "GET /media/products/RGB_Ring_Light_VItJoOt.jfif HTTP/1.1" 200 15383
+INFO 2025-07-03 10:40:56,203 basehttp "GET /media/products/USB_Audio_Adapter.jfif HTTP/1.1" 200 4992
+INFO 2025-07-03 10:44:04,706 autoreload C:\Users\user\Desktop\djangomart\store\admin.py changed, reloading.
+INFO 2025-07-03 10:44:07,991 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 10:44:21,561 autoreload C:\Users\user\Desktop\djangomart\store\models.py changed, reloading.
+INFO 2025-07-03 10:44:24,093 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 10:44:55,642 autoreload C:\Users\user\Desktop\djangomart\store\models.py changed, reloading.
+INFO 2025-07-03 10:45:04,842 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 10:45:49,957 autoreload C:\Users\user\Desktop\djangomart\store\admin.py changed, reloading.
+INFO 2025-07-03 10:45:54,348 autoreload Watching for file changes with StatReloader
+INFO 2025-07-03 10:47:15,673 autoreload Watching for file changes with StatReloader

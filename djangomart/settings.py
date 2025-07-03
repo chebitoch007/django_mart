@@ -4,11 +4,7 @@ Django settings for djangomart project.
 
 import os
 from pathlib import Path
-
-
 import environ
-from debug_toolbar.panels import templates
-from pycparser.c_ast import Default
 
 # Initialize environment
 env = environ.Env()
@@ -19,38 +15,36 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Read .env file
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
-
 # ================== Core Production Settings ==================
 SECRET_KEY = env('DJANGO_SECRET_KEY')
-DEBUG = env.bool('DJANGO_DEBUG', default=True)
-ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS')
+DEBUG = env.bool('DJANGO_DEBUG', default=False)
+ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
 handler404 = 'store.views.custom_404'
 handler500 = 'store.views.custom_500'
 
 # ================== Security Headers ==================
-#SECURE_PROXY_SSL_HEADER = None
-SECURE_SSL_REDIRECT = False  # Redirect HTTP → HTTPS
-SESSION_COOKIE_SECURE = False  # Cookies only over HTTPS
-CSRF_COOKIE_SECURE = False  # Protect form submissions
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=False)
+SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=False)
+CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=False)
+SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=0)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False)
+SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=False)
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = 'SAMEORIGIN'
-SESSION_COOKIE_HTTPONLY = False  # Prevent XSS attacks
+SESSION_COOKIE_HTTPONLY = True  # Prevent XSS attacks
 
+# Payment settings
 PAYMENT_SETTINGS = {
     'USE_SMS': False,
     'PAYMENT_WINDOW_HOURS': 48,
     'MOBILE_MONEY_PROVIDERS': ['MPesa', 'Airtel Money'],
-  #  'SMS_API_KEY': env('SMS_API_KEY', default=None),
-    'SMS_API_KEY': None,  # Set to actual key when ready
-    'SITE_URL': 'http://localhost:8000'
-    #'SMS_SENDER_ID': 'DJANGOMART'
-
+    'SMS_API_KEY': env('SMS_API_KEY', default=None),
+    'SITE_URL': env('SITE_URL', default='http://localhost:8000'),
+    'FIELD_ENCRYPTION_KEY': env('FIELD_ENCRYPTION_KEY'),
 }
-
 
 # ================== Application Definition ==================
 INSTALLED_APPS = [
@@ -61,6 +55,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    'django.contrib.postgres',
     'django_extensions',
     'crispy_forms',
     'django_countries',
@@ -76,11 +71,11 @@ INSTALLED_APPS = [
 
 # Security-related middleware
 SECURITY_MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'csp.middleware.CSPMiddleware',  # Content Security Policy
+    'csp.middleware.CSPMiddleware',
 ]
 
 # Core Django middleware
@@ -91,12 +86,8 @@ DJANGO_CORE_MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
 ]
 
-
-
 # Combined middleware setting
 MIDDLEWARE = SECURITY_MIDDLEWARE + DJANGO_CORE_MIDDLEWARE
-
-
 
 # ================== Templates & URLs ==================
 ROOT_URLCONF = 'djangomart.urls'
@@ -127,47 +118,40 @@ DATABASES = {
         'NAME': env('DB_NAME'),
         'USER': env('DB_USER'),
         'PASSWORD': env('DB_PASSWORD'),
-        'HOST': env('DB_HOST'),
-        'PORT': env('DB_PORT'),
+        'HOST': env('DB_HOST', default='localhost'),
+        'PORT': env('DB_PORT', default='5432'),
         'OPTIONS': {
             'options': '-c search_path=public'
         }
     }
 }
 
-# ================== Remaining Configuration ==================
-# (Keep all other sections exactly as they were, except remove debug prints)
-
-# Password validation, internationalization, static files,
-# custom user model, and payment settings remain identical to original
-
-
-# Password validation
+# ================== Password Validation ==================
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator','OPTIONS': {'min_length': 9,}},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 9}},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
+# ================== Internationalization ==================
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Africa/Nairobi'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
+# ================== Static & Media Files ==================
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# ================== Security Policies ==================
 PASSWORD_POLICY = {
     'min_length': 8,
     'require_uppercase': True,
@@ -175,89 +159,88 @@ PASSWORD_POLICY = {
     'require_numbers': True,
     'require_special_chars': True,
     'special_chars': "!@#$%^&*()_+-=[]{};':,./<>?",
-    'version': '1.0',
-    'requirements': [
-        'At least 8 characters',
-        'Mix of uppercase and lowercase letters',
-        'At least one number',
-        'At least one special character'
-    ]
 }
 
-# Custom user model
+# ================== Custom User Model ==================
 AUTH_USER_MODEL = 'users.CustomUser'
 
-# Login redirects
+# ================== Authentication URLs ==================
 LOGIN_URL = 'users:login'
 LOGIN_REDIRECT_URL = 'users:profile'
 LOGOUT_REDIRECT_URL = 'home'
 
-# Crispy forms
+# ================== Third-Party Config ==================
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
-
-# Cart settings
 CART_SESSION_ID = 'cart'
 
 # ================== Payment Settings ==================
 # M-Pesa Configuration
 MPESA_CONSUMER_KEY = env('MPESA_CONSUMER_KEY')
 MPESA_CONSUMER_SECRET = env('MPESA_CONSUMER_SECRET')
-MPESA_SHORTCODE = env('MPESA_SHORTCODE', default='174379')  # Fixed this line
+MPESA_SHORTCODE = env('MPESA_SHORTCODE')
 MPESA_PASSKEY = env('MPESA_PASSKEY')
-MPESA_CALLBACK_URL = env('MPESA_CALLBACK_URL', default='http://localhost:8000/payment/mpesa-callback/')
-MPESA_AUTH_URL = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
-MPESA_STK_URL = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
-
+MPESA_CALLBACK_URL = env('MPESA_CALLBACK_URL')
 
 # Airtel Money Configuration
 AIRTEL_CLIENT_ID = env('AIRTEL_CLIENT_ID')
 AIRTEL_CLIENT_SECRET = env('AIRTEL_CLIENT_SECRET')
 AIRTEL_COUNTRY_CODE = env('AIRTEL_COUNTRY_CODE', default='KE')
-AIRTEL_AUTH_URL = env('AIRTEL_AUTH_URL', default='https://openapi.airtel.africa/auth/oauth2/token')
-AIRTEL_PAYMENT_URL = env('AIRTEL_PAYMENT_URL', default='https://openapi.airtel.africa/merchant/v1/payments/')
-AIRTEL_BASE_URL = env('AIRTEL_BASE_URL', default='https://openapi.airtel.africa')
-
-# Airtel Configuration
+AIRTEL_AUTH_URL = env('AIRTEL_AUTH_URL')
+AIRTEL_PAYMENT_URL = env('AIRTEL_PAYMENT_URL')
+AIRTEL_BASE_URL = env('AIRTEL_BASE_URL')
 AIRTEL_SIGNATURE_KEY = env('AIRTEL_SIGNATURE_KEY')
-AIRTEL_EXAMPLE_NUMBER = env('AIRTEL_EXAMPLE_NUMBER', default='254705123456')
+
+# Stripe Configuration
+STRIPE_PUBLIC_KEY = env('STRIPE_PUBLIC_KEY')
+STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY')
+STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET')
+
+# PayPal Configuration
+PAYPAL_CLIENT_ID = env('PAYPAL_CLIENT_ID')
+PAYPAL_SECRET = env('PAYPAL_SECRET')
+PAYPAL_WEBHOOK_ID = env('PAYPAL_WEBHOOK_ID')
 
 # Currency Settings
-DEFAULT_CURRENCY = 'KES'
+DEFAULT_CURRENCY = env('DEFAULT_CURRENCY', default='KES')
 CURRENCIES = {
     'KES': 'Kenyan Shilling',
     'UGX': 'Ugandan Shilling',
-    'TZS': 'Tanzanian Shilling'
+    'TZS': 'Tanzanian Shilling',
+    'USD': 'US Dollar',
+    'EUR': 'Euro',
 }
 
-# Add these to settings.py
 # Transaction Timeouts
 PAYMENT_TIMEOUT = env.int('PAYMENT_TIMEOUT', default=300)
 
-
-# Add fraud detection
+# Fraud prevention
 FRAUD_PREVENTION = {
     'GEO_LIMIT': env.list('ALLOWED_COUNTRIES', default=['KE', 'TZ', 'UG']),
     'IP_WHITELIST': env.list('TRUSTED_IPS', default=[]),
 }
 
-# Currency Formatting (enhancement)
+# Currency Formatting
 CURRENCY_FORMATS = {
     'KES': {'format': 'KSh{amount:.2f}', 'decimal_places': 2},
     'UGX': {'format': 'UGX{amount:.0f}', 'decimal_places': 0},
     'TZS': {'format': 'TSh{amount:.0f}', 'decimal_places': 0},
+    'USD': {'format': '${amount:.2f}', 'decimal_places': 2},
+    'EUR': {'format': '€{amount:.2f}', 'decimal_places': 2},
 }
 
-ORDER_EXPIRY_DAYS = 3  # Orders expire after 3 days
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # For development
-DEFAULT_FROM_EMAIL = 'eliphazchebitoch@gmail.com'
-#EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # smtp for production
-EMAIL_HOST = 'your-smtp-host'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'eliphazchebitoch@gmail.com'
-EMAIL_HOST_PASSWORD = 'your-email-password'
-#DEFAULT_FROM_EMAIL = 'newsletter@djangomart.com'
+# Order settings
+ORDER_EXPIRY_DAYS = env.int('ORDER_EXPIRY_DAYS', default=3)
 
+# Email Configuration
+EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = env('EMAIL_HOST', default='')
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@djangomart.com')
+
+# Logging Configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -269,23 +252,101 @@ LOGGING = {
     },
     'handlers': {
         'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+            'formatter': 'verbose'
+        },
+        'payment_file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': 'debug.log',
+            'filename': os.path.join(BASE_DIR, 'logs', 'payments.log'),
             'formatter': 'verbose'
         },
     },
     'loggers': {
-        'newsletter': {
+        'django': {
             'handlers': ['file'],
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': True,
+        },
+        'payment': {
+            'handlers': ['payment_file'],
+            'level': 'DEBUG',
+            'propagate': False,
         },
     },
 }
 
-RECAPTCHA_SITE_KEY = os.getenv('RECAPTCHA_SITE_KEY', 'dev_test_key')
-RECAPTCHA_SECRET_KEY = os.getenv('RECAPTCHA_SECRET_KEY', 'dev_test_secret')
+# reCAPTCHA Configuration
+RECAPTCHA_SITE_KEY = env('RECAPTCHA_SITE_KEY')
+RECAPTCHA_SECRET_KEY = env('RECAPTCHA_SECRET_KEY')
 
+# ================== Content Security Policy ==================
+# Development-friendly settings (safe for local work)
+CSP_ENABLED = False  # Disable CSP in development
+CSP_IGNORE_MIGRATION_CHECK = True  # Bypass migration checks
+SILENCED_SYSTEM_CHECKS = ['csp.E001']  # Disable CSP system checks
 
-ALIEXPRESS_API_KEY = "YOUR_AFFILIATE_API_KEY"
+"""
+# ================== PRODUCTION-READY CSP CONFIG (UNCOMMENT WHEN DEPLOYING) ==================
+# Remove the development settings above and uncomment this section for production
+CSP_ENABLED = True
+CSP_IGNORE_MIGRATION_CHECK = False
+SILENCED_SYSTEM_CHECKS = []  # Enable all system checks
+
+# Strict CSP directives for production
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_SCRIPT_SRC = (
+    "'self'",
+    "https://js.stripe.com",
+    "https://www.paypal.com",
+    "https://unpkg.com"
+)
+CSP_STYLE_SRC = (
+    "'self'",
+    "https://fonts.googleapis.com",
+    "https://cdnjs.cloudflare.com",
+    "https://cdn.jsdelivr.net"
+)
+CSP_IMG_SRC = (
+    "'self'",
+    "data:",
+    "https://*.stripe.com",
+    "https://www.paypal.com",
+    "https://cdnjs.cloudflare.com"
+)
+CSP_FONT_SRC = (
+    "'self'",
+    "https://fonts.gstatic.com",
+    "https://cdnjs.cloudflare.com"
+)
+CSP_FRAME_SRC = (
+    "'self'",
+    "https://js.stripe.com",
+    "https://www.paypal.com"
+)
+CSP_CONNECT_SRC = (
+    "'self'",
+    "https://api.stripe.com",
+    "https://api.paypal.com",
+    "https://fonts.googleapis.com",
+    "https://fonts.gstatic.com"
+)
+CSP_OBJECT_SRC = ("'none'",)
+CSP_BASE_URI = ("'self'",)
+CSP_FORM_ACTION = ("'self'",)
+
+# Security hardening (production only)
+CSP_INCLUDE_NONCE_IN = ['script-src', 'style-src']  # Require nonces for inline code
+CSP_BLOCK_ALL_MIXED_CONTENT = True
+CSP_UPGRADE_INSECURE_REQUESTS = True
+CSP_REPORT_ONLY = False  # Enforce policy (not just report)
+"""
+
+# ================== END PRODUCTION CSP CONFIG ==================
+
+# AliExpress Affiliate
+ALIEXPRESS_API_KEY = env('ALIEXPRESS_API_KEY', default='')
+
+CSP_IGNORE_MIGRATION_CHECK = True
