@@ -12,7 +12,7 @@ from django.db.models import Prefetch
 
 from cart.cart import Cart
 from cart.utils import get_cart
-from djangomart import settings
+from asai import settings
 from payment.models import Payment
 #from payment.models import Payment
 from .models import Order, OrderItem, CurrencyRate

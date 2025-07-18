@@ -6646,3 +6646,28 @@ INFO 2025-07-18 13:58:40,264 autoreload C:\Users\user\Desktop\djangomart\orders\
 INFO 2025-07-18 13:58:46,474 autoreload Watching for file changes with StatReloader
 INFO 2025-07-18 14:01:10,005 autoreload C:\Users\user\Desktop\djangomart\orders\views.py changed, reloading.
 INFO 2025-07-18 14:01:17,037 autoreload Watching for file changes with StatReloader
+ERROR 2025-07-18 14:03:01,029 utils Exchange rate API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+ERROR 2025-07-18 14:03:01,029 utils Error fetching exchange rate: API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+WARNING 2025-07-18 14:03:01,029 utils Using fallback exchange rates
+ERROR 2025-07-18 14:03:02,222 utils Exchange rate API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+ERROR 2025-07-18 14:03:02,222 utils Error fetching exchange rate: API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+WARNING 2025-07-18 14:03:02,226 utils Using fallback exchange rates
+ERROR 2025-07-18 14:03:03,450 utils Exchange rate API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+ERROR 2025-07-18 14:03:03,450 utils Error fetching exchange rate: API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+WARNING 2025-07-18 14:03:03,450 utils Using fallback exchange rates
+ERROR 2025-07-18 14:03:04,781 utils Exchange rate API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+ERROR 2025-07-18 14:03:04,781 utils Error fetching exchange rate: API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+WARNING 2025-07-18 14:03:04,781 utils Using fallback exchange rates
+ERROR 2025-07-18 14:03:06,115 utils Exchange rate API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+ERROR 2025-07-18 14:03:06,116 utils Error fetching exchange rate: API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+WARNING 2025-07-18 14:03:06,116 utils Using fallback exchange rates
+INFO 2025-07-18 14:03:06,547 basehttp "GET /orders/checkout/ HTTP/1.1" 200 113833
+INFO 2025-07-18 14:03:06,916 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+ERROR 2025-07-18 14:04:21,738 log Internal Server Error: /payment/process-payment/
+ERROR 2025-07-18 14:04:21,743 basehttp "POST /payment/process-payment/ HTTP/1.1" 500 60
+INFO 2025-07-18 14:04:35,734 basehttp "GET /privacy-policy/ HTTP/1.1" 200 71138
+INFO 2025-07-18 14:04:36,671 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+ERROR 2025-07-18 14:06:09,896 log Internal Server Error: /payment/process-payment/
+ERROR 2025-07-18 14:06:09,896 basehttp "POST /payment/process-payment/ HTTP/1.1" 500 60
+INFO 2025-07-18 15:29:21,971 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+INFO 2025-07-18 15:29:32,851 autoreload Watching for file changes with StatReloader

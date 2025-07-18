@@ -4,7 +4,7 @@ import hashlib
 import stripe
 from django.http import JsonResponse, HttpResponse
 
-from djangomart import settings
+from asai import settings
 
 
 from django.views.decorators.csrf import csrf_exempt

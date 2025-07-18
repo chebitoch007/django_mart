@@ -1665,8 +1665,15 @@
 <div class="search-container flex-grow max-w-3xl mx-4 relative">
     <form action="{% url 'store:product_search' %}" method="get" class="w-full">
         <div class="search-bar flex rounded-lg overflow-hidden shadow-sm border border-gray-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all duration-200">
-
-
+                    <select name="category" aria-label="Select Category">
+                        <option value="">All</option>
+                        {% for category in categories|slice:":15" %}
+                        <option value="{{ category.slug }}"
+                                {% if request.GET.category == category.slug %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
             <input
                 type="text"
                 name="q"
