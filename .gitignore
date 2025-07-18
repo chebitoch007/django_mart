@@ -1,5 +1,34 @@
-.env
-.venv/
-debug.log
-*.pyc
+# Byte-compiled / optimized / DLL files
 __pycache__/
+*.py[cod]
+*.so
+
+# C extensions
+*.pyd
+
+# Environment variables and secrets
+.env
+*.env
+
+# Virtual environment
+venv/
+ENV/
+env/
+.venv/
+
+# Django stuff
+*.log
+*.pot
+*.pyc
+staticfiles/
+media/
+local_settings.py
+
+# PostgreSQL database dump (if you export your db)
+*.psql
+*.pgsql
+*.sql
+
+# macOS / Linux / Windows system files
+.DS_Store
+Thumbs.db
