@@ -49,6 +49,9 @@ class Cart(models.Model):
     def total_price(self):
         return sum(item.total_price for item in self.items.all())
 
+    def get_total_price(self):
+        return self.total_price
+
     def clear(self):
         self.items.all().delete()
 

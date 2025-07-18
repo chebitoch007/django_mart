@@ -1,12 +1,13 @@
-import requests
-from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
+# users/forms.py
 from django import forms
-from django.utils.safestring import mark_safe
+from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from .models import Profile, Address
+import requests
 import re
 import logging
 
@@ -14,7 +15,6 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
-# Helper functions
 def _validate_recaptcha(token):
     """Validate reCAPTCHA token with Google API"""
     if settings.DEBUG:
@@ -32,73 +32,38 @@ def _validate_recaptcha(token):
                 'secret': settings.RECAPTCHA_SECRET_KEY,
                 'response': token
             },
-            timeout=3  # Add timeout to prevent hanging
+            timeout=3
         )
         response.raise_for_status()
-        result = response.json()
-        return result.get('success', False)
+        return response.json().get('success', False)
     except requests.RequestException as e:
         logger.error(f"reCAPTCHA validation failed: {str(e)}")
         return False
 
 
-def luhn_checksum(card_number):
-    """Validate card number using Luhn algorithm"""
-
-    def digits_of(n):
-        return [int(d) for d in str(n)]
-
-    digits = digits_of(card_number)
-    odd_digits = digits[-1::-2]
-    even_digits = digits[-2::-2]
-    total = sum(odd_digits)
-    for d in even_digits:
-        total += sum(digits_of(d * 2))
-    return total % 10 == 0
-
-
 class UserRegisterForm(UserCreationForm):
-    street_address = forms.CharField(
-        max_length=255,
+    # Only essential fields
+    first_name = forms.CharField(
+        max_length=30,
         required=True,
-        label=_('Street Address'),
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': '123 Main Street',
-            'aria-label': 'Street address'
-        })
-    )
-    city = forms.CharField(
-        max_length=100,
-        required=True,
-        label=_('City'),
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'e.g. Nairobi',
-            'aria-label': 'City'
-        })
-    )
-    state = forms.CharField(
-        max_length=100,
-        required=True,
-        label=_('State/Province'),
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'e.g. Nairobi County',
-            'aria-label': 'State'
-        })
-    )
-    postal_code = forms.CharField(
-        max_length=20,
-        required=True,
-        label=_('Postal Code'),
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Postal code',
-            'aria-label': 'Postal code'
+            'placeholder': 'Your first name',
+            'aria-label': 'First name'
         })
     )
 
+    last_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Your last name',
+            'aria-label': 'Last name'
+        })
+    )
+
+    # Privacy and marketing fields
     accept_terms = forms.BooleanField(
         required=True,
         label=mark_safe(
@@ -106,45 +71,44 @@ class UserRegisterForm(UserCreationForm):
         error_messages={'required': _('You must accept the Terms of Service')}
     )
 
-    accept_privacy = forms.BooleanField(
-        required=True,
-        label=mark_safe(
-            'I agree to the <a href="/legal/privacy/" target="_blank" rel="noopener noreferrer">Privacy Policy</a>'),
-        error_messages={'required': _('You must accept the Privacy Policy')}
-    )
-
-    phone_number = forms.CharField(
-        max_length=20,
-        required=True,
-        help_text="Format: +2547XXXXXXXX",
-        widget=forms.TextInput(attrs={
-            'placeholder': '+2547XXXXXXXX',
-            'data-mask': '+254000000000'
+    marketing_optin = forms.BooleanField(
+        required=False,
+        label='I want to receive marketing communications',
+        widget=forms.CheckboxInput(attrs={
+            'aria-label': 'Marketing communications opt-in'
         })
     )
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'phone_number', 'password1', 'password2',
-                  'street_address', 'city', 'state', 'postal_code']
-        help_texts = {'username': None}
+        fields = ['first_name', 'last_name', 'email', 'password1', 'password2']
         widgets = {
-            'username': forms.TextInput(attrs={
-                'autocomplete': 'username',
-                'aria-label': 'Username'
-            }),
             'email': forms.EmailInput(attrs={
                 'autocomplete': 'email',
-                'aria-label': 'Email address'
+                'aria-label': 'Email address',
+                'placeholder': 'your@email.com'
             }),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['password1'].help_text = self.password_help_text()
 
-        # Password strength help text
-        password_help = '''
-        <div class="form-text text-muted">
+        # Add Bootstrap classes
+        for field_name in self.fields:
+            if field_name not in ['accept_terms', 'marketing_optin']:
+                self.fields[field_name].widget.attrs.update({'class': 'form-control'})
+
+        # Add reCAPTCHA if configured
+        if settings.RECAPTCHA_SITE_KEY:
+            self.fields['recaptcha'] = forms.CharField(
+                widget=forms.HiddenInput(),
+                required=False
+            )
+
+    def password_help_text(self):
+        return mark_safe('''
+        <div class="form-text text-muted mt-2">
             Password must contain:
             <ul class="mb-0">
                 <li class="req-length">At least 10 characters</li>
@@ -154,32 +118,12 @@ class UserRegisterForm(UserCreationForm):
                 <li class="req-special">One special character</li>
             </ul>
         </div>
-        '''
-
-        self.fields['password1'].help_text = mark_safe(password_help)
-
-        # Add Bootstrap classes and placeholders
-        for field_name, field in self.fields.items():
-            if field_name not in ['accept_terms', 'accept_privacy']:
-                field.widget.attrs.update({'class': 'form-control-lg'})
-
-            # Add aria-labels for accessibility
-            if not field.widget.attrs.get('aria-label'):
-                field.widget.attrs['aria-label'] = field.label or field_name.replace('_', ' ')
-
-        self.fields['username'].widget.attrs['placeholder'] = 'Choose a username'
-        self.fields['email'].widget.attrs['placeholder'] = 'Your email address'
-        self.fields['phone_number'].widget.attrs['placeholder'] = '+2547XXXXXXXX'
-
-        # Add reCAPTCHA if configured
-        if settings.RECAPTCHA_SITE_KEY:
-            self.fields['recaptcha'] = forms.CharField(
-                widget=forms.HiddenInput(),
-                required=False
-            )
+        ''')
 
     def clean(self):
         cleaned_data = super().clean()
+
+        # reCAPTCHA validation
         if settings.RECAPTCHA_SITE_KEY:
             recaptcha_token = cleaned_data.get('recaptcha')
             if not _validate_recaptcha(recaptcha_token):
@@ -187,17 +131,8 @@ class UserRegisterForm(UserCreationForm):
                     _("reCAPTCHA validation failed. Please try again."),
                     code='recaptcha_failed'
                 ))
-        return cleaned_data
 
-    def clean_phone_number(self):
-        phone_number = self.cleaned_data['phone_number']
-        pattern = r'^\+?254\d{9}$'
-        if not re.match(pattern, phone_number):
-            raise ValidationError(
-                _("Phone number must be in the format: '+2547XXXXXXXX'"),
-                code='invalid_phone'
-            )
-        return phone_number
+        return cleaned_data
 
     def clean_email(self):
         email = self.cleaned_data['email'].lower().strip()
@@ -261,6 +196,19 @@ class UserRegisterForm(UserCreationForm):
 
         return password2
 
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.username = user.email  # Use email as username
+
+        if commit:
+            user.save()
+            # Create profile with marketing preference
+            Profile.objects.create(
+                user=user,
+                marketing_optin=self.cleaned_data['marketing_optin']
+            )
+        return user
+
 
 class ProfileUpdateForm(forms.ModelForm):
     email = forms.EmailField(
@@ -318,8 +266,7 @@ class NotificationPreferencesForm(forms.ModelForm):
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'phone_number', 'registration_street_address',
-                  'registration_city', 'registration_state', 'registration_postal_code']
+        fields = ['first_name', 'last_name', 'phone_number']
         widgets = {
             'first_name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -334,36 +281,18 @@ class UserProfileForm(forms.ModelForm):
                 'data-mask': '+254000000000',
                 'aria-label': 'Phone number'
             }),
-            'registration_street_address': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': '123 Main Street',
-                'aria-label': 'Street address'
-            }),
-            'registration_city': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'e.g. Nairobi',
-                'aria-label': 'City'
-            }),
-            'registration_state': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'e.g. Nairobi County',
-                'aria-label': 'State'
-            }),
-            'registration_postal_code': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Postal code',
-                'aria-label': 'Postal code'
-            }),
         }
 
-        def clean_phone_number(self):
-            phone_number = self.cleaned_data['phone_number']
-            if phone_number and not re.match(r'^\+?254\d{9}$', phone_number):
-                raise ValidationError(
-                    _("Phone number must be in the format: '+2547XXXXXXXX'"),
-                    code='invalid_phone'
-                )
-            return phone_number
+    def clean_phone_number(self):
+        phone_number = self.cleaned_data['phone_number']
+        # Use the same regex validator from models
+        phone_regex = r'^\+?1?\d{9,15}$'
+        if phone_number and not re.match(phone_regex, phone_number):
+            raise ValidationError(
+                _("Phone number must be in international format: '+999999999'"),
+                code='invalid_phone'
+            )
+        return phone_number
 
 
 

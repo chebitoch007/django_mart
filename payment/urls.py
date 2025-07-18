@@ -1,4 +1,6 @@
 from django.urls import path
+
+from . import views
 from .views import (
     PaymentPendingView,
     CashPaymentCompleteView,
@@ -12,7 +14,8 @@ from .views import (
     PaymentMethodUpdateView,
     PaymentMethodDeleteView,
     set_default_payment,
-    payment_methods
+    payment_methods,
+    PaymentExpiredView,
 )
 
 app_name = 'payment'
@@ -29,6 +32,11 @@ urlpatterns = [
     path('verify/<int:pk>/', MobileMoneyVerifyView.as_view(), name='verify-mobile'),
     path('complete/<int:pk>/', PaymentCompleteView.as_view(), name='payment-complete'),
     path('mobile/<int:payment_id>/', mobile_money_verification, name='mobile-verify'),
-    path('process/<int:order_id>/', ProcessPaymentView.as_view(), name='process-payment'),
+
     path('paypal/<int:order_id>/', PayPalPaymentView.as_view(), name='paypal-payment'),
+
+    path('currency-convert/', views.currency_convert, name='currency_convert'),
+    path('process-payment/', views.process_payment, name='process_payment'),
+
+    path('expired/', PaymentExpiredView.as_view(), name='payment-expired'),
 ]

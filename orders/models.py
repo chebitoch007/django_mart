@@ -4,6 +4,7 @@ from django.core.validators import MinValueValidator
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.db import transaction
+
 from store.models import Product
 from django.db.models import Sum, F
 from .constants import ORDER_STATUS_CHOICES, PAYMENT_METHODS, CURRENCY_CHOICES
@@ -76,11 +77,23 @@ class Order(models.Model):
         choices=CURRENCY_CHOICES,
         default='KES'
     )
+    payment = models.OneToOneField(
+        'payment.Payment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='order_relation'
+    )
     payment_method = models.CharField(
         max_length=20,
         blank=True,
         choices=PAYMENT_METHODS,
         db_index=True
+    )
+    total = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00
     )
 
     objects = OrderManager()
@@ -144,6 +157,24 @@ class Order(models.Model):
             self.status = 'CANCELLED'
             self.save(update_fields=['status', 'updated'])
 
+    def save(self, *args, **kwargs):
+        if self.pk:
+            original = Order.objects.get(pk=self.pk)
+            if (hasattr(original, 'payment') and
+                    original.payment and
+                    original.payment.status != 'PENDING'):
+                raise PermissionError("Order has already been processed")
+
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        if self.pk:
+            original = Order.objects.get(pk=self.pk)
+            if (hasattr(original, 'payment') and
+                    original.payment and
+                    original.payment.status != 'PENDING'):
+                raise ValidationError("Cannot modify a paid or processing order")
+
 
 class OrderItem(models.Model):
     order = models.ForeignKey(
@@ -201,3 +232,32 @@ class OrderItem(models.Model):
             if self.price != original.price:
                 raise ValidationError("Cannot modify price of existing item")
         super().save(*args, **kwargs)
+
+'''
+class CurrencyRate(models.Model):
+    base_currency = models.CharField(max_length=3)
+    target_currency = models.CharField(max_length=3)
+    rate = models.DecimalField(max_digits=10, decimal_places=6)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('base_currency', 'target_currency')
+
+    def __str__(self):
+        return f"{self.base_currency}/{self.target_currency}: {self.rate}"
+'''
+
+class CurrencyRate(models.Model):
+    base_currency = models.CharField(max_length=3, choices=settings.CURRENCIES)
+    target_currency = models.CharField(max_length=3, choices=settings.CURRENCIES)
+    rate = models.DecimalField(max_digits=12, decimal_places=6)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('base_currency', 'target_currency')
+        indexes = [
+            models.Index(fields=['base_currency', 'target_currency']),
+        ]
+
+    def __str__(self):
+        return f"{self.base_currency}/{self.target_currency}: {self.rate}"

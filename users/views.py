@@ -41,19 +41,7 @@ def register(request):
     if request.method == 'POST':
         form = UserRegisterForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-
-            # Save registration address to user model
-            user.registration_street_address = form.cleaned_data['street_address']
-            user.registration_city = form.cleaned_data['city']
-            user.registration_state = form.cleaned_data['state']
-            user.registration_postal_code = form.cleaned_data['postal_code']
-
-            user.save()
-
-            # Create profile for user
-            Profile.objects.create(user=user)
-
+            user = form.save()
             auth_login(request, user)
             messages.success(request, 'Registration successful! You are now logged in.')
             return redirect('store:home')
@@ -62,7 +50,7 @@ def register(request):
 
     return render(request, 'users/register.html', {
         'form': form,
-        'password_policy': settings.PASSWORD_POLICY
+        'privacy_policy_url': reverse_lazy('users:privacy')
     })
 
 
@@ -208,13 +196,8 @@ class AccountView(TemplateView):
         total_spent = Order.objects.filter(
             user=user,
             status='completed'
-        ).annotate(
-            order_total=ExpressionWrapper(
-                Sum(F('items__price') * F('items__quantity')),
-                output_field=DecimalField(max_digits=10, decimal_places=2)
-            )
         ).aggregate(
-            total=Sum('order_total')
+            total=Sum('total_amount')
         )['total'] or Decimal('0.00')
 
         # Get last order
@@ -229,22 +212,13 @@ class AccountView(TemplateView):
         # Calculate average order value
         avg_order = total_spent / order_count if order_count > 0 else Decimal('0.00')
 
-        # Get registration address
-        registration_address = {
-            'full_name': f"{user.first_name} {user.last_name}",
-            'street_address': user.registration_street_address,
-            'city': user.registration_city,
-            'state': user.registration_state,
-            'postal_code': user.registration_postal_code,
-            'phone': user.phone_number
-        } if user.registration_street_address else None
-
         context.update({
             'orders': orders,
             'total_spent': total_spent,
             'last_order': last_order.created if last_order else None,
             'avg_order': avg_order,
             'order_count': order_count,
-            'registration_address': registration_address,
         })
         return context
+
+

@@ -11,7 +11,7 @@ def handle_order_creation(sender, instance, created, **kwargs):
         # Create payment transaction
         Payment.objects.create(
             order=instance,
-            amount=instance.total_cost(),
+            amount=instance.total_cost,
             currency=instance.currency,
             phone_number=instance.user.phone_number,
             status='pending'
@@ -21,8 +21,8 @@ def handle_order_creation(sender, instance, created, **kwargs):
         from django.core.mail import send_mail
         send_mail(
             f'Order #{instance.id} Confirmation',
-            f'Your order has been received and is being processed. Total amount: {instance.get_total_cost()} {instance.currency}',
-            'djangomart@gmail.com',
+            f'Your order has been received and is being processed. Total amount: {instance.total_cost} {instance.currency}',
+            'asai@gmail.com',
             [instance.email],
             fail_silently=True,
         )

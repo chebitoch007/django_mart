@@ -686,11 +686,16 @@
                     </div>
 
                     <!-- Checkout Button -->
-                    <a href="{% url 'orders:checkout' %}"
-                       class="checkout-btn {% if not cart.items.all|length %}disabled{% endif %}">
-                        Proceed to Checkout
-                    </a>
+<form method="post" action="{% url 'cart:cart_detail' %}">
+    {% csrf_token %}
+    <button type="submit" name="checkout"
+            class="checkout-btn {% if not cart.items.exists %}disabled{% endif %}"
+            {% if not cart.items.exists %}disabled{% endif %}>
+        Proceed to Checkout
+    </button>
+</form>
 
+                    <br>
                     <!-- Payment Methods -->
                     <div class="payment-methods">
                         <div class="payment-method">

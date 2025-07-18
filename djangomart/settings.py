@@ -43,7 +43,6 @@ PAYMENT_SETTINGS = {
     'MOBILE_MONEY_PROVIDERS': ['MPesa', 'Airtel Money'],
     'SMS_API_KEY': env('SMS_API_KEY', default=None),
     'SITE_URL': env('SITE_URL', default='http://localhost:8000'),
-    'FIELD_ENCRYPTION_KEY': env('FIELD_ENCRYPTION_KEY'),
 }
 
 # ================== Application Definition ==================
@@ -65,8 +64,11 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'orders.apps.OrdersConfig',
     'payment.apps.PaymentConfig',
+    'core',
     'sslserver',
     'csp',
+    'encrypted_model_fields',
+    'paypal.standard.ipn',
 ]
 
 # Security-related middleware
@@ -128,11 +130,13 @@ DATABASES = {
 
 # ================== Password Validation ==================
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 9}},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator','OPTIONS': {'min_length': 10,}},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
 ]
+
+CURRENT_POLICY_VERSION=1.0
 
 # ================== Internationalization ==================
 LANGUAGE_CODE = 'en-us'
@@ -161,8 +165,18 @@ PASSWORD_POLICY = {
     'special_chars': "!@#$%^&*()_+-=[]{};':,./<>?",
 }
 
+AUTHENTICATION_BACKENDS = [
+    'users.auth.EmailBackend',  # Our custom email-based auth
+    'django.contrib.auth.backends.ModelBackend',  # Fallback to standard backend
+]
+
+
 # ================== Custom User Model ==================
 AUTH_USER_MODEL = 'users.CustomUser'
+
+# Use email as the primary identifier
+USERNAME_FIELD = 'email'
+REQUIRED_FIELDS = ['first_name', 'last_name']  # Fields required when creating a superuser
 
 # ================== Authentication URLs ==================
 LOGIN_URL = 'users:login'
@@ -201,14 +215,31 @@ PAYPAL_SECRET = env('PAYPAL_SECRET')
 PAYPAL_WEBHOOK_ID = env('PAYPAL_WEBHOOK_ID')
 
 # Currency Settings
-DEFAULT_CURRENCY = env('DEFAULT_CURRENCY', default='KES')
-CURRENCIES = {
-    'KES': 'Kenyan Shilling',
-    'UGX': 'Ugandan Shilling',
-    'TZS': 'Tanzanian Shilling',
-    'USD': 'US Dollar',
-    'EUR': 'Euro',
+CURRENCIES = (
+    ('USD', 'US Dollar'),
+    ('EUR', 'Euro'),
+    ('GBP', 'British Pound'),
+    ('KES', 'Kenyan Shilling'),
+    ('UGX', 'Ugandan Shilling'),
+    ('TZS', 'Tanzanian Shilling'),
+)
+
+CURRENCY_SYMBOLS = {
+    'USD': '$',
+    'EUR': '€',
+    'GBP': '£',
+    'KES': 'KSh',
+    'UGX': 'USh',
+    'TZS': 'TSh'
 }
+DEFAULT_CURRENCY = env('DEFAULT_CURRENCY', default='KES')
+
+# Encryption settings
+FIELD_ENCRYPTION_KEY = env('FIELD_ENCRYPTION_KEY')
+
+# Add rotation mechanism for encryption key
+#FIELD_ENCRYPTION_KEY = os.environ.get('FIELD_ENCRYPTION_KEY')
+#FIELD_ENCRYPTION_KEY_PREVIOUS = os.environ.get('FIELD_ENCRYPTION_KEY_PREVIOUS', default=None)
 
 # Transaction Timeouts
 PAYMENT_TIMEOUT = env.int('PAYMENT_TIMEOUT', default=300)
@@ -240,7 +271,7 @@ EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@djangomart.com')
 
-# Logging Configuration
+# ================== Logging Configuration ==================
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -249,8 +280,16 @@ LOGGING = {
             'format': '{levelname} {asctime} {module} {message}',
             'style': '{',
         },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
     },
     'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
@@ -266,14 +305,24 @@ LOGGING = {
     },
     'loggers': {
         'django': {
-            'handlers': ['file'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': True,
         },
         'payment': {
-            'handlers': ['payment_file'],
+            'handlers': ['payment_file', 'console'],
             'level': 'DEBUG',
             'propagate': False,
+        },
+        'orders': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'core': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
         },
     },
 }
@@ -349,4 +398,39 @@ CSP_REPORT_ONLY = False  # Enforce policy (not just report)
 # AliExpress Affiliate
 ALIEXPRESS_API_KEY = env('ALIEXPRESS_API_KEY', default='')
 
-CSP_IGNORE_MIGRATION_CHECK = True
+# PCI DSS Compliance Settings
+PCI_COMPLIANCE = {
+    'CVV_STORAGE': False,  # Never store CVV
+    'CARD_DATA_ENCRYPTION': True,
+    'TOKENIZATION': True,  # Use payment gateway tokens
+    'AUDIT_LOG_RETENTION': 365,  # Days to keep audit logs
+}
+
+EXCHANGERATE_API_KEY = env('EXCHANGERATE_API_KEY', default=None)
+
+# Cache configuration
+if DEBUG:
+    # Use local memory cache during development
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'djangomart-cache',
+        }
+    }
+else:
+    # Use Redis in production
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': env('REDIS_URL', default='redis://127.0.0.1:6379/1'),
+            'TIMEOUT': 60 * 60 * 4,  # 4 hours
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            }
+        }
+    }
+
+    # Currency caching settings
+CURRENCY_CACHE_TIMEOUT = 60 * 60 * 4  # 4 hours
+CURRENCY_CACHE_TIMEOUT_ERROR = 60 * 5  # 5 minutes for errors
+

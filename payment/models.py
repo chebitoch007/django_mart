@@ -1,14 +1,21 @@
+import requests
+import stripe
+from requests.exceptions import RequestException
+
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.core.validators import MinValueValidator, RegexValidator
 from django.utils import timezone
 import secrets
-from django.utils.translation import gettext_lazy as _
+
+from encrypted_model_fields.fields import EncryptedCharField
+
 
 from django.conf import settings
 from cryptography.fernet import Fernet
 import logging
 import uuid
+
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +40,7 @@ PAYMENT_STATUS_CHOICES = (
     ('COMPLETED', 'Completed'),
     ('FAILED', 'Failed'),
     ('REFUNDED', 'Refunded'),
+    ('REFUND_PENDING', 'Refund Pending'),
     ('PROCESSING', 'Processing'),
 )
 
@@ -120,6 +128,11 @@ class PaymentMethod(models.Model):
         # Encrypt sensitive data before saving
         encryptor = EncryptionManager()
 
+        if self.encrypted_card_number:
+            # Extract last 4 digits before encryption
+            self.last_4_digits = str(self.encrypted_card_number)[-4:]
+            self.encrypted_card_number = encryptor.encrypt(str(self.encrypted_card_number))
+
         # Card data encryption
         if self.encrypted_card_number and not self.pk:
             self.last_4_digits = self.encrypted_card_number[-4:]
@@ -141,6 +154,16 @@ class PaymentMethod(models.Model):
         # Set only one default method
         if self.is_default:
             PaymentMethod.objects.filter(user=self.user, is_default=True).exclude(pk=self.pk).update(is_default=False)
+
+        # Prevent setting inactive methods as default
+        if self.is_default and not self.is_active:
+            raise ValidationError("Inactive payment methods cannot be set as default")
+
+        # PCI Compliance: Never store CVV long-term
+        if self.pk and self.method_type in ['VISA', 'MASTERCARD']:
+            original = PaymentMethod.objects.get(pk=self.pk)
+            if original.encrypted_cvv and not self.encrypted_cvv:
+                self.encrypted_cvv = None  # Remove CVV after initial use
 
         super().save(*args, **kwargs)
 
@@ -172,11 +195,220 @@ class PaymentMethod(models.Model):
         return None
 
 
+class StripeRefundService:
+    def __init__(self):
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+
+    def process(self, transaction_id, amount):
+        try:
+            # Convert amount to cents
+            amount_cents = int(amount * 100)
+
+            # Create refund
+            refund = stripe.Refund.create(
+                payment_intent=transaction_id,
+                amount=amount_cents,
+                reason='requested_by_customer'
+            )
+
+            if refund.status == 'succeeded':
+                return {
+                    'success': True,
+                    'refund_id': refund.id,
+                    'status': refund.status
+                }
+            else:
+                return {
+                    'success': False,
+                    'error_code': 'REFUND_FAILED',
+                    'error_message': f'Refund status: {refund.status}'
+                }
+
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe refund error: {e.user_message}")
+            return {
+                'success': False,
+                'error_code': e.code,
+                'error_message': e.user_message
+            }
+        except Exception as e:
+            logger.exception("Unexpected Stripe refund error")
+            return {
+                'success': False,
+                'error_code': 'STRIPE_ERROR',
+                'error_message': str(e)
+            }
+
+
+class MobileMoneyRefundService:
+    def _get_access_token(self, provider):
+        auth_url = settings.MPESA_AUTH_URL if provider == 'MPESA' else settings.AIRTEL_AUTH_URL
+        credentials = {
+            'MPESA': (settings.MPESA_CONSUMER_KEY, settings.MPESA_CONSUMER_SECRET),
+            'AIRTEL': (settings.AIRTEL_CLIENT_ID, settings.AIRTEL_CLIENT_SECRET)
+        }
+
+        try:
+            response = requests.get(
+                auth_url,
+                auth=credentials[provider],
+                timeout=10
+            )
+            response.raise_for_status()
+            return response.json().get('access_token')
+        except RequestException as e:
+            logger.error(f"{provider} auth failed: {str(e)}")
+            return None
+
+    def _initiate_refund(self, provider, token, transaction_id, amount):
+        url = settings.MPESA_REFUND_URL if provider == 'MPESA' else settings.AIRTEL_REFUND_URL
+        payload = {
+            "TransactionID": transaction_id,
+            "Amount": amount,
+            "Currency": "KES",
+            "Reference": f"REFUND-{transaction_id}",
+            "Reason": "Customer request"
+        }
+
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json'
+        }
+
+        try:
+            response = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                timeout=15
+            )
+            response.raise_for_status()
+            return response.json()
+        except RequestException as e:
+            logger.error(f"{provider} refund API error: {str(e)}")
+            return None
+
+    def process(self, transaction_id, amount):
+        # Determine provider from transaction ID prefix
+        provider = 'MPESA' if transaction_id.startswith('MPE') else 'AIRTEL'
+
+        # Get access token
+        token = self._get_access_token(provider)
+        if not token:
+            return {
+                'success': False,
+                'error_code': 'AUTH_FAILED',
+                'error_message': 'Could not authenticate with payment gateway'
+            }
+
+        # Initiate refund
+        result = self._initiate_refund(provider, token, transaction_id, amount)
+
+        if result and result.get('ResponseCode') == '0':
+            return {
+                'success': True,
+                'refund_id': result.get('RefundTransactionID'),
+                'status': 'Initiated'  # Mobile money refunds are typically async
+            }
+        else:
+            error_msg = result.get('ResponseDescription') if result else 'Refund request failed'
+            return {
+                'success': False,
+                'error_code': 'REFUND_FAILED',
+                'error_message': error_msg
+            }
+
+
+class PayPalRefundService:
+    def _get_access_token(self):
+        try:
+            response = requests.post(
+                settings.PAYPAL_TOKEN_URL,
+                auth=(settings.PAYPAL_CLIENT_ID, settings.PAYPAL_SECRET),
+                data={'grant_type': 'client_credentials'},
+                headers={'Accept': 'application/json'},
+                timeout=10
+            )
+            response.raise_for_status()
+            return response.json().get('access_token')
+        except RequestException as e:
+            logger.error(f"PayPal auth failed: {str(e)}")
+            return None
+
+    def process(self, transaction_id, amount):
+        token = self._get_access_token()
+        if not token:
+            return {
+                'success': False,
+                'error_code': 'AUTH_FAILED',
+                'error_message': 'Could not authenticate with PayPal'
+            }
+
+        url = f"{settings.PAYPAL_API_URL}/v2/payments/captures/{transaction_id}/refund"
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {token}',
+            'Prefer': 'return=representation'
+        }
+
+        payload = {
+            "amount": {
+                "value": str(amount),
+                "currency_code": "USD"  # PayPal typically uses USD
+            },
+            "note_to_payer": "Refund per customer request"
+        }
+
+        try:
+            response = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                timeout=15
+            )
+
+            if response.status_code == 201:
+                data = response.json()
+                return {
+                    'success': True,
+                    'refund_id': data['id'],
+                    'status': data['status']
+                }
+            else:
+                error_data = response.json()
+                return {
+                    'success': False,
+                    'error_code': error_data.get('name', 'REFUND_FAILED'),
+                    'error_message': error_data.get('message', 'PayPal refund failed')
+                }
+
+        except RequestException as e:
+            logger.error(f"PayPal refund API error: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'API_ERROR',
+                'error_message': 'Could not connect to PayPal'
+            }
+
+
+class RefundServiceFactory:
+    @staticmethod
+    def get_service(method):
+        method = method.upper()
+        if method in ['VISA', 'MASTERCARD']:
+            return StripeRefundService()
+        elif method in ['MPESA', 'AIRTEL']:
+            return MobileMoneyRefundService()
+        elif method == 'PAYPAL':
+            return PayPalRefundService()
+        raise ValueError(f"Unsupported refund method: {method}")
+
+
 class Payment(models.Model):
     order = models.OneToOneField(
-        'orders.Order',
+        'orders.Order',  # Use string reference
         on_delete=models.CASCADE,
-        related_name='payment'
+        related_name='payment_relation'
     )
     method = models.CharField(
         max_length=20,
@@ -220,6 +452,60 @@ class Payment(models.Model):
     # Error handling
     error_code = models.CharField(max_length=50, blank=True, null=True)
     error_message = models.TextField(blank=True, null=True)
+
+    refund_requested = models.BooleanField(default=False)
+    refund_requested_at = models.DateTimeField(null=True, blank=True)
+    refund_processed_at = models.DateTimeField(null=True, blank=True)
+    refund_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0.01)]
+    )
+    refund_reason = models.TextField(blank=True, null=True)
+
+    # Encrypt sensitive fields
+    phone_number = EncryptedCharField(max_length=20)
+    card_last4 = EncryptedCharField(max_length=4)
+
+    # Idempotency key to prevent duplicate processing
+    idempotency_key = models.CharField(max_length=36, unique=True, blank=True, null=True)
+
+    # Fraud detection flags
+    is_suspicious = models.BooleanField(default=False)
+    fraud_score = models.FloatField(default=0.0)
+
+    # PCI Compliance: Remove sensitive data after processing
+    def clean_sensitive_data(self):
+        if self.status in ['COMPLETED', 'FAILED']:
+            self.encrypted_cvv = None
+            self.encrypted_card_number = None
+            self.save(update_fields=['encrypted_cvv', 'encrypted_card_number'])
+
+    @transaction.atomic
+    def process_refund(self):
+        """Process approved refund with actual gateway"""
+        if not self.refund_requested:
+            raise ValidationError("Refund not requested")
+
+        try:
+            # Get refund service based on payment method
+            refund_service = RefundServiceFactory.get_service(self.method)
+            result = refund_service.process(
+                self.gateway_transaction_id,
+                self.refund_amount
+            )
+
+            if result['success']:
+                self.status = 'REFUNDED'
+                self.refund_processed_at = timezone.now()
+                self.save()
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Refund failed for {self.id}: {str(e)}")
+            return False
 
     class Meta:
         ordering = ['-created_at']
@@ -285,6 +571,50 @@ class Payment(models.Model):
             return True
         return False
 
+    @transaction.atomic
+    def request_refund(self, amount, reason):
+        """Initiate refund request"""
+        if amount > self.amount:
+            raise ValidationError("Refund amount cannot exceed original payment")
+
+        self.refund_requested = True
+        self.refund_requested_at = timezone.now()
+        self.refund_amount = amount
+        self.refund_reason = reason
+        self.status = 'REFUND_PENDING'
+        self.save()
+
+    @transaction.atomic
+    def process_refund(self):
+        """Process approved refund"""
+        if not self.refund_requested:
+            raise ValidationError("Refund not requested")
+
+        self.status = 'REFUNDED'
+        self.refund_processed_at = timezone.now()
+        self.save()
+
+    def clean(self):
+        # Validate payment method against order
+        if self.payment_method and self.payment_method.user != self.order.user:
+            raise ValidationError("Payment method does not belong to order owner")
+
+    def save(self, *args, **kwargs):
+        # Generate unique transaction ID
+        if not self.transaction_id:
+            self.transaction_id = f"TX-{uuid.uuid4().hex[:12].upper()}"
+
+        # Set currency based on order
+        if not self.currency:
+            self.currency = self.order.currency
+
+        # Remove sensitive data after processing
+        if self.status in ['COMPLETED', 'FAILED']:
+            self.encrypted_cvv = None
+            self.encrypted_card_number = None
+
+        super().save(*args, **kwargs)
+
 
 class PaymentVerificationCode(models.Model):
     payment = models.ForeignKey(
@@ -313,3 +643,42 @@ class PaymentVerificationCode(models.Model):
     def mark_used(self):
         self.is_used = True
         self.save(update_fields=['is_used'])
+
+
+class CurrencyExchangeRate(models.Model):
+    base_currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES)
+    target_currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES)
+    rate = models.DecimalField(max_digits=12, decimal_places=6)
+    last_updated = models.DateTimeField(auto_now=True)
+
+
+class PaymentGatewaySettings(models.Model):
+    provider = models.CharField(max_length=50, unique=True)
+    is_active = models.BooleanField(default=True)
+    priority = models.PositiveIntegerField(default=1)
+    supported_countries = models.JSONField(default=list)
+    supported_currencies = models.JSONField(default=list)
+
+
+class PaymentLog(models.Model):
+    """Audit log for all payment activities"""
+    LOG_TYPES = (
+        ('CREATED', 'Payment Created'),
+        ('PROCESSING', 'Processing Started'),
+        ('SUCCESS', 'Payment Succeeded'),
+        ('FAILED', 'Payment Failed'),
+        ('REFUND', 'Refund Processed'),
+        ('WEBHOOK', 'Webhook Received'),
+    )
+
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='logs')
+    log_type = models.CharField(max_length=20, choices=LOG_TYPES)
+    details = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['created_at', 'log_type'])]
+
+    def __str__(self):
+        return f"{self.get_log_type_display()} - {self.payment_id}"

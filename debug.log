@@ -1,2 +1,73 @@
 INFO 2025-05-24 16:35:19,954 views Expired subscription attempt: test
 WARNING 2025-05-24 16:35:20,236 views Invalid unsubscribe token: invalid-token
+Watching for file changes with StatReloader
+C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+Watching for file changes with StatReloader
+"GET / HTTP/1.1" 200 139111
+Not Found: /media/categories/default.png
+"GET /media/categories/default.png HTTP/1.1" 404 11075
+Not Found: /media/categories/default.png
+"GET /media/categories/default.png HTTP/1.1" 404 11075
+Not Found: /favicon.ico
+"GET /favicon.ico HTTP/1.1" 404 10801
+"GET /cart/total/ HTTP/1.1" 200 40
+"GET /cart/ HTTP/1.1" 200 87556
+"GET /cart/total/ HTTP/1.1" 200 40
+Fetching exchange rate: KES->USD
+Exchange rate API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+Error fetching exchange rate: API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+Using fallback exchange rates
+Fetching exchange rate: KES->EUR
+Exchange rate API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+Error fetching exchange rate: API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+Using fallback exchange rates
+Fetching exchange rate: KES->GBP
+Exchange rate API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+Error fetching exchange rate: API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+Using fallback exchange rates
+Fetching exchange rate: KES->UGX
+Exchange rate API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+Error fetching exchange rate: API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+Using fallback exchange rates
+Fetching exchange rate: KES->TZS
+Exchange rate API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+Error fetching exchange rate: API error: You have not supplied an API Access Key. [Required format: access_key=YOUR_ACCESS_KEY]
+Using fallback exchange rates
+"GET /orders/checkout/ HTTP/1.1" 200 106134
+"GET /cart/total/ HTTP/1.1" 200 40
+Method Not Allowed (POST): /orders/checkout/
+Method Not Allowed: /orders/checkout/
+"POST /orders/checkout/ HTTP/1.1" 405 0
+C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
+Watching for file changes with StatReloader
+"GET / HTTP/1.1" 200 139111
+Not Found: /media/categories/default.png
+"GET /media/categories/default.png HTTP/1.1" 404 11075
+"GET /media/products/main/Ergonomic_Mesh_Gaming_Chair.jfif HTTP/1.1" 200 8209
+"GET /media/products/main/QHD_Curved_Monitor.jfif HTTP/1.1" 200 12432
+"GET /media/products/main/USB_Audio_Adapter.jfif HTTP/1.1" 200 4992
+"GET /media/products/main/In-ear_Gaming_Earphones_with_Mic.png HTTP/1.1" 200 10673
+"GET /media/products/main/Lumbar_Pillow__Neck_Rest.jfif HTTP/1.1" 200 5761
+"GET /media/products/main/Detachable_Microphone.jfif HTTP/1.1" 200 3787
+"GET /media/products/main/RGB_Ring_Light.jfif HTTP/1.1" 200 15383
+"GET /media/products/main/RGB_LED_Gaming_Chair.jfif HTTP/1.1" 200 9281
+"GET /media/products/main/USB-C_Gaming_Dock.jfif HTTP/1.1" 200 3072
+"GET /media/products/main/Green_Screen_Backdrop.jfif HTTP/1.1" 200 5731
+"GET /media/products/main/Boom_Arm_Stand_for_Mic.jfif HTTP/1.1" 200 3933
+"GET /media/products/main/USB_Hub.jfif HTTP/1.1" 200 6179
+"GET /static/images/X.png HTTP/1.1" 200 4195
+"GET /static/images/facebook.png HTTP/1.1" 200 3117
+"GET /static/images/instagram.png HTTP/1.1" 200 5861
+"GET /static/images/mpesa-logo.png HTTP/1.1" 200 8931
+"GET /static/images/airtel-money-logo.png HTTP/1.1" 200 3542
+"GET /static/images/visa-logo.png HTTP/1.1" 200 8452
+Not Found: /media/categories/default.png
+"GET /static/images/mastercard-logo.png HTTP/1.1" 200 4127
+"GET /media/categories/default.png HTTP/1.1" 404 11075
+"GET /static/images/paypal-logo.png HTTP/1.1" 200 26230
+"GET /cart/total/ HTTP/1.1" 200 40
+Not Found: /favicon.ico
+"GET /favicon.ico HTTP/1.1" 404 10801
+C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.

@@ -1,3 +1,4 @@
+# users/models.py
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.conf import settings
@@ -11,34 +12,22 @@ from PIL import Image
 from django_countries.fields import CountryField
 import uuid
 import re
-from cryptography.fernet import Fernet
-import os
 import logging
 
 logger = logging.getLogger(__name__)
-
-
-class EncryptionManager:
-    """Handles encryption/decryption of sensitive fields"""
-
-    def __init__(self):
-        self.cipher = Fernet(settings.FIELD_ENCRYPTION_KEY)
-
-    def encrypt(self, value):
-        return self.cipher.encrypt(value.encode()).decode()
-
-    def decrypt(self, encrypted_value):
-        return self.cipher.decrypt(encrypted_value.encode()).decode()
 
 
 class CustomUserManager(BaseUserManager):
     """Custom manager with security methods"""
     use_in_migrations = True
 
-    def _create_user(self, username, email, password, **extra_fields):
+    def _create_user(self, email, password, **extra_fields):
         if not email:
             raise ValueError('The Email field must be set')
         email = self.normalize_email(email)
+
+        # Use email as username
+        username = extra_fields.pop('username', email)
         user = self.model(username=username, email=email, **extra_fields)
 
         # Validate and set password
@@ -51,12 +40,12 @@ class CustomUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_user(self, username, email, password=None, **extra_fields):
+    def create_user(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
-        return self._create_user(username, email, password, **extra_fields)
+        return self._create_user(email, password, **extra_fields)
 
-    def create_superuser(self, username, email, password, **extra_fields):
+    def create_superuser(self, email, password, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
 
@@ -65,7 +54,7 @@ class CustomUserManager(BaseUserManager):
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
 
-        return self._create_user(username, email, password, **extra_fields)
+        return self._create_user(email, password, **extra_fields)
 
     def _validate_password(self, password):
         """Enforce strong password policy"""
@@ -87,10 +76,22 @@ class CustomUserManager(BaseUserManager):
             models.Q(email__iexact=username)
         )
 
-class CustomUser(AbstractUser):
 
+class CustomUser(AbstractUser):
     # Security enhancements
     objects = CustomUserManager()
+
+    # Use email as the primary identifier
+    email = models.EmailField(_('email address'), unique=True)
+    username = models.CharField(
+        _('username'),
+        max_length=150,
+        unique=False,  # No longer needs to be unique
+        blank=True,
+        null=True
+    )
+    first_name = models.CharField(_('first name'), max_length=150, blank=False)
+    last_name = models.CharField(_('last name'), max_length=150, blank=False)
 
     # Consent Management (GDPR/Data Protection Act 2019 Kenya)
     consent_date = models.DateTimeField(default=timezone.now)
@@ -113,44 +114,20 @@ class CustomUser(AbstractUser):
     # Unique identifier for public-facing systems
     public_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
-    # Contact Information (Kenyan-focused)
+    # Contact Information
     phone_regex = RegexValidator(
-        regex=r'^\+?254\d{9}$',
-        message="Phone number must be in the format: '+2547XXXXXXXX'"
+        regex=r'^\+?1?\d{9,15}$',
+        message="Phone number must be in international format: '+999999999'"
     )
     phone_number = models.CharField(
         max_length=20,
         validators=[phone_regex],
         blank=True,
+        null=True,
         verbose_name="Phone Number"
     )
     phone_verified = models.BooleanField(default=False)
     email_verified = models.BooleanField(default=False)
-
-    registration_street_address = models.CharField(
-        _('registration street address'),
-        max_length=255,
-        blank=True,
-        null=True
-    )
-    registration_city = models.CharField(
-        _('registration city'),
-        max_length=100,
-        blank=True,
-        null=True
-    )
-    registration_state = models.CharField(
-        _('registration state/province'),
-        max_length=100,
-        blank=True,
-        null=True
-    )
-    registration_postal_code = models.CharField(
-        _('registration postal code'),
-        max_length=20,
-        blank=True,
-        null=True
-    )
 
     # Security/Authentication
     last_password_update = models.DateTimeField(auto_now_add=True)
@@ -163,7 +140,6 @@ class CustomUser(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-
     class Meta:
         verbose_name = "User Account"
         verbose_name_plural = "User Accounts"
@@ -175,7 +151,7 @@ class CustomUser(AbstractUser):
         ]
 
     def __str__(self):
-        return self.get_full_name() or self.username
+        return self.get_full_name() or self.email
 
     def get_absolute_url(self):
         return reverse('users:profile', kwargs={'pk': self.pk})
@@ -187,7 +163,7 @@ class CustomUser(AbstractUser):
         """Lock account due to too many failed login attempts"""
         self.account_locked_until = timezone.now() + timezone.timedelta(minutes=30)
         self.save(update_fields=['account_locked_until'])
-        logger.warning(f"Account locked for user {self.username}")
+        logger.warning(f"Account locked for user {self.email}")
 
     def reset_login_attempts(self):
         """Reset failed login attempts counter"""
@@ -220,6 +196,12 @@ class CustomUser(AbstractUser):
             # Save user after updating password history
             self.save(update_fields=['last_password_update'])
 
+    def save(self, *args, **kwargs):
+        # Set username to email if not provided
+        if not self.username:
+            self.username = self.email
+        super().save(*args, **kwargs)
+
 
 class Profile(models.Model):
     user = models.OneToOneField(
@@ -235,8 +217,19 @@ class Profile(models.Model):
         null=True
     )
     bio = models.TextField(_('bio'), blank=True)
+
+    # Notification preferences
     email_notifications = models.BooleanField(_('email notifications'), default=True)
     sms_notifications = models.BooleanField(_('SMS notifications'), default=False)
+
+    # Marketing preferences
+    marketing_optin = models.BooleanField(
+        _('marketing opt-in'),
+        default=False,
+        help_text="User has opted-in to receive marketing communications"
+    )
+
+    # Personalization
     preferred_language = models.CharField(
         _('preferred language'),
         max_length=10,
@@ -244,6 +237,8 @@ class Profile(models.Model):
         default=settings.LANGUAGE_CODE
     )
     dark_mode = models.BooleanField(_('dark mode'), default=False)
+
+    # Security
     two_factor_enabled = models.BooleanField(_('two factor authentication'), default=False)
     last_updated = models.DateTimeField(_('last updated'), auto_now=True)
 
@@ -252,7 +247,7 @@ class Profile(models.Model):
         verbose_name_plural = _('profiles')
 
     def __str__(self):
-        return f"{self.user.username}'s Profile"
+        return f"{self.user.email}'s Profile"
 
 
 class PasswordHistory(models.Model):
@@ -298,7 +293,6 @@ class Address(models.Model):
     phone = models.CharField(
         _('phone number'),
         max_length=17,
-        validators=[CustomUser.phone_regex],
         blank=True
     )
     is_default = models.BooleanField(_('default address'), default=False)

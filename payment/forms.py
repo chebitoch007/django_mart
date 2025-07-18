@@ -6,9 +6,93 @@ from django.utils.translation import gettext_lazy as _
 import re
 import datetime
 import logging
-from payment.models import PaymentMethod
+
+from orders.models import Order
+from payment.models import PaymentMethod, CURRENCY_CHOICES, Payment
 
 logger = logging.getLogger(__name__)
+
+
+class PaymentProcessingForm(forms.Form):
+    #order = forms.ModelChoiceField(queryset=Order.objects.all())
+    order_id = forms.IntegerField()
+    payment_method = forms.CharField()
+    amount = forms.DecimalField(max_digits=12, decimal_places=2)
+    currency = forms.CharField(max_length=3)
+    phone_number = forms.CharField(required=False)
+    card_data = forms.JSONField(required=False)
+    idempotency_key = forms.UUIDField(required=False)  # Add idempotency
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+    # Add this method to get the order object
+    def clean(self):
+        cleaned_data = super().clean()
+        order_id = cleaned_data.get('order_id')
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            raise ValidationError("Invalid order ID")
+
+        if order.user != self.user:
+            raise ValidationError("Order does not belong to this user")
+
+        cleaned_data['order'] = order  # Add order object to cleaned_data
+        return cleaned_data
+
+    def clean_order(self):
+        order = self.cleaned_data['order']
+        if order.user != self.user:
+            raise ValidationError("Order does not belong to this user")
+        return order
+
+    def clean_idempotency_key(self):
+        key = self.cleaned_data.get('idempotency_key')
+        if key and Payment.objects.filter(idempotency_key=key).exists():
+            raise ValidationError("This payment has already been processed")
+        return key
+
+    def clean(self):
+        cleaned_data = super().clean()
+        method = cleaned_data.get('payment_method').lower()
+
+        # Validate method against enabled methods
+        enabled_methods = [m.lower() for m in settings.ENABLED_PAYMENT_METHODS]
+        if method not in enabled_methods:
+            raise ValidationError("This payment method is not currently available")
+
+        # Method-specific validation
+        if method in ['mpesa', 'airtel']:
+            if not cleaned_data.get('phone_number'):
+                self.add_error('phone_number', 'Phone number is required for mobile payments')
+            elif not re.match(r'^7\d{8}$', cleaned_data['phone_number']):
+                self.add_error('phone_number', 'Invalid phone number format')
+
+        elif method == 'card':
+            card_data = cleaned_data.get('card_data')
+            if not card_data:
+                self.add_error('card_data', 'Card data is required')
+            else:
+                # Validate card details
+                if not all(k in card_data for k in ['number', 'expiry', 'cvv', 'name']):
+                    self.add_error('card_data', 'Invalid card data structure')
+
+                # Simple Luhn check
+                if not luhn_checksum(card_data.get('number', '').replace(' ', '')):
+                    self.add_error('card_data', 'Invalid card number')
+
+        return cleaned_data
+
+    def clean_payment_method(self):
+        method = self.cleaned_data['payment_method'].lower()
+        allowed_methods = ['mpesa', 'airtel', 'card', 'paypal']
+
+        if method not in allowed_methods:
+            raise ValidationError("Invalid payment method")
+
+        return method
 
 
 def luhn_checksum(card_number):
@@ -277,3 +361,13 @@ class PayPalPaymentForm(forms.Form):
         initial=True,
         label="Save payment method for future use"
     )
+
+
+
+
+def clean_currency(self):
+    currency = self.cleaned_data['currency']
+    allowed_currencies = [c[0] for c in CURRENCY_CHOICES]
+    if currency not in allowed_currencies:
+        raise ValidationError("Invalid currency selected")
+    return currency

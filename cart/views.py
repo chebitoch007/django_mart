@@ -3,6 +3,8 @@ from django.dispatch.dispatcher import logger
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+
+from orders.models import Order
 from store.models import Product
 from .models import Cart, CartItem
 from .forms import CartAddProductForm
@@ -13,16 +15,33 @@ def cart_detail(request):
     cart = get_cart(request)
     cart_has_stock_issues = False
 
+    # Check stock availability
     for item in cart.items.all():
         if item.quantity > item.product.stock:
             cart_has_stock_issues = True
             item.quantity = item.product.stock
             item.save()
 
+    # Handle checkout request
+    if request.method == 'POST' and 'checkout' in request.POST:
+        # Only proceed if cart has items
+        if not cart.items.exists():
+            return redirect('cart:cart_detail')
+
+        # Create order only when proceeding to checkout
+        order = Order.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            total=cart.total_price,
+        )
+        request.session['order_id'] = order.id
+        return redirect('orders:checkout')
+
     return render(request, 'cart/detail.html', {
         'cart': cart,
         'cart_has_stock_issues': cart_has_stock_issues
     })
+
+
 
 
 def cart_add(request, product_id):

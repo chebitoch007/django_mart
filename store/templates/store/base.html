@@ -1664,14 +1664,8 @@
 <!-- NEW SEARCH BAR STRUCTURE -->
 <div class="search-container flex-grow max-w-3xl mx-4 relative">
     <form action="{% url 'store:product_search' %}" method="get" class="w-full">
-        <div class="search-bar flex rounded-lg overflow-hidden shadow-sm border border-gray-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all duration-200">            <select name="category" class="bg-gray-100 border-r border-gray-300 px-3 py-2 text-sm focus:outline-none appearance-none cursor-pointer">
-                <option value="">All Categories</option>
-                {% for category in categories|slice:":10" %}
-                <option value="{{ category.slug }}" {% if request.GET.category == category.slug %}selected{% endif %}>
-                    {{ category.name }}
-                </option>
-                {% endfor %}
-            </select>
+        <div class="search-bar flex rounded-lg overflow-hidden shadow-sm border border-gray-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all duration-200">
+
 
             <input
                 type="text"
@@ -1683,8 +1677,7 @@
                 hx-trigger="keyup changed delay:200ms"
                 hx-target="#search-suggestions"
                 hx-indicator=".search-indicator"
-                autocomplete="off"
-            >
+                autocomplete="off">
 
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 transition-colors duration-200">
                 <i class="fas fa-search"></i>

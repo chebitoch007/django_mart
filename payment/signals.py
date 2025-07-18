@@ -3,6 +3,15 @@ from django.dispatch import receiver
 from orders.models import Order
 from .models import Payment
 
+@receiver(post_save, sender=Order)
+def create_order_payment(sender, instance, created, **kwargs):
+    if created and not hasattr(instance, 'payment'):
+        Payment.objects.create(
+            order=instance,
+            amount=instance.total_price,
+            currency=instance.currency,
+            status='PENDING'
+        )
 
 @receiver(post_save, sender=Order)
 def create_payment_record(sender, instance, created, **kwargs):
