@@ -4,6 +4,13 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.asaienv" />
       <excludeFolder url="file://$MODULE_DIR$/env" />
+      <excludeFolder url="file://$MODULE_DIR$/.idea/dataSources" />
+      <excludeFolder url="file://$MODULE_DIR$/.venv/bin" />
+      <excludeFolder url="file://$MODULE_DIR$/.venv/include" />
+      <excludeFolder url="file://$MODULE_DIR$/.venv/lib" />
+      <excludeFolder url="file://$MODULE_DIR$/.venv/lib/python3.10" />
+      <excludeFolder url="file://$MODULE_DIR$/media" />
+      <excludeFolder url="file://$MODULE_DIR$/staticfiles" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.10 (2)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
