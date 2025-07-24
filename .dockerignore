@@ -1,0 +1,17 @@
+.git
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.env
+*.sqlite3
+staticfiles
+media
+Dockerfile*
+docker-compose*
+node_modules
+*.log
+*.pot
+*.mo

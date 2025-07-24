@@ -82,13 +82,18 @@ class CustomUser(AbstractUser):
     objects = CustomUserManager()
 
     # Use email as the primary identifier
-    email = models.EmailField(_('email address'), unique=True)
+    email = models.EmailField(unique=True, max_length=254, verbose_name='email address')
     username = models.CharField(
         _('username'),
         max_length=150,
-        unique=False,  # No longer needs to be unique
+        unique=True,  # Set to True
         blank=True,
-        null=True
+        null=True,
+        help_text=_('Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.'),
+        validators=[AbstractUser.username_validator],
+        error_messages={
+            'unique': _("A user with that username already exists."),
+        },
     )
     first_name = models.CharField(_('first name'), max_length=150, blank=False)
     last_name = models.CharField(_('last name'), max_length=150, blank=False)
@@ -149,6 +154,9 @@ class CustomUser(AbstractUser):
             models.Index(fields=['phone_number']),
             models.Index(fields=['public_id']),
         ]
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['first_name', 'last_name']
 
     def __str__(self):
         return self.get_full_name() or self.email

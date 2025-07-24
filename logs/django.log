@@ -6671,3 +6671,114 @@ ERROR 2025-07-18 14:06:09,896 log Internal Server Error: /payment/process-paymen
 ERROR 2025-07-18 14:06:09,896 basehttp "POST /payment/process-payment/ HTTP/1.1" 500 60
 INFO 2025-07-18 15:29:21,971 autoreload C:\Users\user\Desktop\djangomart\djangomart\settings.py changed, reloading.
 INFO 2025-07-18 15:29:32,851 autoreload Watching for file changes with StatReloader
+INFO 2025-07-24 03:16:06,060 autoreload Watching for file changes with StatReloader
+INFO 2025-07-24 03:16:40,860 autoreload Watching for file changes with StatReloader
+ERROR 2025-07-24 03:16:50,978 log Invalid HTTP_HOST header: '127.0.0.1:8000'. You may need to add '127.0.0.1' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/utils/deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/middleware/common.py", line 48, in process_request
+    host = request.get_host()
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/http/request.py", line 202, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '127.0.0.1:8000'. You may need to add '127.0.0.1' to ALLOWED_HOSTS.
+WARNING 2025-07-24 03:16:50,980 basehttp "GET / HTTP/1.1" 400 95573
+ERROR 2025-07-24 03:16:51,069 log Invalid HTTP_HOST header: '127.0.0.1:8000'. You may need to add '127.0.0.1' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/utils/deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/middleware/common.py", line 48, in process_request
+    host = request.get_host()
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/http/request.py", line 202, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '127.0.0.1:8000'. You may need to add '127.0.0.1' to ALLOWED_HOSTS.
+WARNING 2025-07-24 03:16:51,070 basehttp "GET /favicon.ico HTTP/1.1" 400 95573
+ERROR 2025-07-24 03:18:25,058 log Invalid HTTP_HOST header: '127.0.0.1:8000'. You may need to add '127.0.0.1' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/utils/deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/middleware/common.py", line 48, in process_request
+    host = request.get_host()
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/http/request.py", line 202, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '127.0.0.1:8000'. You may need to add '127.0.0.1' to ALLOWED_HOSTS.
+WARNING 2025-07-24 03:18:25,059 basehttp "GET / HTTP/1.1" 400 95573
+ERROR 2025-07-24 03:18:28,178 log Invalid HTTP_HOST header: '127.0.0.1:8000'. You may need to add '127.0.0.1' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/utils/deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/middleware/common.py", line 48, in process_request
+    host = request.get_host()
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/http/request.py", line 202, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '127.0.0.1:8000'. You may need to add '127.0.0.1' to ALLOWED_HOSTS.
+WARNING 2025-07-24 03:18:28,179 basehttp "GET / HTTP/1.1" 400 95573
+ERROR 2025-07-24 03:18:53,660 log Invalid HTTP_HOST header: '127.0.0.1:8000'. You may need to add '127.0.0.1' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/utils/deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/middleware/common.py", line 48, in process_request
+    host = request.get_host()
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/http/request.py", line 202, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '127.0.0.1:8000'. You may need to add '127.0.0.1' to ALLOWED_HOSTS.
+WARNING 2025-07-24 03:18:53,662 basehttp "GET / HTTP/1.1" 400 95573
+ERROR 2025-07-24 03:18:55,969 log Invalid HTTP_HOST header: '127.0.0.1:8000'. You may need to add '127.0.0.1' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/utils/deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/middleware/common.py", line 48, in process_request
+    host = request.get_host()
+  File "/home/eliphaz/asai-new/.venv/lib/python3.10/site-packages/django/http/request.py", line 202, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: '127.0.0.1:8000'. You may need to add '127.0.0.1' to ALLOWED_HOSTS.
+WARNING 2025-07-24 03:18:55,970 basehttp "GET / HTTP/1.1" 400 95573
+INFO 2025-07-24 03:24:37,471 autoreload Watching for file changes with StatReloader
+INFO 2025-07-24 03:37:18,205 autoreload Watching for file changes with StatReloader
+INFO 2025-07-24 12:14:18,148 autoreload Watching for file changes with StatReloader
+INFO 2025-07-24 12:15:40,164 autoreload Watching for file changes with StatReloader
+INFO 2025-07-24 12:20:14,490 autoreload Watching for file changes with StatReloader
+INFO 2025-07-24 13:45:53,488 autoreload Watching for file changes with StatReloader
+INFO 2025-07-24 13:46:31,758 autoreload Watching for file changes with StatReloader
+INFO 2025-07-24 13:46:41,952 basehttp "GET / HTTP/1.1" 200 105645
+INFO 2025-07-24 13:46:44,101 basehttp "GET /static/images/X.png HTTP/1.1" 200 4195
+INFO 2025-07-24 13:46:44,104 basehttp "GET /static/images/instagram.png HTTP/1.1" 200 5861
+INFO 2025-07-24 13:46:44,131 basehttp "GET /static/images/facebook.png HTTP/1.1" 200 3117
+INFO 2025-07-24 13:46:44,166 basehttp "GET /static/images/paypal-logo.png HTTP/1.1" 200 26230
+WARNING 2025-07-24 13:46:44,172 log Not Found: /categories/default.png
+INFO 2025-07-24 13:46:44,167 basehttp "GET /static/images/mpesa-logo.png HTTP/1.1" 200 8931
+INFO 2025-07-24 13:46:44,170 basehttp "GET /static/images/visa-logo.png HTTP/1.1" 200 8452
+INFO 2025-07-24 13:46:44,170 basehttp "GET /static/images/airtel-money-logo.png HTTP/1.1" 200 3542
+INFO 2025-07-24 13:46:44,171 basehttp "GET /static/images/mastercard-logo.png HTTP/1.1" 200 4127
+WARNING 2025-07-24 13:46:44,174 basehttp "GET /categories/default.png HTTP/1.1" 404 11029
+WARNING 2025-07-24 13:46:44,325 log Not Found: /categories/default.png
+WARNING 2025-07-24 13:46:44,325 basehttp "GET /categories/default.png HTTP/1.1" 404 11029
+INFO 2025-07-24 13:46:44,422 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-24 13:47:01,723 basehttp "GET /products/category/audio-communication/ HTTP/1.1" 200 105551
+WARNING 2025-07-24 13:47:01,765 log Not Found: /categories/default.png
+WARNING 2025-07-24 13:47:01,766 basehttp "GET /categories/default.png HTTP/1.1" 404 11029
+WARNING 2025-07-24 13:47:02,659 log Not Found: /categories/default.png
+WARNING 2025-07-24 13:47:02,660 basehttp "GET /categories/default.png HTTP/1.1" 404 11029
+INFO 2025-07-24 13:47:04,854 basehttp "GET /products/category/console-accessories/ HTTP/1.1" 200 105548
+WARNING 2025-07-24 13:47:04,890 log Not Found: /categories/default.png
+WARNING 2025-07-24 13:47:04,891 basehttp "GET /categories/default.png HTTP/1.1" 404 11029
+WARNING 2025-07-24 13:47:05,357 log Not Found: /categories/default.png
+WARNING 2025-07-24 13:47:05,358 basehttp "GET /categories/default.png HTTP/1.1" 404 11029
+INFO 2025-07-24 13:47:07,203 basehttp "GET /products/category/display-visual-enhancements/ HTTP/1.1" 200 105562
+WARNING 2025-07-24 13:47:07,241 log Not Found: /categories/default.png
+WARNING 2025-07-24 13:47:07,241 basehttp "GET /categories/default.png HTTP/1.1" 404 11029
+WARNING 2025-07-24 13:47:07,896 log Not Found: /categories/default.png
+WARNING 2025-07-24 13:47:07,896 basehttp "GET /categories/default.png HTTP/1.1" 404 11029
+INFO 2025-07-24 13:54:34,756 autoreload Watching for file changes with StatReloader

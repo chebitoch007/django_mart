@@ -30,7 +30,11 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=False)
     SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=False)
     CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=False)
-    SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=0)
+    try:
+        SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=0)
+    except ValueError:
+        SECURE_HSTS_SECONDS = 31536000  # Fallback to 1 year
+        print("Warning: Invalid SECURE_HSTS_SECONDS value. Using default 1 year.")
     SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False)
     SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=False)
     SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -69,9 +73,9 @@ INSTALLED_APPS = [
     'payment.apps.PaymentConfig',
     'core',
     'sslserver',
-    'csp',
     'encrypted_model_fields',
     'paypal.standard.ipn',
+    'easycart',
 ]
 
 MIDDLEWARE = [
@@ -83,7 +87,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'csp.middleware.CSPMiddleware',
     'django.middleware.cache.UpdateCacheMiddleware',
     'django.middleware.cache.FetchFromCacheMiddleware',
 ]
@@ -120,17 +123,7 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
 # ================== Database ==================
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DB_NAME'),
-        'USER': env('DB_USER'),
-        'PASSWORD': env('DB_PASSWORD'),
-        'HOST': env('DB_HOST', default='localhost'),
-        'PORT': env('DB_PORT', default='5432'),
-        'OPTIONS': {
-            'options': '-c search_path=public'
-        }
-    }
+    'default': env.db('DATABASE_URL')
 }
 
 # ================== Password Validation ==================
@@ -252,7 +245,10 @@ CURRENCY_SYMBOLS = {
 DEFAULT_CURRENCY = env('DEFAULT_CURRENCY', default='KES')
 
 # Encryption settings
-FIELD_ENCRYPTION_KEY = env('FIELD_ENCRYPTION_KEY')
+FIELD_ENCRYPTION_KEY = env.str(
+    'FIELD_ENCRYPTION_KEY',
+    default='django-insecure-+key'  # Default for development only
+)
 
 # Add rotation mechanism for encryption key
 #FIELD_ENCRYPTION_KEY = os.environ.get('FIELD_ENCRYPTION_KEY')
@@ -349,60 +345,65 @@ LOGGING = {
 RECAPTCHA_SITE_KEY = env('RECAPTCHA_SITE_KEY')
 RECAPTCHA_SECRET_KEY = env('RECAPTCHA_SECRET_KEY')
 
-# ================== Content Security Policy ==================
-"""# Development-friendly settings (safe for local work)
+'''# ================== Content Security Policy ==================
+# Development-friendly settings (safe for local work)
 CSP_ENABLED = False  # Disable CSP in development
 CSP_IGNORE_MIGRATION_CHECK = True  # Bypass migration checks
 SILENCED_SYSTEM_CHECKS = ['csp.E001']  # Disable CSP system checks"""
 
-
+CSP_EXCLUDE_TEMPLATE_TAGS = True
 # ================== PRODUCTION-READY CSP CONFIG (UNCOMMENT WHEN DEPLOYING) ==================
 # Remove the development settings above and uncomment this section for production
-CSP_ENABLED = True
-CSP_IGNORE_MIGRATION_CHECK = False
-SILENCED_SYSTEM_CHECKS = []  # Enable all system checks
+
+if DEBUG:
+    CSP_ENABLED = False  # Disable CSP in development
+    CSP_IGNORE_MIGRATION_CHECK = True  # Bypass migration checks
+    SILENCED_SYSTEM_CHECKS = ['csp.E001']  # Disable CSP system checks
+else:
+    # Production CSP settings (copied from above)
+    CSP_ENABLED = True
 
 # Strict CSP directives for production
-CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = (
+CSP_DEFAULT_SRC = ["'self'"]
+CSP_SCRIPT_SRC = [
     "'self'",
     "https://js.stripe.com",
     "https://www.paypal.com",
     "https://unpkg.com"
-)
-CSP_STYLE_SRC = (
+]
+CSP_STYLE_SRC = [
     "'self'",
     "https://fonts.googleapis.com",
     "https://cdnjs.cloudflare.com",
     "https://cdn.jsdelivr.net"
-)
-CSP_IMG_SRC = (
+]
+CSP_IMG_SRC = [
     "'self'",
     "data:",
     "https://*.stripe.com",
     "https://www.paypal.com",
     "https://cdnjs.cloudflare.com"
-)
-CSP_FONT_SRC = (
+]
+CSP_FONT_SRC = [
     "'self'",
     "https://fonts.gstatic.com",
     "https://cdnjs.cloudflare.com"
-)
-CSP_FRAME_SRC = (
+]
+CSP_FRAME_SRC = [
     "'self'",
     "https://js.stripe.com",
     "https://www.paypal.com"
-)
-CSP_CONNECT_SRC = (
+]
+CSP_CONNECT_SRC = [
     "'self'",
     "https://api.stripe.com",
     "https://api.paypal.com",
     "https://fonts.googleapis.com",
     "https://fonts.gstatic.com"
-)
-CSP_OBJECT_SRC = ("'none'",)
-CSP_BASE_URI = ("'self'",)
-CSP_FORM_ACTION = ("'self'",)
+]
+CSP_OBJECT_SRC = ["'none'"]
+CSP_BASE_URI = ["'self'"]
+CSP_FORM_ACTION = ["'self'"]
 
 # Security hardening (production only)
 CSP_INCLUDE_NONCE_IN = ['script-src', 'style-src']  # Require nonces for inline code
@@ -411,7 +412,7 @@ CSP_UPGRADE_INSECURE_REQUESTS = True
 CSP_REPORT_ONLY = False  # Enforce policy (not just report)
 
 # ================== END PRODUCTION CSP CONFIG ==================
-
+'''
 # AliExpress Affiliate
 ALIEXPRESS_API_KEY = env('ALIEXPRESS_API_KEY', default='')
 

@@ -16,6 +16,9 @@ ENV/
 env/
 .venv/
 
+*.key
+*.crt
+
 # Django stuff
 *.log
 *.pot
