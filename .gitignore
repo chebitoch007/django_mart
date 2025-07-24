@@ -1,38 +1,52 @@
-# Byte-compiled / optimized / DLL files
+# === Python Bytecode ===
 __pycache__/
 *.py[cod]
 *.so
 
-# C extensions
+# === C Extensions ===
 *.pyd
 
-# Environment variables and secrets
+# === Environment Variables ===
 .env
 *.env
-
-# Virtual environment
-venv/
-ENV/
-env/
-.venv/
-
 *.key
 *.crt
 
-# Django stuff
+# === Virtual Environments ===
+.venv/
+venv/
+ENV/
+env/
+
+# === IDEs & Editors ===
+.vscode/
+.idea/
+
+# === Logs and Dumps ===
 *.log
 *.pot
-*.pyc
-staticfiles/
-media/
-local_settings.py
-
-# PostgreSQL database dump (if you export your db)
 *.psql
 *.pgsql
 *.sql
 
-# macOS / Linux / Windows system files
+# === Django Specific ===
+*.pyc
+staticfiles/
+media/
+local_settings.py
+db.sqlite3
+
+# === Node/npm (if ever used for frontend) ===
+node_modules/
+
+# === System Files ===
 .DS_Store
 Thumbs.db
 
+# === Python Wheels (local packages you may have) ===
+*.whl
+
+# === Compiled Output (if building stuff) ===
+dist/
+build/
+*.egg-info/
