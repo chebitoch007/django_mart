@@ -12223,3 +12223,9 @@ INFO 2025-07-31 16:35:02,210 basehttp "GET / HTTP/1.1" 200 92911
 INFO 2025-07-31 16:35:04,758 basehttp "GET /cart/total/ HTTP/1.1" 200 40
 INFO 2025-07-31 16:35:54,439 basehttp "GET /cart/ HTTP/1.1" 200 78882
 INFO 2025-07-31 16:35:57,583 basehttp "GET /cart/total/ HTTP/1.1" 200 40
+INFO 2025-07-31 16:57:29,701 autoreload Watching for file changes with StatReloader
+INFO 2025-07-31 16:57:33,355 basehttp "GET /cart/ HTTP/1.1" 200 84554
+INFO 2025-07-31 16:57:33,462 basehttp "GET /static/images/facebook.png HTTP/1.1" 200 3117
+INFO 2025-07-31 16:57:33,462 basehttp "GET /static/images/X.png HTTP/1.1" 200 4195
+INFO 2025-07-31 16:57:34,550 basehttp "GET /static/images/instagram.png HTTP/1.1" 200 5861
+INFO 2025-07-31 16:57:34,712 basehttp "GET /cart/total/ HTTP/1.1" 200 40
