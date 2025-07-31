@@ -1,13 +1,11 @@
 # store/forms.py
 from django import forms
 from django.template.defaultfilters import slugify
-
 from .models import Product, Category, ProductImage, Review
 from django.core.exceptions import ValidationError
 from .validators import validate_product_name
 from django.forms import inlineformset_factory
 from django.utils.html import format_html
-
 from django.conf import settings
 from urllib.parse import urlparse
 
@@ -221,3 +219,17 @@ class ProductForm(forms.ModelForm):
             counter += 1
 
         return unique_slug
+
+class ImportProductsForm(forms.Form):
+    url = forms.URLField(
+        label='AliExpress Product URL',
+        widget=forms.URLInput(attrs={
+            'placeholder': 'https://www.aliexpress.com/item/...',
+            'class': 'form-control'
+        })
+    )
+    category = forms.ModelChoiceField(
+        queryset=Category.objects.all(),
+        label='Assign to Category',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )

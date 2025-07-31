@@ -11,7 +11,10 @@ urlpatterns = [
     path('', include('store.urls', namespace='store')),
 
     # Unified user accounts system
-    path('accounts/', include('users.urls')),
+    path('accounts/', include('users.urls', namespace='users')),
+
+    path('account/', RedirectView.as_view(url='/accounts/', permanent=True)),
+
 
     # Other apps
     path('cart/', include('cart.urls', namespace='cart')),
@@ -20,7 +23,9 @@ urlpatterns = [
 
     path('register/', RedirectView.as_view(pattern_name='users:register', permanent=True)),
 
+
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

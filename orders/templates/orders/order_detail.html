@@ -1,4 +1,5 @@
 {% extends "store/base.html" %}
+{% load humanize %}
 
 {% block content %}
 <style>
@@ -303,13 +304,14 @@
                     <td>
                         <div class="product-cell">
                             <img
-                                src="{{ item.product.image.url }}"
+                                src="{{ item.product.get_image_url }}"
                                 alt="{{ item.product.name }}"
                                 class="product-image">
                             <div class="product-name">{{ item.product.name }}</div>
                         </div>
                     </td>
-                    <td class="text-right">KES {{ item.price|intcomma }}</td>
+                    <td class="text-right">KES {{ item.price|floatformat:2|intcomma }}</td>
+
                     <td class="text-center">{{ item.quantity }}</td>
                     <td class="text-right">KES {{ item.get_cost|intcomma }}</td>
                 </tr>
@@ -344,7 +346,7 @@
             <p class="payment-text">
                 Please complete your payment to process this order. Your items will be shipped once payment is confirmed.
             </p>
-            <a href="{% url 'payment:process' order.id %}" class="payment-btn">
+            <a href="{% url 'payment:process_payment' order.id %}" class="payment-btn">
                 <i class="fas fa-lock"></i> Proceed to Payment
             </a>
         </div>

@@ -29,6 +29,9 @@ if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=False)
     SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=False)
+
+    SESSION_COOKIE_SAMESITE = 'Lax'  # Prevents redirect loops with third-party cookies
+
     CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=False)
     try:
         SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=0)
@@ -41,8 +44,9 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     X_FRAME_OPTIONS = 'DENY'
     SESSION_COOKIE_HTTPONLY = True  # Prevent XSS attacks
-
-
+    SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Session expires when browser closes
+    SESSION_COOKIE_AGE = 1800  # 30 minutes
+    CSRF_COOKIE_SECURE = True
 # Payment settings
 PAYMENT_SETTINGS = {
     'USE_SMS': False,
@@ -76,6 +80,8 @@ INSTALLED_APPS = [
     'encrypted_model_fields',
     'paypal.standard.ipn',
     'easycart',
+    'widget_tweaks',
+    'db_cleaner',
 ]
 
 MIDDLEWARE = [
@@ -107,6 +113,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'cart.context_processors.cart',
                 'store.context_processors.currency_context',
+                'store.context_processors.top_level_categories',
             ],
             'loaders': [
                 ('django.template.loaders.cached.Loader', [
@@ -143,9 +150,13 @@ USE_I18N = True
 USE_TZ = True
 
 # ================== Static & Media Files ==================
+STATICFILES_DIRS = [BASE_DIR / 'store/static',BASE_DIR / 'static',]
+
+
+
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+#STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (Cloudflare R2)
@@ -175,9 +186,10 @@ PASSWORD_POLICY = {
     'special_chars': "!@#$%^&*()_+-=[]{};':,./<>?",
 }
 
+
 AUTHENTICATION_BACKENDS = [
-    'users.auth.EmailBackend',  # Our custom email-based auth
-    'django.contrib.auth.backends.ModelBackend',  # Fallback to standard backend
+    'django.contrib.auth.backends.ModelBackend',  # Primary backend
+    'users.auth.EmailBackend',                   # Secondary backend
 ]
 
 
@@ -189,9 +201,14 @@ USERNAME_FIELD = 'email'
 REQUIRED_FIELDS = ['first_name', 'last_name']  # Fields required when creating a superuser
 
 # ================== Authentication URLs ==================
-LOGIN_URL = 'users:login'
-LOGIN_REDIRECT_URL = 'users:profile'
-LOGOUT_REDIRECT_URL = 'home'
+LOGIN_URL = '/accounts/login/'
+#LOGIN_REDIRECT_URL = '/account/'
+LOGIN_REDIRECT_URL = 'store:product_list'  # Ensure this points to the account view
+LOGOUT_REDIRECT_URL = 'users:logout_success'
+
+CACHE_MIDDLEWARE_ALIAS = 'default'
+CACHE_MIDDLEWARE_SECONDS = 0
+CACHE_MIDDLEWARE_KEY_PREFIX = ''
 
 # ================== Third-Party Config ==================
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
@@ -289,6 +306,7 @@ if EMAIL_BACKEND == 'django.core.mail.backends.smtp.EmailBackend':
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+
     'formatters': {
         'verbose': {
             'format': '{levelname} {asctime} {module} {message}',
@@ -299,24 +317,31 @@ LOGGING = {
             'style': '{',
         },
     },
+
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'simple'
+            'formatter': 'simple',
         },
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
-            'formatter': 'verbose'
+            'formatter': 'verbose',
         },
         'payment_file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'payments.log'),
-            'formatter': 'verbose'
+            'formatter': 'verbose',
         },
     },
+
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+
     'loggers': {
         'django': {
             'handlers': ['console', 'file'],
@@ -413,8 +438,23 @@ CSP_REPORT_ONLY = False  # Enforce policy (not just report)
 
 # ================== END PRODUCTION CSP CONFIG ==================
 '''
-# AliExpress Affiliate
+'''# AliExpress Affiliate
 ALIEXPRESS_API_KEY = env('ALIEXPRESS_API_KEY', default='')
+ALIEXPRESS_API_SECRET = env('ALIEXPRESS_API_SECRET', default='')
+ALIEXPRESS_AFFILIATE_BASE_URL = 'https://s.click.aliexpress.com/deep_link.htm'
+
+ALIEXPRESS_TRACKING_ID = "YOUR_UNIQUE_TRACKING_ID"  # For affiliate links"""'''
+
+ALIEXPRESS_API_NAME = "aliexpress-datahub"  # The API you chose
+ALIEXPRESS_API_KEY = "f239611ffamsh38ffe813082ee63p1186d8jsnad44ba7c8464"  # Your RapidAPI key
+ALIEXPRESS_API_HOST = "aliexpress-datahub.p.rapidapi.com"  # API host
+
+
+
+# Product Import Settings
+MAX_IMPORT_IMAGES = 5
+IMPORT_DEFAULT_STOCK = 100
+IMPORT_DEFAULT_COMMISSION = 15.0
 
 # PCI DSS Compliance Settings
 PCI_COMPLIANCE = {

@@ -13,7 +13,7 @@ def handle_order_creation(sender, instance, created, **kwargs):
             order=instance,
             amount=instance.total_cost,
             currency=instance.currency,
-            phone_number=instance.user.phone_number,
+            phone_number=instance.phone,
             status='pending'
         )
 

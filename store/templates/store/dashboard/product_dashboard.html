@@ -83,7 +83,7 @@
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 w-12 h-12 rounded-md overflow-hidden border">
                                         {% if product.image %}
-                                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+                                        <img src="{{ product.get_image_url }}" alt="{{ product.name }}" class="w-full h-full object-cover">
                                         {% else %}
                                         <div class="w-full h-full bg-gray-200 flex items-center justify-center">
                                             <i class="fas fa-image text-gray-400"></i>

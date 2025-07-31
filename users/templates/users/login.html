@@ -8,261 +8,69 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f8fafc;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .form-container {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            width: 100%;
-            max-width: 450px;
-        }
-
-        .form-header {
-            background: linear-gradient(90deg, #2563eb, #1d4ed8);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-        }
-
-        .form-content {
-            padding: 30px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #334155;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            font-size: 16px;
-            transition: all 0.3s;
-        }
-
-        .form-input:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
-            outline: none;
-        }
-
-        .password-container {
-            position: relative;
-        }
-
-        .password-toggle {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #64748b;
-            cursor: pointer;
-        }
-
-        .btn-primary {
-            background: linear-gradient(90deg, #2563eb, #1d4ed8);
-            color: white;
-            border: none;
-            padding: 14px;
-            width: 100%;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(90deg, #1d4ed8, #1e40af);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
-        }
-
-        .form-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 20px;
-            font-size: 14px;
-        }
-
-        .remember-me {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .remember-checkbox {
-            width: 18px;
-            height: 18px;
-            accent-color: #2563eb;
-        }
-
-        .forgot-link {
-            color: #2563eb;
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .forgot-link:hover {
-            text-decoration: underline;
-        }
-
-        .register-link {
-            text-align: center;
-            margin-top: 25px;
-            color: #64748b;
-        }
-
-        .register-link a {
-            color: #2563eb;
-            font-weight: 500;
-            text-decoration: none;
-        }
-
-        .register-link a:hover {
-            text-decoration: underline;
-        }
-
-        .brand-logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .brand-logo i {
-            font-size: 28px;
-        }
-
-        .brand-logo span {
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
-
-        .error-message {
-            color: #dc2626;
-            font-size: 14px;
-            margin-top: 5px;
-            display: none;
-        }
-
-        .alert {
-            padding: 12px 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-        }
-
-        .alert-success {
-            background-color: #f0fdf4;
-            color: #15803d;
-            border: 1px solid #bbf7d0;
-        }
-
-        .alert-error {
-            background-color: #fef2f2;
-            color: #b91c1c;
-            border: 1px solid #fecaca;
-        }
-
-        .alert-info {
-            background-color: #eff6ff;
-            color: #1d4ed8;
-            border: 1px solid #bfdbfe;
-        }
+        body { font-family: 'Poppins', sans-serif; }
     </style>
 </head>
-<body>
-    <!-- Login Form Container -->
-    <div class="form-container">
-        <div class="form-header">
-            <div class="brand-logo">
-                <i class="fas fa-shopping-bag text-white"></i>
-                <span class="text-white">ASAI</span>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-md bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-6 px-4 text-center">
+            <div class="flex items-center justify-center gap-2 mb-3">
+                <i class="fas fa-shopping-bag text-2xl"></i>
+                <span class="text-2xl font-bold tracking-tight">ASAI STORE</span>
             </div>
-            <h2 class="text-xl font-semibold">Sign in to your account</h2>
+            <h1 class="text-xl font-semibold">Sign in to your account</h1>
         </div>
 
-        <div class="form-content">
-            <!-- Messages Container -->
-            <div id="messages-container">
-  {% if messages %}
-    {% for message in messages %}
-      <div class="alert alert-{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}">
-        <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
-        <span>{{ message }}</span>
-      </div>
-    {% endfor %}
-  {% endif %}
-</div>
+        <div class="p-6">
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert flex items-start mb-4 p-3 rounded-lg
+                    {% if message.tags == 'success' %}bg-green-50 text-green-700 border border-green-200
+                    {% elif message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+                    {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+                    <i class="fas
+                        {% if message.tags == 'success' %}fa-check-circle
+                        {% elif message.tags == 'error' %}fa-exclamation-circle
+                        {% else %}fa-info-circle{% endif %} mt-1 mr-2"></i>
+                    <span>{{ message }}</span>
+                </div>
+                {% endfor %}
+            {% endif %}
+            <form id="login-form" method="post" action="{% url 'users:login' %}" class="space-y-4">
+                {% csrf_token %}
 
-                       <form id="login-form" method="post" action="{% url 'users:login' %}" class="space-y-6">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.GET.next }}">
-                <!-- Username/Email Field -->
-                <div class="form-group">
-                    <label for="username" class="form-label">Email or Username</label>
-                    <input type="text" name="username" id="username" class="form-input" placeholder="Enter your email or username" required>
-                    <div id="username-error" class="error-message"></div>
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="text" name="username" id="username" class="form-control block w-full p-2 pl-10 text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Enter your email" required>
+                    <div id="username-error" class="text-sm text-red-600 mt-1"></div>
                 </div>
 
-                <!-- Password Field -->
-                <div class="form-group">
-                    <label for="password" class="form-label">Password</label>
-                    <div class="password-container">
-                        <input type="password" name="password" id="password" class="form-input" placeholder="Enter your password" required>
-                        <button type="button" id="toggle-password" class="password-toggle">
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <div class="relative">
+                        <input type="password" name="password" id="password" class="form-control block w-full p-2 pl-10 text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Enter your password" required>
+                        <button type="button" id="toggle-password" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
                             <i class="fas fa-eye-slash"></i>
                         </button>
                     </div>
-                    <div id="password-error" class="error-message"></div>
+                    <div id="password-error" class="text-sm text-red-600 mt-1"></div>
                 </div>
 
-                <!-- Remember Me & Forgot Password -->
-                <div class="form-footer">
-                    <label class="remember-me">
-                        <input type="checkbox" name="remember_me" class="remember-checkbox">
-                        <span>Remember me</span>
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center">
+                        <input type="checkbox" name="remember_me" class="form-checkbox h-4 w-4 text-blue-600">
+                        <span class="ml-2 text-sm text-gray-700">Remember me</span>
                     </label>
-                    <a href="{% url 'users:password_reset' %}" class="forgot-link">Forgot password?</a>
+                    <a href="{% url 'users:password_reset' %}" class="text-sm text-blue-600 hover:text-blue-500">Forgot password?</a>
                 </div>
 
-                <!-- Submit Button -->
-                <button type="submit" class="btn-primary">
+                <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white py-3 px-4 rounded-lg font-semibold shadow-md transition duration-300 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                     <i class="fas fa-sign-in-alt mr-2"></i> Sign In
                 </button>
             </form>
 
-            <!-- Registration Link -->
-            <div class="register-link">
-                Don't have an account? <a href="{% url 'users:register' %}" id="register-link">Register now</a>
+            <div class="text-center mt-4 text-sm text-gray-600">
+                Don't have an account? <a href="{% url 'users:register' %}" class="font-medium text-blue-600 hover:text-blue-500">Register now</a>
             </div>
         </div>
     </div>
@@ -278,127 +86,6 @@
                 '<i class="fas fa-eye"></i>' :
                 '<i class="fas fa-eye-slash"></i>';
         });
-
-        // Show messages function
-        function showMessage(text, type) {
-            const container = document.getElementById('messages-container');
-            const alert = document.createElement('div');
-
-            let iconClass, alertClass;
-            switch (type) {
-                case 'success':
-                    iconClass = 'fas fa-check-circle';
-                    alertClass = 'alert-success';
-                    break;
-                case 'error':
-                    iconClass = 'fas fa-exclamation-circle';
-                    alertClass = 'alert-error';
-                    break;
-                case 'info':
-                    iconClass = 'fas fa-info-circle';
-                    alertClass = 'alert-info';
-                    break;
-            }
-
-            alert.className = `alert ${alertClass}`;
-            alert.innerHTML = `
-                <i class="${iconClass}"></i>
-                <span>${text}</span>
-            `;
-
-            container.appendChild(alert);
-
-            // Auto-remove after 5 seconds
-            setTimeout(() => {
-                alert.style.opacity = '0';
-                setTimeout(() => alert.remove(), 300);
-            }, 5000);
-        }
-
-        // Handle form submission
-        document.getElementById('login-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            // Clear previous errors
-            document.querySelectorAll('.error-message').forEach(el => {
-                el.style.display = 'none';
-                el.textContent = '';
-            });
-
-            // Get form data
-            const formData = {
-                username: this.username.value.trim(),
-                password: this.password.value,
-                remember_me: this.remember_me.checked
-            };
-
-            // Basic client-side validation
-            let isValid = true;
-
-            if (!formData.username) {
-                showError('username', 'Please enter your email or username');
-                isValid = false;
-            }
-
-            if (!formData.password) {
-                showError('password', 'Please enter your password');
-                isValid = false;
-            } else if (formData.password.length < 8) {
-                showError('password', 'Password must be at least 8 characters');
-                isValid = false;
-            }
-
-            if (!isValid) return;
-
-            // Show loading state
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalBtnText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Signing in...';
-            submitBtn.disabled = true;
-
-            // Simulate API call to backend
-            setTimeout(() => {
-                // Reset button
-                submitBtn.innerHTML = originalBtnText;
-                submitBtn.disabled = false;
-
-                // For demo purposes - in real app this would be handled by Django
-                if (formData.username === 'demo@example.com' && formData.password === 'password123') {
-                    showMessage('Login successful! Redirecting to your account...', 'success');
-
-                    // Redirect after delay
-                    setTimeout(() => {
-                        // In a real app, you would redirect to the dashboard
-                        window.location.href = '/account/';
-                    }, 1500);
-                } else {
-                    showError('password', 'Invalid username or password');
-                    showMessage('Invalid credentials. Please try again.', 'error');
-                }
-            }, 1500);
-        });
-
-        // Show error message
-        function showError(fieldId, message) {
-            const errorElement = document.getElementById(`${fieldId}-error`);
-            errorElement.textContent = message;
-            errorElement.style.display = 'block';
-        }
-
-        // Handle register link
-        document.getElementById('register-link').addEventListener('click', function(e) {
-            e.preventDefault();
-            window.location.href = '/register/';
-        });
-
-                // ... existing JavaScript ...
-
-        // Update form submission to use Django handling
-        document.getElementById('login-form').addEventListener('submit', function(e) {
-            // Only do client-side validation
-            // Django will handle actual submission
-        });
-
     </script>
 </body>
 </html>

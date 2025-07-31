@@ -35,9 +35,15 @@ def _validate_recaptcha(token):
             timeout=3
         )
         response.raise_for_status()
-        return response.json().get('success', False)
+        result = response.json()
+
+        if not result.get('success'):
+            logger.error(f"reCAPTCHA validation failed: {result}")
+            return False
+
+        return True
     except requests.RequestException as e:
-        logger.error(f"reCAPTCHA validation failed: {str(e)}")
+        logger.error(f"reCAPTCHA validation request failed: {str(e)}")
         return False
 
 
@@ -196,9 +202,21 @@ class UserRegisterForm(UserCreationForm):
 
         return password2
 
+
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.username = user.email  # Use email as username
+        user.username = self.cleaned_data['email'].lower().strip()
+        user.email = self.cleaned_data['email'].lower().strip()
+
+        if commit:
+            user.save()  # Save user without creating profile here
+        return user
+
+'''
+     def save(self, commit=True):
+        user = super().save(commit=False)
+        user.username = self.cleaned_data['email'].lower().strip()  # Assign email as username internally
+        user.email = self.cleaned_data['email'].lower().strip()  # ensure lowercase email consistency
 
         if commit:
             user.save()
@@ -207,7 +225,7 @@ class UserRegisterForm(UserCreationForm):
                 user=user,
                 marketing_optin=self.cleaned_data['marketing_optin']
             )
-        return user
+        return user'''
 
 
 class ProfileUpdateForm(forms.ModelForm):
@@ -442,4 +460,31 @@ class ConsentUpdateForm(forms.Form):
         })
     )
 
+
+class AccountDeletionForm(forms.Form):
+    confirm = forms.BooleanField(
+        required=True,
+        label=_('I understand this action is permanent and cannot be undone'),
+        widget=forms.CheckboxInput(attrs={'aria-label': 'Confirm account deletion'})
+    )
+
+    password = forms.CharField(
+        label=_('Your Password'),
+        widget=forms.PasswordInput(attrs={
+            'autocomplete': 'current-password',
+            'aria-label': 'Enter password to confirm deletion'
+        }),
+        strip=False,
+    )
+
+    # Fix: Make user parameter optional in initialization
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_password(self):
+        password = self.cleaned_data.get('password')
+        if not self.user or not self.user.check_password(password):
+            raise ValidationError(_('Your password was entered incorrectly'))
+        return password
 

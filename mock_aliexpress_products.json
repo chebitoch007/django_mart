@@ -1,0 +1,502 @@
+[
+    {
+        "title": "Sample Product 1",
+        "description": "This is a mock description for product 1.",
+        "price": 7.62,
+        "rating": 4.38,
+        "orders": 622,
+        "category": "Electronics",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+1",
+        "product_url": "https://www.aliexpress.com/item/100000"
+    },
+    {
+        "title": "Sample Product 2",
+        "description": "This is a mock description for product 2.",
+        "price": 41.19,
+        "rating": 4.31,
+        "orders": 519,
+        "category": "Electronics",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+2",
+        "product_url": "https://www.aliexpress.com/item/100001"
+    },
+    {
+        "title": "Sample Product 3",
+        "description": "This is a mock description for product 3.",
+        "price": 21.4,
+        "rating": 4.25,
+        "orders": 899,
+        "category": "Toys",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+3",
+        "product_url": "https://www.aliexpress.com/item/100002"
+    },
+    {
+        "title": "Sample Product 4",
+        "description": "This is a mock description for product 4.",
+        "price": 59.08,
+        "rating": 3.79,
+        "orders": 822,
+        "category": "Fashion",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+4",
+        "product_url": "https://www.aliexpress.com/item/100003"
+    },
+    {
+        "title": "Sample Product 5",
+        "description": "This is a mock description for product 5.",
+        "price": 67.47,
+        "rating": 4.49,
+        "orders": 359,
+        "category": "Toys",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+5",
+        "product_url": "https://www.aliexpress.com/item/100004"
+    },
+    {
+        "title": "Sample Product 6",
+        "description": "This is a mock description for product 6.",
+        "price": 75.19,
+        "rating": 4.54,
+        "orders": 480,
+        "category": "Toys",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+6",
+        "product_url": "https://www.aliexpress.com/item/100005"
+    },
+    {
+        "title": "Sample Product 7",
+        "description": "This is a mock description for product 7.",
+        "price": 18.74,
+        "rating": 4.34,
+        "orders": 220,
+        "category": "Fashion",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+7",
+        "product_url": "https://www.aliexpress.com/item/100006"
+    },
+    {
+        "title": "Sample Product 8",
+        "description": "This is a mock description for product 8.",
+        "price": 39.04,
+        "rating": 3.97,
+        "orders": 105,
+        "category": "Fashion",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+8",
+        "product_url": "https://www.aliexpress.com/item/100007"
+    },
+    {
+        "title": "Sample Product 9",
+        "description": "This is a mock description for product 9.",
+        "price": 97.17,
+        "rating": 4.35,
+        "orders": 676,
+        "category": "Fashion",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+9",
+        "product_url": "https://www.aliexpress.com/item/100008"
+    },
+    {
+        "title": "Sample Product 10",
+        "description": "This is a mock description for product 10.",
+        "price": 43.78,
+        "rating": 4.7,
+        "orders": 392,
+        "category": "Electronics",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+10",
+        "product_url": "https://www.aliexpress.com/item/100009"
+    },
+    {
+        "title": "Sample Product 11",
+        "description": "This is a mock description for product 11.",
+        "price": 29.39,
+        "rating": 4.37,
+        "orders": 911,
+        "category": "Home",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+11",
+        "product_url": "https://www.aliexpress.com/item/100010"
+    },
+    {
+        "title": "Sample Product 12",
+        "description": "This is a mock description for product 12.",
+        "price": 25.8,
+        "rating": 4.71,
+        "orders": 45,
+        "category": "Fashion",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+12",
+        "product_url": "https://www.aliexpress.com/item/100011"
+    },
+    {
+        "title": "Sample Product 13",
+        "description": "This is a mock description for product 13.",
+        "price": 29.72,
+        "rating": 3.97,
+        "orders": 995,
+        "category": "Electronics",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+13",
+        "product_url": "https://www.aliexpress.com/item/100012"
+    },
+    {
+        "title": "Sample Product 14",
+        "description": "This is a mock description for product 14.",
+        "price": 94.11,
+        "rating": 4.13,
+        "orders": 548,
+        "category": "Fashion",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+14",
+        "product_url": "https://www.aliexpress.com/item/100013"
+    },
+    {
+        "title": "Sample Product 15",
+        "description": "This is a mock description for product 15.",
+        "price": 6.13,
+        "rating": 4.34,
+        "orders": 23,
+        "category": "Home",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+15",
+        "product_url": "https://www.aliexpress.com/item/100014"
+    },
+    {
+        "title": "Sample Product 16",
+        "description": "This is a mock description for product 16.",
+        "price": 90.78,
+        "rating": 4.81,
+        "orders": 552,
+        "category": "Home",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+16",
+        "product_url": "https://www.aliexpress.com/item/100015"
+    },
+    {
+        "title": "Sample Product 17",
+        "description": "This is a mock description for product 17.",
+        "price": 54.33,
+        "rating": 4.13,
+        "orders": 72,
+        "category": "Toys",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+17",
+        "product_url": "https://www.aliexpress.com/item/100016"
+    },
+    {
+        "title": "Sample Product 18",
+        "description": "This is a mock description for product 18.",
+        "price": 75.0,
+        "rating": 3.56,
+        "orders": 260,
+        "category": "Home",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+18",
+        "product_url": "https://www.aliexpress.com/item/100017"
+    },
+    {
+        "title": "Sample Product 19",
+        "description": "This is a mock description for product 19.",
+        "price": 15.11,
+        "rating": 4.74,
+        "orders": 64,
+        "category": "Electronics",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+19",
+        "product_url": "https://www.aliexpress.com/item/100018"
+    },
+    {
+        "title": "Sample Product 20",
+        "description": "This is a mock description for product 20.",
+        "price": 57.63,
+        "rating": 4.98,
+        "orders": 632,
+        "category": "Beauty",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+20",
+        "product_url": "https://www.aliexpress.com/item/100019"
+    },
+    {
+        "title": "Sample Product 21",
+        "description": "This is a mock description for product 21.",
+        "price": 82.82,
+        "rating": 4.22,
+        "orders": 763,
+        "category": "Electronics",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+21",
+        "product_url": "https://www.aliexpress.com/item/100020"
+    },
+    {
+        "title": "Sample Product 22",
+        "description": "This is a mock description for product 22.",
+        "price": 62.14,
+        "rating": 4.37,
+        "orders": 435,
+        "category": "Fashion",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+22",
+        "product_url": "https://www.aliexpress.com/item/100021"
+    },
+    {
+        "title": "Sample Product 23",
+        "description": "This is a mock description for product 23.",
+        "price": 90.14,
+        "rating": 4.95,
+        "orders": 10,
+        "category": "Home",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+23",
+        "product_url": "https://www.aliexpress.com/item/100022"
+    },
+    {
+        "title": "Sample Product 24",
+        "description": "This is a mock description for product 24.",
+        "price": 66.25,
+        "rating": 4.83,
+        "orders": 145,
+        "category": "Fashion",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+24",
+        "product_url": "https://www.aliexpress.com/item/100023"
+    },
+    {
+        "title": "Sample Product 25",
+        "description": "This is a mock description for product 25.",
+        "price": 69.33,
+        "rating": 3.79,
+        "orders": 397,
+        "category": "Toys",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+25",
+        "product_url": "https://www.aliexpress.com/item/100024"
+    },
+    {
+        "title": "Sample Product 26",
+        "description": "This is a mock description for product 26.",
+        "price": 71.15,
+        "rating": 4.37,
+        "orders": 928,
+        "category": "Electronics",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+26",
+        "product_url": "https://www.aliexpress.com/item/100025"
+    },
+    {
+        "title": "Sample Product 27",
+        "description": "This is a mock description for product 27.",
+        "price": 67.22,
+        "rating": 4.59,
+        "orders": 695,
+        "category": "Home",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+27",
+        "product_url": "https://www.aliexpress.com/item/100026"
+    },
+    {
+        "title": "Sample Product 28",
+        "description": "This is a mock description for product 28.",
+        "price": 61.13,
+        "rating": 3.67,
+        "orders": 468,
+        "category": "Electronics",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+28",
+        "product_url": "https://www.aliexpress.com/item/100027"
+    },
+    {
+        "title": "Sample Product 29",
+        "description": "This is a mock description for product 29.",
+        "price": 44.02,
+        "rating": 4.97,
+        "orders": 326,
+        "category": "Beauty",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+29",
+        "product_url": "https://www.aliexpress.com/item/100028"
+    },
+    {
+        "title": "Sample Product 30",
+        "description": "This is a mock description for product 30.",
+        "price": 6.55,
+        "rating": 4.91,
+        "orders": 733,
+        "category": "Toys",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+30",
+        "product_url": "https://www.aliexpress.com/item/100029"
+    },
+    {
+        "title": "Sample Product 31",
+        "description": "This is a mock description for product 31.",
+        "price": 5.14,
+        "rating": 4.25,
+        "orders": 581,
+        "category": "Electronics",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+31",
+        "product_url": "https://www.aliexpress.com/item/100030"
+    },
+    {
+        "title": "Sample Product 32",
+        "description": "This is a mock description for product 32.",
+        "price": 15.39,
+        "rating": 4.67,
+        "orders": 62,
+        "category": "Home",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+32",
+        "product_url": "https://www.aliexpress.com/item/100031"
+    },
+    {
+        "title": "Sample Product 33",
+        "description": "This is a mock description for product 33.",
+        "price": 50.41,
+        "rating": 4.74,
+        "orders": 36,
+        "category": "Fashion",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+33",
+        "product_url": "https://www.aliexpress.com/item/100032"
+    },
+    {
+        "title": "Sample Product 34",
+        "description": "This is a mock description for product 34.",
+        "price": 12.44,
+        "rating": 4.67,
+        "orders": 151,
+        "category": "Home",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+34",
+        "product_url": "https://www.aliexpress.com/item/100033"
+    },
+    {
+        "title": "Sample Product 35",
+        "description": "This is a mock description for product 35.",
+        "price": 67.72,
+        "rating": 3.96,
+        "orders": 651,
+        "category": "Toys",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+35",
+        "product_url": "https://www.aliexpress.com/item/100034"
+    },
+    {
+        "title": "Sample Product 36",
+        "description": "This is a mock description for product 36.",
+        "price": 59.99,
+        "rating": 4.31,
+        "orders": 982,
+        "category": "Toys",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+36",
+        "product_url": "https://www.aliexpress.com/item/100035"
+    },
+    {
+        "title": "Sample Product 37",
+        "description": "This is a mock description for product 37.",
+        "price": 35.9,
+        "rating": 4.69,
+        "orders": 831,
+        "category": "Home",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+37",
+        "product_url": "https://www.aliexpress.com/item/100036"
+    },
+    {
+        "title": "Sample Product 38",
+        "description": "This is a mock description for product 38.",
+        "price": 58.21,
+        "rating": 3.58,
+        "orders": 784,
+        "category": "Beauty",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+38",
+        "product_url": "https://www.aliexpress.com/item/100037"
+    },
+    {
+        "title": "Sample Product 39",
+        "description": "This is a mock description for product 39.",
+        "price": 87.39,
+        "rating": 4.25,
+        "orders": 360,
+        "category": "Beauty",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+39",
+        "product_url": "https://www.aliexpress.com/item/100038"
+    },
+    {
+        "title": "Sample Product 40",
+        "description": "This is a mock description for product 40.",
+        "price": 42.85,
+        "rating": 3.86,
+        "orders": 189,
+        "category": "Electronics",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+40",
+        "product_url": "https://www.aliexpress.com/item/100039"
+    },
+    {
+        "title": "Sample Product 41",
+        "description": "This is a mock description for product 41.",
+        "price": 18.48,
+        "rating": 4.3,
+        "orders": 250,
+        "category": "Electronics",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+41",
+        "product_url": "https://www.aliexpress.com/item/100040"
+    },
+    {
+        "title": "Sample Product 42",
+        "description": "This is a mock description for product 42.",
+        "price": 24.54,
+        "rating": 4.78,
+        "orders": 988,
+        "category": "Beauty",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+42",
+        "product_url": "https://www.aliexpress.com/item/100041"
+    },
+    {
+        "title": "Sample Product 43",
+        "description": "This is a mock description for product 43.",
+        "price": 70.69,
+        "rating": 4.42,
+        "orders": 174,
+        "category": "Fashion",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+43",
+        "product_url": "https://www.aliexpress.com/item/100042"
+    },
+    {
+        "title": "Sample Product 44",
+        "description": "This is a mock description for product 44.",
+        "price": 59.29,
+        "rating": 4.77,
+        "orders": 382,
+        "category": "Fashion",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+44",
+        "product_url": "https://www.aliexpress.com/item/100043"
+    },
+    {
+        "title": "Sample Product 45",
+        "description": "This is a mock description for product 45.",
+        "price": 66.4,
+        "rating": 4.92,
+        "orders": 438,
+        "category": "Home",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+45",
+        "product_url": "https://www.aliexpress.com/item/100044"
+    },
+    {
+        "title": "Sample Product 46",
+        "description": "This is a mock description for product 46.",
+        "price": 92.06,
+        "rating": 3.52,
+        "orders": 426,
+        "category": "Fashion",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+46",
+        "product_url": "https://www.aliexpress.com/item/100045"
+    },
+    {
+        "title": "Sample Product 47",
+        "description": "This is a mock description for product 47.",
+        "price": 31.66,
+        "rating": 4.26,
+        "orders": 812,
+        "category": "Toys",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+47",
+        "product_url": "https://www.aliexpress.com/item/100046"
+    },
+    {
+        "title": "Sample Product 48",
+        "description": "This is a mock description for product 48.",
+        "price": 31.93,
+        "rating": 4.49,
+        "orders": 689,
+        "category": "Electronics",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+48",
+        "product_url": "https://www.aliexpress.com/item/100047"
+    },
+    {
+        "title": "Sample Product 49",
+        "description": "This is a mock description for product 49.",
+        "price": 83.94,
+        "rating": 4.8,
+        "orders": 25,
+        "category": "Home",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+49",
+        "product_url": "https://www.aliexpress.com/item/100048"
+    },
+    {
+        "title": "Sample Product 50",
+        "description": "This is a mock description for product 50.",
+        "price": 40.79,
+        "rating": 3.61,
+        "orders": 302,
+        "category": "Fashion",
+        "image_url": "https://via.placeholder.com/250x250?text=Product+50",
+        "product_url": "https://www.aliexpress.com/item/100049"
+    }
+]

@@ -1,50 +1,194 @@
 # users/views.py
+from django.db import IntegrityError
+from django.http import HttpResponse
+from django.views.decorators.http import require_GET
+from django.views.generic import View
+from django.contrib.auth import logout as auth_logout, logout
+from django.urls import reverse
+import uuid
 from decimal import Decimal
-
-from django.conf import settings
+from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.cache import never_cache
+from .models import ActivityLog
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy
-
-from payment.forms import PaymentMethodForm
-from .forms import UserRegisterForm, ProfileUpdateForm, NotificationPreferencesForm
+from django.utils.http import url_has_allowed_host_and_scheme
+from .forms import UserRegisterForm, ProfileUpdateForm, NotificationPreferencesForm, AccountDeletionForm
 from .forms import AddressForm, PasswordChangeForm
 from .models import Profile, Address
-from payment.models import PaymentMethod
 from orders.models import Order
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.views import PasswordChangeView, LoginView
-from django.views.generic import TemplateView, UpdateView, CreateView, DeleteView
+from django.views.generic import TemplateView, UpdateView, CreateView, DeleteView, FormView
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-from django.db.models import Sum, Count, Avg, F, ExpressionWrapper, DecimalField
-
-from payment.models import PaymentMethod
-
+from django.db.models import Sum, Count
 
 
 class CustomLoginView(LoginView):
     template_name = 'users/login.html'
     redirect_authenticated_user = True
 
+    def get_success_url(self):
+        # Get the 'next' parameter from request
+        next_url = self.request.POST.get('next') or self.request.GET.get('next')
+
+        # Validate URL for security
+        if next_url and url_has_allowed_host_and_scheme(
+                url=next_url,
+                allowed_hosts={self.request.get_host()},
+                require_https=self.request.is_secure(),
+        ):
+            return next_url
+
+        # Redirect to product list page after login
+        return reverse('store:product_list')
+
     def form_valid(self, form):
         remember_me = self.request.POST.get('remember_me', False)
         if not remember_me:
             self.request.session.set_expiry(0)
             self.request.session.modified = True
+
+        # Add success message
+        messages.success(self.request, 'You have been successfully logged in!')
         return super().form_valid(form)
+
+    def form_invalid(self, form):
+        # Add error message for invalid credentials
+        messages.error(self.request, 'Invalid credentials. Please try again.')
+        return self.render_to_response(self.get_context_data(form=form))
+
+
+class CustomLogoutView(View):
+    next_page = reverse_lazy('users:logout_success')
+
+    def dispatch(self, request, *args, **kwargs):
+        # Store current page path before processing logout
+        if not request.path.startswith(reverse('users:logout')):
+            request.session['pre_logout_path'] = request.META.get('HTTP_REFERER', '')
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            ActivityLog.objects.create(
+                user=request.user,
+                activity_type='logout',
+                ip_address=self.get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+            )
+            self.clean_session(request)
+
+        auth_logout(request)
+        return redirect(self.next_page)
+
+    def logout(self, request):
+        # Get redirect path before logout
+        redirect_path = request.session.get('pre_logout_path', '')
+
+        # Validate redirect path
+        if redirect_path and not url_has_allowed_host_and_scheme(
+                redirect_path,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure()
+        ):
+            redirect_path = ''
+
+        # Perform logout actions
+        if request.user.is_authenticated:
+            ActivityLog.objects.create(
+                user=request.user,
+                activity_type='logout',
+                ip_address=self.get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+            )
+            self.clean_session(request)
+
+        auth_logout(request)
+
+        # Add redirect path to session for logout success page
+        if redirect_path:
+            request.session['post_logout_redirect'] = redirect_path
+
+        return redirect(self.next_page)
+
+        # Security headers
+        response['Clear-Site-Data'] = '"cache", "cookies", "storage", "executionContexts"'
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
+
+    def get_client_ip(self, request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        return x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
+
+    def clean_session(self, request):
+        """Remove sensitive data from session without deleting user account"""
+        sensitive_keys = [
+            'payment_intent_id',
+            'cart_data',
+            'checkout_data',
+            'stripe_customer_id',
+            'credit_card_last4'
+        ]
+        for key in sensitive_keys:
+            if key in request.session:
+                del request.session[key]
+        request.session.modified = True
+
+
+class LogoutSuccessView(TemplateView):
+    template_name = 'users/logout_success.html'
+    http_method_names = ['get']  # Only allow GET requests
+
+    def get(self, request, *args, **kwargs):
+        # Clear any remaining session data
+        request.session.flush()
+
+        # Create a simple context without user data
+        context = self.get_context_data(**kwargs)
+        context['user'] = None  # Ensure no user object is passed
+
+        return self.render_to_response(context)
 
 
 def register(request):
     if request.method == 'POST':
         form = UserRegisterForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            auth_login(request, user)
-            messages.success(request, 'Registration successful! You are now logged in.')
-            return redirect('store:home')
+            try:
+                user = form.save(commit=False)
+                user.save()  # Save user first
+
+                # Create profile if it doesn't exist
+                if not hasattr(user, 'profile'):
+                    Profile.objects.create(
+                        user=user,
+                        marketing_optin=form.cleaned_data['marketing_optin']
+                    )
+
+                # Authenticate user
+                auth_login(
+                    request,
+                    user,
+                    backend='django.contrib.auth.backends.ModelBackend'
+                )
+
+                messages.success(request, 'Registration successful! You are now logged in.')
+                return redirect('store:product_list')
+
+            except IntegrityError as e:
+                # Handle duplicate profile error
+                if 'users_profile_user_id_key' in str(e):
+                    messages.error(request, 'User already has a profile. Please contact support.')
+                else:
+                    messages.error(request, 'An error occurred during registration. Please try again.')
+                return redirect('users:register')
+
     else:
         form = UserRegisterForm()
 
@@ -59,7 +203,7 @@ class ProfileUpdateView(UpdateView):
     model = Profile
     form_class = ProfileUpdateForm
     template_name = 'users/profile_update.html'
-    success_url = reverse_lazy('users:profile')
+    success_url = reverse_lazy('users:account')
 
     def get_object(self):
         return self.request.user.profile
@@ -70,11 +214,49 @@ class ProfileUpdateView(UpdateView):
 
 
 @method_decorator(login_required, name='dispatch')
+class AccountDeleteView(FormView):
+    template_name = 'users/account_delete_confirm.html'
+    form_class = AccountDeletionForm
+    success_url = reverse_lazy('store:product_list')
+
+    # Fix: Pass user to form
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        user = self.request.user
+
+        # Anonymize personal data (GDPR compliance)
+        user.email = f'deleted-{uuid.uuid4()}@example.com'
+        user.first_name = 'Deleted'
+        user.last_name = 'User'
+        user.phone_number = None
+        user.set_unusable_password()
+        user.is_active = False
+        user.save()
+
+        # Anonymize profile
+        profile = user.profile
+        if profile.profile_image:
+            profile.profile_image.delete(save=False)
+        profile.bio = ''
+        profile.save()
+
+        # Logout user after deletion
+        logout(self.request)
+
+        messages.success(self.request, 'Your account has been permanently deleted')
+        return super().form_valid(form)
+
+
+@method_decorator(login_required, name='dispatch')
 class NotificationPreferencesView(UpdateView):
     model = Profile
     form_class = NotificationPreferencesForm
     template_name = 'users/notification_preferences.html'
-    success_url = reverse_lazy('users:profile')
+    success_url = reverse_lazy('users:account')
 
     def get_object(self):
         return self.request.user.profile
@@ -143,7 +325,7 @@ class AddressDeleteView(DeleteView):
 
 
 
-@login_required
+@login_required(login_url='/accounts/login/')
 def set_default_address(request, pk):
     address = Address.objects.get(pk=pk, user=request.user)
     Address.objects.filter(user=request.user).update(is_default=False)
@@ -153,7 +335,7 @@ def set_default_address(request, pk):
     return redirect('users:account')
 
 
-@login_required
+@login_required(login_url='/accounts/login/')
 @csrf_exempt
 def update_profile_image(request):
     if request.method == 'POST' and request.FILES.get('profile_image'):
@@ -192,18 +374,18 @@ class AccountView(TemplateView):
         # Get recent orders (last 5)
         orders = Order.objects.filter(user=user).order_by('-created')[:5]
 
-        # Calculate total spent efficiently
+        # Calculate total spent - use 'total' instead of 'total_amount'
         total_spent = Order.objects.filter(
             user=user,
             status='completed'
         ).aggregate(
-            total=Sum('total_amount')
+            total=Sum('total')  # Changed from 'total_amount'
         )['total'] or Decimal('0.00')
 
         # Get last order
         last_order = Order.objects.filter(user=user).order_by('-created').first()
 
-        # Calculate order stats efficiently
+        # Calculate order stats
         order_stats = Order.objects.filter(user=user).aggregate(
             order_count=Count('id')
         )
@@ -222,3 +404,11 @@ class AccountView(TemplateView):
         return context
 
 
+@require_GET
+@csrf_exempt
+def session_keepalive(request):
+    """Reset session expiry time on any request"""
+    if request.session:
+        request.session.modified = True
+        return HttpResponse(status=204)
+    return HttpResponse(status=400)

@@ -160,3 +160,71 @@ Traceback (most recent call last):
     val = getattr(_wrapped, name)
           ^^^^^^^^^^^^^^^^^^^^^^^
 AttributeError: 'Settings' object has no attribute 'ENABLED_PAYMENT_METHODS'
+ERROR 2025-07-29 20:49:12,175 views Internal payment processing error
+Traceback (most recent call last):
+  File "/home/eliphaz/asai-new/payment/views.py", line 61, in process_payment
+    if not form.is_valid():
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 206, in is_valid
+    return self.is_bound and not self.errors
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 201, in errors
+    self.full_clean()
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 338, in full_clean
+    self._clean_form()
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 354, in _clean_form
+    cleaned_data = self.clean()
+  File "/home/eliphaz/asai-new/payment/forms.py", line 62, in clean
+    enabled_methods = [m.lower() for m in settings.ENABLED_PAYMENT_METHODS]
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/conf/__init__.py", line 83, in __getattr__
+    val = getattr(_wrapped, name)
+AttributeError: 'Settings' object has no attribute 'ENABLED_PAYMENT_METHODS'
+ERROR 2025-07-29 20:49:57,794 views Internal payment processing error
+Traceback (most recent call last):
+  File "/home/eliphaz/asai-new/payment/views.py", line 61, in process_payment
+    if not form.is_valid():
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 206, in is_valid
+    return self.is_bound and not self.errors
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 201, in errors
+    self.full_clean()
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 338, in full_clean
+    self._clean_form()
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 354, in _clean_form
+    cleaned_data = self.clean()
+  File "/home/eliphaz/asai-new/payment/forms.py", line 62, in clean
+    enabled_methods = [m.lower() for m in settings.ENABLED_PAYMENT_METHODS]
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/conf/__init__.py", line 83, in __getattr__
+    val = getattr(_wrapped, name)
+AttributeError: 'Settings' object has no attribute 'ENABLED_PAYMENT_METHODS'
+ERROR 2025-07-29 20:52:41,849 views Internal payment processing error
+Traceback (most recent call last):
+  File "/home/eliphaz/asai-new/payment/views.py", line 61, in process_payment
+    if not form.is_valid():
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 206, in is_valid
+    return self.is_bound and not self.errors
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 201, in errors
+    self.full_clean()
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 338, in full_clean
+    self._clean_form()
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 354, in _clean_form
+    cleaned_data = self.clean()
+  File "/home/eliphaz/asai-new/payment/forms.py", line 62, in clean
+    enabled_methods = [m.lower() for m in settings.ENABLED_PAYMENT_METHODS]
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/conf/__init__.py", line 83, in __getattr__
+    val = getattr(_wrapped, name)
+AttributeError: 'Settings' object has no attribute 'ENABLED_PAYMENT_METHODS'
+ERROR 2025-07-29 22:29:03,899 views Internal payment processing error
+Traceback (most recent call last):
+  File "/home/eliphaz/asai-new/payment/views.py", line 61, in process_payment
+    if not form.is_valid():
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 206, in is_valid
+    return self.is_bound and not self.errors
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 201, in errors
+    self.full_clean()
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 338, in full_clean
+    self._clean_form()
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/forms/forms.py", line 354, in _clean_form
+    cleaned_data = self.clean()
+  File "/home/eliphaz/asai-new/payment/forms.py", line 62, in clean
+    enabled_methods = [m.lower() for m in settings.ENABLED_PAYMENT_METHODS]
+  File "/home/eliphaz/.local/lib/python3.10/site-packages/django/conf/__init__.py", line 83, in __getattr__
+    val = getattr(_wrapped, name)
+AttributeError: 'Settings' object has no attribute 'ENABLED_PAYMENT_METHODS'

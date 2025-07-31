@@ -1,10 +1,13 @@
 from django.urls import path
+from django.views.generic import RedirectView
+
 from . import views
 from .views import add_product, product_dashboard, edit_product, delete_product, ProductSearchView
 
 app_name = 'store'
 
 urlpatterns = [
+
     # Core Pages
     path('categories/', views.product_categories, name='categories'),
     path('search/', ProductSearchView.as_view(), name='product_search'),  # Updated to class-based view
@@ -43,4 +46,7 @@ urlpatterns = [
     path('dashboard/products/add/', add_product, name='add_product'),
     path('dashboard/products/edit/<slug:slug>/', edit_product, name='edit_product'),
     path('dashboard/products/delete/<slug:slug>/', delete_product, name='delete_product'),
+
+    path('dashboard/import/', views.import_products, name='import_products'),
+
 ]

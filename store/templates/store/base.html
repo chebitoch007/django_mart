@@ -7,6 +7,8 @@
   <meta name="description" content="Premium e-commerce platform offering quality products with fast delivery">
   <title>ASAI - Premium Shopping Experience</title>
 
+  <link rel="shortcut icon" href="{% static 'store/images/favicon.ico' %}" type="image/x-icon">
+
   <!-- Performance Preconnects -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1665,15 +1667,17 @@
 <div class="search-container flex-grow max-w-3xl mx-4 relative">
     <form action="{% url 'store:product_search' %}" method="get" class="w-full">
         <div class="search-bar flex rounded-lg overflow-hidden shadow-sm border border-gray-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all duration-200">
-                    <select name="category" aria-label="Select Category">
-                        <option value="">All</option>
-                        {% for category in categories|slice:":15" %}
-                        <option value="{{ category.slug }}"
-                                {% if request.GET.category == category.slug %}selected{% endif %}>
-                            {{ category.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
+            <select name="category" aria-label="Select Category">
+                <option value="">All Categories</option>
+                {% for category in top_level_categories %}
+                <option value="{{ category.slug }}"
+                        {% if request.GET.category == category.slug %}selected{% endif %}>
+                    {{ category.name }}
+                </option>
+                {% endfor %}
+            </select>
+
+
             <input
                 type="text"
                 name="q"
@@ -1746,10 +1750,11 @@
                 <a href="{% url 'store:product_list' %}?on_sale=true" class="nav-link-item premium-hover">Today's Deals</a>
                 <a href="{% url 'store:product_list' %}?sort=-created" class="nav-link-item premium-hover">New Releases</a>
                 <a href="{% url 'store:product_list' %}?sort=-review_count" class="nav-link-item premium-hover">Best Sellers</a>
-                {% for category in categories|slice:":3" %}
+                {% for category in top_level_categories|slice:":3" %}
                 <a href="{{ category.get_absolute_url }}" class="nav-link-item premium-hover">{{ category.name }}</a>
                 {% endfor %}
             </div>
+
         </div>
     </header>
 
@@ -1769,20 +1774,22 @@
                 <span>Best Sellers</span>
             </a>
 
-            {% for category in categories|slice:":3" %}
+            {% for category in top_level_categories|slice:":3" %}
             <a href="{{ category.get_absolute_url }}" class="mobile-category">
                 {% if category.image %}
-                    <img src="{{ category.image.url }}" alt="{{ category.name }}" class="w-10 h-10 object-cover rounded">
+                <img src="{{ category.image.url }}" alt="{{ category.name }}" class="w-10 h-10 object-cover rounded">
                 {% else %}
-                    <div class="w-10 h-10 bg-gray-200 rounded flex items-center justify-center">
-                        <i class="fas fa-folder text-gray-500" aria-hidden="true"></i>
-                    </div>
+                <div class="w-10 h-10 bg-gray-200 rounded flex items-center justify-center">
+                    <i class="fas fa-folder text-gray-500" aria-hidden="true"></i>
+                </div>
                 {% endif %}
                 <span>{{ category.name }}</span>
             </a>
             {% endfor %}
+
         </div>
     </div>
+
 
     <!-- Main Content -->
     <main class="flex-grow container" id="main-content">
@@ -1823,11 +1830,13 @@
                 <div class="footer-column">
                     <h3>Shop</h3>
                     <ul class="footer-links">
-                        {% for category in categories|slice:":6" %}
+                        {% for category in top_level_categories|slice:":6" %}
                         <li><a href="{{ category.get_absolute_url }}" class="footer-link">{{ category.name }}</a></li>
                         {% endfor %}
                     </ul>
                 </div>
+
+
 
                 <!-- Support -->
                 <div class="footer-column">

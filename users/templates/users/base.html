@@ -439,7 +439,7 @@
                         </a>
                     </li>
                     <li class="user-nav-item">
-                        <a href="{% url 'users:profile' %}" class="user-nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+                        <a href="{% url 'users:account' %}" class="user-nav-link {% if request.resolver_match.url_name == 'account' %}active{% endif %}">
                             <i class="fas fa-user-edit"></i>
                             Personal Information
                         </a>
@@ -481,7 +481,7 @@
                         </a>
                     </li>
                     <li class="user-nav-item">
-                        <a href="{% url 'users:logout' %}" class="user-nav-link">
+                        <a href="{% url 'users:logout_success' %}" class="user-nav-link">
                             <i class="fas fa-sign-out-alt"></i>
                             Sign Out
                         </a>

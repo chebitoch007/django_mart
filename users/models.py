@@ -38,7 +38,7 @@ class CustomUserManager(BaseUserManager):
             user.set_unusable_password()
 
         user.save(using=self._db)
-        return user
+        return user  # Return user without creating profile
 
     def create_user(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', False)
@@ -162,7 +162,7 @@ class CustomUser(AbstractUser):
         return self.get_full_name() or self.email
 
     def get_absolute_url(self):
-        return reverse('users:profile', kwargs={'pk': self.pk})
+        return reverse('users:account', kwargs={'pk': self.pk})
 
     def requires_reconsent(self):
         return self.consent_version != settings.CURRENT_POLICY_VERSION
@@ -205,10 +205,11 @@ class CustomUser(AbstractUser):
             self.save(update_fields=['last_password_update'])
 
     def save(self, *args, **kwargs):
-        # Set username to email if not provided
         if not self.username:
-            self.username = self.email
+            self.username = self.email.lower().strip()
+        self.email = self.email.lower().strip()
         super().save(*args, **kwargs)
+
 
 
 class Profile(models.Model):
@@ -335,6 +336,7 @@ class ActivityLog(models.Model):
         max_length=50,
         choices=[
             ('login', 'Login'),
+            ('logout', 'Logout'),
             ('password_change', 'Password Change'),
             ('profile_update', 'Profile Update'),
             ('address_add', 'Address Added'),

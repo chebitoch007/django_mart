@@ -36,7 +36,9 @@ urlpatterns = [
     path('paypal/<int:order_id>/', PayPalPaymentView.as_view(), name='paypal-payment'),
 
     path('currency-convert/', views.currency_convert, name='currency_convert'),
-    path('process-payment/', views.process_payment, name='process_payment'),
+    path('process-payment/<int:order_id>/', views.process_payment, name='process_payment'),
+
+
 
     path('expired/', PaymentExpiredView.as_view(), name='payment-expired'),
 ]

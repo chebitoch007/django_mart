@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 @csrf_protect
 @require_POST
 @login_required
-def process_payment(request):
+def process_payment(request, order_id):
     # Rate limiting implementation
     user_key = f"payment_attempts_{request.user.id}"
     attempts = cache.get(user_key, 0)

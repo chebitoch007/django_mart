@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
+from store.aliexpress import fulfill_order
 from store.models import Product
 from django.db.models import Sum, F
 from .constants import ORDER_STATUS_CHOICES, PAYMENT_METHODS, CURRENCY_CHOICES
@@ -55,17 +56,23 @@ class OrderManager(models.Manager):
 
 
 class Order(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL,
-                             on_delete=models.CASCADE,
-                             related_name='orders')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='orders'
+    )
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     email = models.EmailField()
     address = models.CharField(max_length=250)
     postal_code = models.CharField(max_length=20)
+    state = models.CharField(max_length=100, blank=True)
+    country = models.CharField(max_length=100, default='Kenya')
     city = models.CharField(max_length=100)
+    phone = models.CharField(max_length=20, blank=True)
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     updated = models.DateTimeField(auto_now=True)
+
     status = models.CharField(
         max_length=20,
         choices=ORDER_STATUS_CHOICES,
@@ -77,18 +84,18 @@ class Order(models.Model):
         choices=CURRENCY_CHOICES,
         default='KES'
     )
+    payment_method = models.CharField(
+        max_length=20,
+        blank=True,
+        choices=PAYMENT_METHODS,
+        db_index=True
+    )
     payment = models.OneToOneField(
         'payment.Payment',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='order_relation'
-    )
-    payment_method = models.CharField(
-        max_length=20,
-        blank=True,
-        choices=PAYMENT_METHODS,
-        db_index=True
     )
     total = models.DecimalField(
         max_digits=10,
@@ -109,71 +116,77 @@ class Order(models.Model):
     def __str__(self):
         return f"Order #{self.id} - {self.get_full_name()} ({self.status})"
 
+    def get_full_name(self):
+        return f"{self.first_name} {self.last_name}"
+
     @property
     def total_cost(self):
         return self.items.aggregate(
             total=Sum(F('price') * F('quantity'), output_field=models.DecimalField())
         )['total'] or 0
 
-    def get_full_name(self):
-        return f"{self.first_name} {self.last_name}"
-
     @property
     def is_payable(self):
         return (
-            self.status == 'PENDING' and
-            (timezone.now() - self.created).days < settings.ORDER_EXPIRY_DAYS
+                self.status == 'PENDING' and
+                (timezone.now() - self.created).days < settings.ORDER_EXPIRY_DAYS
         )
 
     @transaction.atomic
     def mark_as_paid(self, payment_method: str):
+        """Marks the order as paid if still pending and enough stock exists."""
         if self.status != 'PENDING':
             raise ValidationError("Order cannot be paid in current state")
 
-        with transaction.atomic():
-            for item in self.items.select_for_update().select_related('product'):
-                product = item.product
-                if product.stock < item.quantity:
-                    raise ValidationError(
-                        f"Insufficient stock for {product.name}"
-                    )
+        for item in self.items.select_for_update().select_related('product'):
+            product = item.product
+            if product.stock < item.quantity:
+                raise ValidationError(f"Insufficient stock for {product.name}")
 
-            self.status = 'PAID'
-            self.payment_method = payment_method
-            self.save(update_fields=['status', 'payment_method', 'updated'])
+        self.status = 'PAID'
+        self.payment_method = payment_method
+        self.save(update_fields=['status', 'payment_method', 'updated'])
 
     @transaction.atomic
     def cancel_order(self, reason=None):
-        valid_statuses = ['PENDING', 'PAID']
-        if self.status not in valid_statuses:
+        """Cancels the order and restores product stock."""
+        if self.status not in ['PENDING', 'PAID']:
             raise ValidationError(f"Order cannot be cancelled from {self.status} status")
 
-        with transaction.atomic():
-            for item in self.items.select_for_update().select_related('product'):
-                Product.objects.filter(pk=item.product.pk).update(
-                    stock=F('stock') + item.quantity
-                )
+        for item in self.items.select_for_update().select_related('product'):
+            Product.objects.filter(pk=item.product.pk).update(
+                stock=F('stock') + item.quantity
+            )
 
-            self.status = 'CANCELLED'
-            self.save(update_fields=['status', 'updated'])
+        self.status = 'CANCELLED'
+        self.save(update_fields=['status', 'updated'])
 
     def save(self, *args, **kwargs):
         if self.pk:
-            original = Order.objects.get(pk=self.pk)
-            if (hasattr(original, 'payment') and
-                    original.payment and
-                    original.payment.status != 'PENDING'):
+            original = Order.objects.select_related('payment').get(pk=self.pk)
+            if original.payment and original.payment.status != 'PENDING':
                 raise PermissionError("Order has already been processed")
-
         super().save(*args, **kwargs)
+
+
 
     def clean(self):
         if self.pk:
-            original = Order.objects.get(pk=self.pk)
-            if (hasattr(original, 'payment') and
-                    original.payment and
-                    original.payment.status != 'PENDING'):
+            original = Order.objects.select_related('payment').get(pk=self.pk)
+            if original.payment and original.payment.status != 'PENDING':
                 raise ValidationError("Cannot modify a paid or processing order")
+
+    def process_dropship_orders(self):
+        """Trigger dropship fulfillment for all dropshipping items."""
+        results = []
+        for item in self.items.filter(product__is_dropship=True):
+            success, message = fulfill_order(item)
+            results.append({
+                'product': item.product.name,
+                'success': success,
+                'message': message
+            })
+        return results
 
 
 class OrderItem(models.Model):
@@ -195,6 +208,11 @@ class OrderItem(models.Model):
     quantity = models.PositiveIntegerField(
         validators=[MinValueValidator(1)]
     )
+
+    dropship_processed = models.BooleanField(default=False)
+    dropship_order_id = models.CharField(max_length=100, blank=True)
+    tracking_number = models.CharField(max_length=100, blank=True)
+    estimated_delivery = models.CharField(max_length=50, blank=True)
 
     class Meta:
         constraints = [
@@ -218,21 +236,34 @@ class OrderItem(models.Model):
     def clean(self):
         if self._state.adding:
             if self.price != self.product.price:
-                raise ValidationError({
-                    'price': 'Price must match current product price'
-                })
+                raise ValidationError({'price': 'Price must match current product price'})
             if self.quantity > self.product.stock:
-                raise ValidationError({
-                    'quantity': 'Quantity exceeds available stock'
-                })
+                raise ValidationError({'quantity': 'Quantity exceeds available stock'})
+
+    def mark_as_processed(self, order_id, tracking, delivery):
+        self.dropship_processed = True
+        self.dropship_order_id = order_id
+        self.tracking_number = tracking
+        self.estimated_delivery = delivery
+        self.save()
+
+    def fulfill(self):
+        """Trigger fulfillment if it's a dropshipping product."""
+        if not self.product.is_dropship:
+            return False, "Not a dropshipping product"
+        return fulfill_order(self)
 
     def save(self, *args, **kwargs):
         if not self._state.adding:
             original = OrderItem.objects.get(pk=self.pk)
-            if self.price != original.price:
-                raise ValidationError("Cannot modify price of existing item")
-        super().save(*args, **kwargs)
 
+            # Prevent any price change
+            if self.price != original.price:
+                # Only allow price change if it's a dropship product
+                if not self.product.is_dropship:
+                    raise ValidationError("Cannot modify price of existing item")
+
+        super().save(*args, **kwargs)
 '''
 class CurrencyRate(models.Model):
     base_currency = models.CharField(max_length=3)

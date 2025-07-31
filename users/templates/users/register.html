@@ -11,6 +11,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Poppins', sans-serif; }
     </style>
+    {% load widget_tweaks %}
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
     <div class="w-full max-w-md bg-white rounded-xl shadow-lg overflow-hidden">
@@ -47,7 +48,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="id_first_name" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                        {{ form.first_name }}
+                        {{ form.first_name|add_class:"form-control block w-full p-2 pl-10 text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" }}
                         {% if form.first_name.errors %}
                             <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
                         {% endif %}
@@ -55,7 +56,7 @@
 
                     <div>
                         <label for="id_last_name" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                        {{ form.last_name }}
+                        {{ form.last_name|add_class:"form-control block w-full p-2 pl-10 text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" }}
                         {% if form.last_name.errors %}
                             <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
                         {% endif %}
@@ -65,7 +66,7 @@
                 <!-- Email -->
                 <div>
                     <label for="id_email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                    {{ form.email }}
+                    {{ form.email|add_class:"form-control block w-full p-2 pl-10 text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" }}
                     {% if form.email.errors %}
                         <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
                     {% endif %}
@@ -75,12 +76,13 @@
                 <div>
                     <label for="id_password1" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
                     <div class="relative">
-                        {{ form.password1 }}
+                        {{ form.password1|add_class:"form-control block w-full p-2 pl-10 text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" }}
                         <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
                             onclick="togglePassword('id_password1', this)">
                             <i class="fas fa-eye-slash"></i>
                         </button>
                     </div>
+                    <p id="password-strength" class="text-sm mt-1"></p>
                     {{ form.password1.help_text|safe }}
                     {% if form.password1.errors %}
                         <p class="mt-1 text-sm text-red-600">{{ form.password1.errors.0 }}</p>
@@ -91,7 +93,7 @@
                 <div>
                     <label for="id_password2" class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
                     <div class="relative">
-                        {{ form.password2 }}
+                        {{ form.password2|add_class:"form-control block w-full p-2 pl-10 text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" }}
                         <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
                             onclick="togglePassword('id_password2', this)">
                             <i class="fas fa-eye-slash"></i>
@@ -140,8 +142,11 @@
                 </div>
 
                 <!-- Submit Button -->
-                <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white py-3 px-4 rounded-lg font-semibold shadow-md transition duration-300 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                <button type="submit" id="submit-btn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white py-3 px-4 rounded-lg font-semibold shadow-md transition duration-300 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                     <i class="fas fa-user-plus mr-2"></i> Create Account
+                    <span id="loading-animation" class="hidden ml-2">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
                 </button>
             </form>
 
@@ -181,16 +186,57 @@
             });
         });
 
+        // Password strength indicator
+        document.getElementById('id_password1').addEventListener('input', function() {
+            const password = this.value;
+            const strength = getPasswordStrength(password);
+            // Update password strength indicator
+            const strengthIndicator = document.getElementById('password-strength');
+            strengthIndicator.textContent = strength;
+            strengthIndicator.classList.remove('text-red-500', 'text-yellow-500', 'text-green-500');
+            strengthIndicator.classList.add(getStrengthClass(strength));
+        });
+
+        function getPasswordStrength(password) {
+            // Calculate password strength based on length, complexity, etc.
+            if (password.length < 8) return 'Weak';
+            if (password.length >= 10 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /[0-9]/.test(password)) return 'Strong';
+            return 'Medium';
+        }
+
+        function getStrengthClass(strength) {
+            switch (strength) {
+                case 'Weak':
+                    return 'text-red-500';
+                case 'Medium':
+                    return 'text-yellow-500';
+                case 'Strong':
+                    return 'text-green-500';
+            }
+        }
+
         // reCAPTCHA integration
         {% if settings.RECAPTCHA_SITE_KEY %}
         document.getElementById('registration-form').addEventListener('submit', function(e) {
             e.preventDefault();
+            const submitBtn = document.getElementById('submit-btn');
+            const loadingAnimation = document.getElementById('loading-animation');
+            submitBtn.disabled = true;
+            loadingAnimation.classList.remove('hidden');
+
             grecaptcha.ready(function() {
-                grecaptcha.execute('{{ settings.RECAPTCHA_SITE_KEY }}', {action: 'register'}).then(function(token) {
+               grecaptcha.execute('{{ settings.RECAPTCHA_SITE_KEY }}', {action: 'register'}).then(function(token) {
                     document.getElementById('g-recaptcha-response').value = token;
-                    e.target.submit();
-                });
+                    document.getElementById('registration-form').submit();  // ✅ USE THIS, not e.target.submit()
+               });
             });
+        });
+        {% else %}
+        document.getElementById('registration-form').addEventListener('submit', function() {
+            const submitBtn = document.getElementById('submit-btn');
+            const loadingAnimation = document.getElementById('loading-animation');
+            submitBtn.disabled = true;
+            loadingAnimation.classList.remove('hidden');
         });
         {% endif %}
     </script>

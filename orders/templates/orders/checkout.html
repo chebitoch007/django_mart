@@ -642,7 +642,7 @@
                 </div>
 
                 <!-- Payment Forms -->
-                <form id="paymentForm" method="post" action="{% url 'payment:process_payment' %}" novalidate>
+                <form id="paymentForm" method="post" action="{% url 'payment:process_payment' order.id %}" novalidate>
                     {% csrf_token %}
                     <input type="hidden" name="order_id" value="{{ cart.id }}">
                     <input type="hidden" name="payment_method" id="selectedMethod" value="{% firstof prioritized_methods.0 'card' %}">
@@ -795,7 +795,7 @@
                 <div class="order-items" id="orderItems">
                     {% for item in cart.items.all %}
                     <div class="order-item" data-price="{{ item.total_price }}">
-                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="item-image">
+                        <img src="{{ item.product.get_image_url }}" alt="{{ item.product.name }}" class="item-image">
                         <div class="item-info">
                             <div class="item-name">{{ item.product.name }}</div>
                             <div class="item-quantity">Qty: {{ item.quantity }}</div>
@@ -1165,7 +1165,7 @@ document.addEventListener('DOMContentLoaded', function() {
         processingModal.classList.add('active');
         paymentStatus.style.display = 'block';
 
-        fetch("{% url 'payment:process_payment' %}", {
+        fetch("{% url 'payment:process_payment' order.id%}", {
             method: 'POST',
             body: formData,
             headers: {

@@ -1,4 +1,4 @@
-from django.urls import path, reverse_lazy
+from .views import session_keepalive
 from django.contrib.auth import views as auth_views
 from . import views
 from .views import (
@@ -13,24 +13,26 @@ from .views import (
     AddressDeleteView,
     set_default_address,
     AccountView,
-    NotificationPreferencesView,
+    NotificationPreferencesView, CustomLogoutView, LogoutSuccessView, AccountDeleteView, CustomLoginView,
 )
+from django.urls import path, reverse_lazy
+from django.views.generic.base import RedirectView
 
 app_name = 'users'
 
 urlpatterns = [
+    path('', RedirectView.as_view(url=reverse_lazy('users:account')), name='account_root'),
+
     path('account/', AccountView.as_view(), name='account'),
 
-    # Authentication
-    path('login/',
-         auth_views.LoginView.as_view(
-             template_name='users/login.html',
-             redirect_authenticated_user=True
-         ), name='login'),
-    path('logout/',
-         auth_views.LogoutView.as_view(
-             template_name='users/logout.html'
-         ), name='logout'),
+
+# Authentication
+    #path('login/',auth_views.LoginView.as_view(template_name='users/login.html',redirect_authenticated_user=True), name='login'),
+    path('login/', CustomLoginView.as_view(), name='login'),
+
+    path('logout/', CustomLogoutView.as_view(), name='logout'),
+    path('logout-success/', LogoutSuccessView.as_view(), name='logout_success'),
+
     path('register/', register, name='register'),
 
     # Profile management - now handled through account page
@@ -82,4 +84,7 @@ urlpatterns = [
     path('legal/terms/', TermsView.as_view(), name='terms'),
     path('legal/privacy/', PrivacyView.as_view(), name='privacy'),
     path('legal/return-policy/', ReturnPolicyView.as_view(), name='return_policy'),
+    path('account/delete/', AccountDeleteView.as_view(), name='account_delete'),
+    path('session-keepalive/', session_keepalive, name='session_keepalive'),
+
 ]

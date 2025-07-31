@@ -1,4 +1,5 @@
 {% extends 'store/base.html' %}
+{% load static %}
 {% load humanize %}
 
 {% block content %}
@@ -64,15 +65,6 @@
 </style>
 
 <div class="categories-container">
-    <nav class="breadcrumb">
-        <div class="breadcrumb-item">
-            <a href="{% url 'store:home' %}" class="breadcrumb-link">Home</a>
-        </div>
-        <div class="breadcrumb-item">
-            <span class="breadcrumb-divider">/</span>
-            <span class="breadcrumb-current">{% if category %}{{ category.name }}{% else %}All Products{% endif %}</span>
-        </div>
-    </nav>
 
     <div class="category-nav">
         <div class="category-nav-list">
@@ -143,7 +135,11 @@
                     <div class="product-card">
                         <div class="product-image-container">
                             <a href="{{ product.get_absolute_url }}">
-                                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+                                {% if category.image %}
+                                <img src="{{ category.image.url }}" alt="{{ category.name }}" class="category-image">
+                                {% else %}
+                                <img src="{% static 'store/images/categories/default.png' %}" alt="{{ category.name }}" class="category-image">
+                                {% endif %}
                             </a>
 
                             {% if product.on_sale %}

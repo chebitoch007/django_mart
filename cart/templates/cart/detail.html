@@ -570,7 +570,7 @@
                     <td class="cart-item-cell">
                         <div class="cart-item-content">
                             <a href="{{ item.product.get_absolute_url }}" class="cart-item-image-wrapper">
-                                <img src="{{ item.product.image.url }}"
+                                <img src="{{ item.product.get_image_url }}"
                                      alt="{{ item.product.name }}"
                                      class="cart-item-image">
                             </a>
@@ -750,7 +750,7 @@
             <div class="recent-products">
                 {% for product in recently_viewed|slice:":3" %}
                 <a href="{{ product.get_absolute_url }}" class="recent-product">
-                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                    <img src="{{ product.get_image_url }}" alt="{{ product.name }}">
                 </a>
                 {% endfor %}
             </div>

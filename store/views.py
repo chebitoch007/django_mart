@@ -1,3 +1,5 @@
+from store.aliexpress import import_aliexpress_product
+from .forms import ImportProductsForm
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Avg, Q, Count, F, ExpressionWrapper, DecimalField, Prefetch
@@ -366,62 +368,78 @@ def get_sorted_products(queryset, sort_key):
     return queryset.order_by(sort_field)
 
 
-def product_list(request, category_slug=None):
-    """Enhanced product listing with filtering, sorting, and pagination"""
-    category = None
-    categories = Category.objects.filter(is_active=True).annotate(
-        _product_count_cache=Count('products', filter=Q(products__available=True))
-    )
 
-    products = Product.objects.filter(available=True).select_related('category')
+
+def product_list(request, category_slug=None):
+    """Product listing with filtering, sorting, and pagination"""
+    category = None
+
+    categories = Category.objects.filter(
+        is_active=True
+    ).annotate(
+        num_products=Count('products', filter=Q(products__available=True))
+    ).filter(num_products__gt=0)
+
+    products = Product.objects.filter(
+        available=True
+    ).select_related('category').prefetch_related('additional_images')
+
+    if category_slug:
+        category = get_object_or_404(Category, slug=category_slug, is_active=True)
+        products = products.filter(category=category)
 
     if category_slug:
         category = get_object_or_404(Category, slug=category_slug)
-        products = products.filter(category=category)
+        # Include products from all descendants
+        descendants = category.get_descendants(include_self=True)
+        products = products.filter(category__in=descendants)
 
-    # Apply price filter
     max_price = request.GET.get('max_price')
-    if max_price and max_price.isdigit():
-        products = products.filter(price__lte=int(max_price))
+    if max_price and max_price.replace('.', '', 1).isdigit():
+        products = products.filter(price__lte=float(max_price))
 
-    # Apply stock filter
     in_stock = request.GET.get('in_stock')
     if in_stock == 'true':
         products = products.filter(stock__gt=0)
 
-    # Apply rating filter
     min_rating = request.GET.get('min_rating')
-    if min_rating and min_rating.isdigit():
-        min_rating = int(min_rating)
+    if min_rating and min_rating.replace('.', '', 1).isdigit():
         products = products.annotate(
             avg_rating=Coalesce(Avg('reviews__rating'), 0.0)
-        ).filter(avg_rating__gte=min_rating)
+        ).filter(avg_rating__gte=float(min_rating))
 
-    # Validate and apply sorting
     sort_by = request.GET.get('sort', '-created')
     products = get_sorted_products(products, sort_by)
 
-    # Pagination
-    paginator = Paginator(products, 12)
+    paginator = Paginator(products, 24)
     page_number = request.GET.get('page')
-
     try:
         products_page = paginator.page(page_number)
-    except (PageNotAnInteger, EmptyPage):
+    except PageNotAnInteger:
         products_page = paginator.page(1)
+    except EmptyPage:
+        products_page = paginator.page(paginator.num_pages)
+
+    # ✅ Include top-level categories for navigation
+    top_level_categories = Category.objects.filter(
+        parent=None,
+        is_active=True
+    ).annotate(
+        _product_count_cache=Count('products', filter=Q(products__available=True))
+    )
 
     context = {
         'category': category,
         'categories': categories,
+        'top_level_categories': top_level_categories,
         'products': products_page,
         'sort_by': sort_by,
         'sort_options': SORT_OPTIONS,
-        'max_price': max_price or 1000,
+        'max_price': max_price or "",
         'in_stock': in_stock == 'true',
-        'min_rating': min_rating,
+        'min_rating': min_rating or "",
     }
     return render(request, 'store/product/list.html', context)
-
 
 def product_detail(request, slug):
     """Optimized product detail view with prefetch_related"""
@@ -839,11 +857,10 @@ def category_list(request):
 
 
 def is_staff(user):
-    return user.is_staff
+    return user.is_authenticated and user.is_staff
 
-
-@login_required
-@user_passes_test(is_staff)
+@login_required(login_url='/accounts/login/')
+@user_passes_test(is_staff, login_url='/accounts/login/')
 def add_product(request):
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES)
@@ -865,15 +882,15 @@ def add_product(request):
     })
 
 
-@login_required
-@user_passes_test(is_staff)
+@login_required(login_url='/accounts/login/')
+@user_passes_test(is_staff, login_url='/accounts/login/')
 def product_dashboard(request):
     products = Product.objects.select_related('category').order_by('-created')
     return render(request, 'store/dashboard/product_dashboard.html', {'products': products})
 
 
-@login_required
-@user_passes_test(is_staff)
+@login_required(login_url='/accounts/login/')
+@user_passes_test(is_staff, login_url='/accounts/login/')
 def edit_product(request, slug):
     product = get_object_or_404(Product, slug=slug)
 
@@ -903,8 +920,8 @@ def edit_product(request, slug):
     })
 
 
-@login_required
-@user_passes_test(is_staff)
+@login_required(login_url='/accounts/login/')
+@user_passes_test(is_staff, login_url='/accounts/login/')
 def delete_product(request, slug):
     product = get_object_or_404(Product, slug=slug)
     if request.method == 'POST':
@@ -938,3 +955,28 @@ def search_analytics(request):
         )
         return JsonResponse({'status': 'success'})
     return JsonResponse({'status': 'invalid'}, status=400)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def import_products(request):
+    if request.method == 'POST':
+        form = ImportProductsForm(request.POST)
+        if form.is_valid():
+            url = form.cleaned_data['url']
+            category = form.cleaned_data['category']
+
+            product, message = import_aliexpress_product(url, category.slug)
+
+            if product:
+                messages.success(request, f'Successfully imported: {product.name}')
+                return redirect('store:edit_product', slug=product.slug)
+            else:
+                messages.error(request, f'Import failed: {message}')
+    else:
+        form = ImportProductsForm()
+
+    return render(request, 'store/dashboard/import_products.html', {
+        'form': form,
+        'title': 'Import AliExpress Products'
+    })

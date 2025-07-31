@@ -283,6 +283,28 @@
             .table-responsive {
                 overflow-x: auto;
             }
+
+            #logout-button {
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 15px 20px;
+    font-weight: 500;
+    color: var(--dark);
+    transition: var(--transition);
+    border-left: 3px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+#logout-button:hover {
+    background-color: rgba(220, 53, 69, 0.05);
+    color: #dc3545;
+    border-left-color: #dc3545;
+}
+
         }
     </style>
 </head>
@@ -335,9 +357,19 @@
                             <a href="#payments" class="list-group-item list-group-item-action">
                                 <i class="fas fa-credit-card"></i> Payment Method
                             </a>
-                            <a href="{% url 'users:logout' %}" class="list-group-item list-group-item-action text-danger" id="logout-link">
+                            <button type="button" class="list-group-item list-group-item-action text-danger"
+                                    data-bs-toggle="modal" data-bs-target="#logoutModal">
                                 <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
+                            </button>
+
+                            <div class="list-group mt-4 border-top">
+                                <a href="{% url 'users:account_delete' %}"
+                                   class="list-group-item list-group-item-action text-danger"
+                                   id="delete-account-link">
+                                    <i class="fas fa-user-slash me-2"></i> Delete Account
+                                </a>
+                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -600,6 +632,42 @@
         </div>
     </div>
 
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-sign-out-alt me-2"></i>Confirm Logout
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div class="mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"></path>
+                        <path d="M17 11h-5V7"></path>
+                        <path d="M21 11h-7"></path>
+                        <path d="m17 11 4 4-4 4"></path>
+                    </svg>
+                </div>
+                <h5 class="mb-3">Are you sure you want to log out?</h5>
+                <p class="text-muted">You'll need to sign back in to access your account</p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <form action="{% url 'users:logout' %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger px-4">
+                        <i class="fas fa-sign-out-alt me-2"></i>Yes, Logout
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
     <!-- Bootstrap & jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -644,5 +712,149 @@
             });
         });
     </script>
+
+<div class="modal fade" id="sessionTimeoutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-clock me-2"></i>Session About to Expire
+                </h5>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div class="mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#ffc107" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </div>
+                <h5 class="mb-3">Your session will expire soon!</h5>
+                <p class="text-muted mb-4" id="sessionCountdown">You'll be logged out in <span id="timeLeft">02:00</span> minutes</p>
+                <div class="progress mb-4" style="height: 8px;">
+                    <div id="sessionProgress" class="progress-bar bg-warning" role="progressbar" style="width: 100%"></div>
+                </div>
+                <p>Do you want to continue your session?</p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" class="btn btn-outline-danger px-4" id="logoutNowBtn">
+                    <i class="fas fa-sign-out-alt me-2"></i>Logout Now
+                </button>
+                <button type="button" class="btn btn-primary px-4" id="extendSessionBtn">
+                    <i class="fas fa-sync-alt me-2"></i>Continue Session
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Session timeout warning
+document.addEventListener('DOMContentLoaded', function() {
+    const SESSION_TIMEOUT = {{ request.session.get_expiry_age }}; // Session length in seconds
+    const WARNING_TIME = 120; // Show warning 2 minutes before expiration
+
+    let timeoutWarning;
+    let logoutTimer;
+    let sessionTimer;
+    let timeLeft = WARNING_TIME;
+
+    function startTimers() {
+        // Set warning timer
+        timeoutWarning = setTimeout(showTimeoutWarning, (SESSION_TIMEOUT - WARNING_TIME) * 1000);
+
+        // Set actual logout timer
+        logoutTimer = setTimeout(logoutUser, SESSION_TIMEOUT * 1000);
+
+        // Start session countdown
+        sessionTimer = setInterval(updateSessionTimer, 1000);
+    }
+
+    function showTimeoutWarning() {
+        const modal = new bootstrap.Modal(document.getElementById('sessionTimeoutModal'));
+        modal.show();
+
+        // Start countdown display
+        const countdown = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timeLeft').textContent =
+                `${Math.floor(timeLeft/60).toString().padStart(2, '0')}:${(timeLeft%60).toString().padStart(2, '0')}`;
+
+            // Update progress bar
+            const progress = (timeLeft / WARNING_TIME) * 100;
+            document.getElementById('sessionProgress').style.width = `${progress}%`;
+
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                logoutUser();
+            }
+        }, 1000);
+
+        // Handle extend session button
+        document.getElementById('extendSessionBtn').addEventListener('click', function() {
+            clearInterval(countdown);
+            modal.hide();
+            extendSession();
+        });
+
+        // Handle logout now button
+        document.getElementById('logoutNowBtn').addEventListener('click', function() {
+            clearInterval(countdown);
+            logoutUser();
+        });
+    }
+
+    function updateSessionTimer() {
+        // Could implement a visible timer on page if needed
+    }
+
+    function logoutUser() {
+        // Create a hidden form and submit it
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = "{% url 'users:logout' %}";
+
+        const csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = 'csrfmiddlewaretoken';
+        csrf.value = '{{ csrf_token }}';
+        form.appendChild(csrf);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function extendSession() {
+        // Reset timers
+        clearTimeout(timeoutWarning);
+        clearTimeout(logoutTimer);
+        clearInterval(sessionTimer);
+
+        // Ping server to extend session
+        fetch("{% url 'users:session_keepalive' %}", { method: 'HEAD' })
+            .then(() => {
+                timeLeft = WARNING_TIME;
+                startTimers();
+            });
+    }
+
+
+    // Initialize timers
+    startTimers();
+
+    // Reset timers on user activity
+    document.addEventListener('mousemove', resetTimers);
+    document.addEventListener('keypress', resetTimers);
+
+    function resetTimers() {
+        clearTimeout(timeoutWarning);
+        clearTimeout(logoutTimer);
+        clearInterval(sessionTimer);
+        startTimers();
+    }
+});
+
+
+</script>
+
 </body>
 </html>

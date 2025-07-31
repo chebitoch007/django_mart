@@ -1,9 +1,12 @@
 from django.conf import settings
 from .models import Category
 
-def categories(request):
+def top_level_categories(request):
     return {
-        'categories': Category.objects.all()
+        'top_level_categories': Category.objects.filter(
+            parent=None,
+            is_active=True
+        )
     }
 
 def currency_context(request):

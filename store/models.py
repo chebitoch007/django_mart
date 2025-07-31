@@ -1,6 +1,8 @@
+from django.db import transaction
 import uuid
-from django.db.models import Q
+from django.db.models import Q, Value
 from django.db.models.functions import Greatest
+from django.templatetags.static import static
 from django.urls import reverse
 from django.conf import settings
 from django.db import models
@@ -20,7 +22,7 @@ class Category(MPTTModel):  # Change from models.Model to MPTTModel
         upload_to='categories/',
         blank=True,
         null=True,
-        default='categories/default.png'
+        default=''
     )
     is_active = models.BooleanField(default=True)
     meta_title = models.CharField(max_length=100, blank=True)
@@ -57,9 +59,19 @@ class Category(MPTTModel):  # Change from models.Model to MPTTModel
         verbose_name_plural = "Categories"
         ordering = ['name']
 
+
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            base_slug = slugify(self.name)
+            unique_slug = base_slug
+            counter = 1
+
+            # Generate unique slug
+            while Category.objects.filter(slug=unique_slug).exclude(pk=self.pk).exists():
+                unique_slug = f"{base_slug}-{counter}"
+                counter += 1
+
+            self.slug = unique_slug
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
@@ -118,9 +130,11 @@ class ProductManager(models.Manager):
         ).distinct()
 
 
+
+
 class Product(models.Model):
     category = models.ForeignKey(
-        Category,
+        'Category',
         related_name='products',
         on_delete=models.CASCADE
     )
@@ -141,51 +155,68 @@ class Product(models.Model):
     updated = models.DateTimeField(auto_now=True)
     objects = ProductManager()
 
+    # Dropshipping fields
     is_dropship = models.BooleanField(default=False)
     supplier = models.CharField(max_length=100, blank=True)
     supplier_url = models.URLField(blank=True)
     shipping_time = models.CharField(max_length=50, default="10-20 days")
-    commission_rate = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        default=15.00
-    )
+    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=15.00)
+    supplier_product_id = models.CharField(max_length=100, blank=True)
+    package_dimensions = models.CharField(max_length=100, blank=True)
+    package_weight = models.DecimalField(max_digits=6, decimal_places=2, default=0)
 
+    # Search support
     search_vector = SearchVectorField(null=True, blank=True)
-
-    class Meta:
-        indexes = [
-            GinIndex(fields=['search_vector']),
-            models.Index(fields=['name']),
-            models.Index(fields=['price']),
-        ]
-        ordering = ['-created']
+    search_name = models.CharField(max_length=255, blank=True)
+    search_description = models.TextField(blank=True)
+    search_category = models.CharField(max_length=100, blank=True)
 
     def save(self, *args, **kwargs):
+        # Generate unique slug if not set
         if not self.slug:
             base_slug = slugify(self.name)
             unique_id = str(uuid.uuid4())[:4]
             self.slug = f"{base_slug}-{unique_id}"
-
-            # Ensure uniqueness
             while Product.objects.filter(slug=self.slug).exists():
                 unique_id = str(uuid.uuid4())[:4]
                 self.slug = f"{base_slug}-{unique_id}"
 
+        # Populate search fields
+        self.search_name = self.name
+        self.search_description = self.description
+        self.search_category = self.category.name if self.category else ''
+
         super().save(*args, **kwargs)
-        # Update search vector after save
-        self.update_search_vector()
+
+        # Update search vector without joins
+        category_name = self.search_category or ''
+        with transaction.atomic():
+            Product.objects.filter(pk=self.pk).update(
+                search_vector=(
+                    SearchVector(Value(self.name), weight='A') +
+                    SearchVector(Value(self.short_description), weight='B') +
+                    SearchVector(Value(self.description), weight='C') +
+                    SearchVector(Value(category_name), weight='A')
+                )
+            )
 
     def update_search_vector(self):
-        """Update the search vector field for full-text search"""
-        Product.objects.filter(pk=self.pk).update(
-            search_vector=(
-                    SearchVector('name', weight='A') +
-                    SearchVector('short_description', weight='B') +
-                    SearchVector('description', weight='C') +
-                    SearchVector('category__name', weight='A')
+        """Manually trigger search vector update (optional)."""
+        category_name = Category.objects.filter(pk=self.category_id).values_list('name', flat=True).first() or ''
+        with transaction.atomic():
+            Product.objects.filter(pk=self.pk).update(
+                search_vector=(
+                    SearchVector(Value(self.name), weight='A') +
+                    SearchVector(Value(self.short_description), weight='B') +
+                    SearchVector(Value(self.description), weight='C') +
+                    SearchVector(Value(category_name), weight='A')
+                )
             )
-        )
+
+    def get_image_url(self):
+        if self.image and self.image.name:
+            return self.image.url
+        return static('store/images/placeholder.png')
 
     def get_absolute_url(self):
         return reverse('store:product_detail', args=[self.slug])
@@ -201,17 +232,24 @@ class Product(models.Model):
             self.save()
 
     def get_discount_percentage(self):
-        """Calculate discount percentage if applicable"""
         if self.discount_price and self.price and self.price > 0:
             return round((self.price - self.discount_price) / self.price * 100)
         return 0
 
-    def __str__(self):
-        return self.name
-
     @property
     def on_sale(self):
         return bool(self.discount_price and self.discount_price < self.price)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        indexes = [
+            GinIndex(fields=['search_vector']),
+            models.Index(fields=['name']),
+            models.Index(fields=['price']),
+        ]
+        ordering = ['-created']
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='additional_images')
