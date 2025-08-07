@@ -13,40 +13,99 @@ from payment.models import PaymentMethod, CURRENCY_CHOICES, Payment
 logger = logging.getLogger(__name__)
 
 
+# Simple Luhn checksum validation
+def luhn_checksum(card_number: str) -> bool:
+    """Return True if card_number passes the Luhn checksum."""
+    def digits_of(n): return [int(d) for d in n]
+    digits = digits_of(card_number)
+    odd_sum = sum(digits[-1::-2])
+    even_sum = sum(sum(digits_of(str(2 * d))) for d in digits[-2::-2])
+    return (odd_sum + even_sum) % 10 == 0
+
+
 class PaymentProcessingForm(forms.Form):
-    #order = forms.ModelChoiceField(queryset=Order.objects.all())
     order_id = forms.IntegerField()
-    payment_method = forms.CharField()
+    order = forms.IntegerField(required=False)
+    payment_method = forms.CharField(max_length=20)
     amount = forms.DecimalField(max_digits=12, decimal_places=2)
     currency = forms.CharField(max_length=3)
+    conversion_rate = forms.FloatField()
+
+    # Optional fields
     phone_number = forms.CharField(required=False)
     card_data = forms.JSONField(required=False)
-    idempotency_key = forms.UUIDField(required=False)  # Add idempotency
+    idempotency_key = forms.UUIDField(required=False)
+
+    # Stripe-related fields
+    stripe_payment_intent_id = forms.CharField(required=False)
+    payment_intent_client_secret = forms.CharField(required=False)
+
+    # PayPal-related fields
+    paypal_order_id = forms.CharField(required=False)
+    paypal_payer_id = forms.CharField(required=False)
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
+        self.kwargs = kwargs  # Capture remaining keyword args
         super().__init__(*args, **kwargs)
 
-    # Add this method to get the order object
     def clean(self):
-        cleaned_data = super().clean()
-        order_id = cleaned_data.get('order_id')
+        cleaned = super().clean()
+
+        # --- ORDER VALIDATION ---
+        order_id = cleaned.get('order_id') or cleaned.get('order') or self.kwargs.get('order_id')
         try:
             order = Order.objects.get(id=order_id)
-        except Order.DoesNotExist:
+        except (Order.DoesNotExist, TypeError):
             raise ValidationError("Invalid order ID")
-
         if order.user != self.user:
             raise ValidationError("Order does not belong to this user")
+        cleaned['order'] = order
 
-        cleaned_data['order'] = order  # Add order object to cleaned_data
-        return cleaned_data
+        # --- PAYMENT METHOD VALIDATION ---
+        method = cleaned.get('payment_method', '').lower()
+        try:
+            enabled = [m.lower() for m in settings.ENABLED_PAYMENT_METHODS]
+        except AttributeError:
+            enabled = ['mpesa', 'airtel', 'card', 'paypal']
+        if method not in enabled:
+            raise ValidationError("This payment method is not currently available")
 
-    def clean_order(self):
-        order = self.cleaned_data['order']
-        if order.user != self.user:
-            raise ValidationError("Order does not belong to this user")
-        return order
+        # --- MOBILE MONEY ---
+        if method in ('mpesa', 'airtel'):
+            phone = cleaned.get('phone_number', '')
+            if not phone:
+                self.add_error('phone_number', 'Phone number is required for mobile payments')
+            elif not re.match(r'^7\d{8}$', phone):
+                self.add_error('phone_number', 'Invalid phone number format (e.g. 712345678)')
+
+        # --- CARD (Stripe) ---
+        elif method == 'card':
+            card = cleaned.get('card_data')
+            if card:
+                required = {'number', 'expiry', 'cvv', 'name'}
+                missing = required - set(card)
+                if missing:
+                    self.add_error('card_data', f'Missing fields: {missing}')
+                else:
+                    number = card.get('number', '').replace(' ', '')
+                    if not luhn_checksum(number):
+                        self.add_error('card_data', 'Invalid card number')
+            elif not cleaned.get('stripe_payment_intent_id'):
+                self.add_error('stripe_payment_intent_id', 'Stripe payment ID is missing')
+
+        # --- PAYPAL ---
+        elif method == 'paypal':
+            # Validation handled at view level
+            pass
+
+        return cleaned
+
+    def clean_amount(self):
+        amount = self.cleaned_data['amount']
+        if amount <= 0:
+            raise forms.ValidationError("Invalid payment amount")
+        return amount
 
     def clean_idempotency_key(self):
         key = self.cleaned_data.get('idempotency_key')
@@ -54,60 +113,12 @@ class PaymentProcessingForm(forms.Form):
             raise ValidationError("This payment has already been processed")
         return key
 
-    def clean(self):
-        cleaned_data = super().clean()
-        method = cleaned_data.get('payment_method').lower()
-
-        # Validate method against enabled methods
-        enabled_methods = [m.lower() for m in settings.ENABLED_PAYMENT_METHODS]
-        if method not in enabled_methods:
-            raise ValidationError("This payment method is not currently available")
-
-        # Method-specific validation
-        if method in ['mpesa', 'airtel']:
-            if not cleaned_data.get('phone_number'):
-                self.add_error('phone_number', 'Phone number is required for mobile payments')
-            elif not re.match(r'^7\d{8}$', cleaned_data['phone_number']):
-                self.add_error('phone_number', 'Invalid phone number format')
-
-        elif method == 'card':
-            card_data = cleaned_data.get('card_data')
-            if not card_data:
-                self.add_error('card_data', 'Card data is required')
-            else:
-                # Validate card details
-                if not all(k in card_data for k in ['number', 'expiry', 'cvv', 'name']):
-                    self.add_error('card_data', 'Invalid card data structure')
-
-                # Simple Luhn check
-                if not luhn_checksum(card_data.get('number', '').replace(' ', '')):
-                    self.add_error('card_data', 'Invalid card number')
-
-        return cleaned_data
-
     def clean_payment_method(self):
-        method = self.cleaned_data['payment_method'].lower()
-        allowed_methods = ['mpesa', 'airtel', 'card', 'paypal']
-
-        if method not in allowed_methods:
+        method = self.cleaned_data.get('payment_method', '').lower()
+        allowed = ['mpesa', 'airtel', 'card', 'paypal']
+        if method not in allowed:
             raise ValidationError("Invalid payment method")
-
         return method
-
-
-def luhn_checksum(card_number):
-    """Validate card number using Luhn algorithm"""
-
-    def digits_of(n):
-        return [int(d) for d in str(n)]
-
-    digits = digits_of(card_number)
-    odd_digits = digits[-1::-2]
-    even_digits = digits[-2::-2]
-    total = sum(odd_digits)
-    for d in even_digits:
-        total += sum(digits_of(d * 2))
-    return total % 10 == 0
 
 
 class PaymentMethodForm(forms.ModelForm):

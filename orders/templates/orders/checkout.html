@@ -1,6 +1,24 @@
 {% extends "store/base.html" %}
 {% load humanize static %}
-<script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&currency={{ default_currency|default:'USD' }}"></script>
+
+
+{% block extra_head_scripts %}
+  {% if not stripe_loaded %}
+    <script src="https://js.stripe.com/v3/"></script>
+  {% endif %}
+
+
+
+ {% if not paypal_loaded %}
+  <script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&currency=USD&commit=false&components=buttons"></script>
+ {% endif %}
+
+{% endblock %}
+
+
+
+
+
 {% block content %}
 <style>
     /* Checkout Page Styles */
@@ -106,34 +124,6 @@
     .method-name {
         font-weight: 600;
         color: #1e293b;
-    }
-
-    /* New styles for card payment fields */
-    .payment-fields {
-        display: none;
-        margin-bottom: 25px;
-    }
-
-    .card-details-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 15px;
-    }
-
-    .card-details-grid .card-expiry {
-        grid-column: span 1;
-    }
-
-    .card-details-grid .card-cvv {
-        grid-column: span 1;
-    }
-
-    .card-details-grid .card-name {
-        grid-column: span 2;
-    }
-
-    .card-details-grid .card-number {
-        grid-column: span 2;
     }
 
     .input-group {
@@ -500,6 +490,13 @@
         vertical-align: middle;
     }
 
+    #stripe-card-element {
+    min-height: 40px;
+    display: block;
+    position: relative;
+    z-index: 1;
+    }
+
     /* Responsive improvements */
     @media (max-width: 767px) {
         .checkout-container {
@@ -512,17 +509,6 @@
 
         .methods-grid {
             grid-template-columns: 1fr !important;
-        }
-
-        .card-details-grid {
-            grid-template-columns: 1fr !important;
-        }
-
-        .card-details-grid .card-expiry,
-        .card-details-grid .card-cvv,
-        .card-details-grid .card-name,
-        .card-details-grid .card-number {
-            grid-column: span 1 !important;
         }
 
         .payment-tabs {
@@ -560,6 +546,23 @@
         font-size: 0.85rem;
         margin-top: 5px;
         display: none;
+    }
+
+      /* Fix for PayPal button container */
+    #paypal-button-container-wrapper {
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Ensure PayPal buttons are properly contained */
+    /* Add this to fix PayPal positioning */
+    #paypal-button-container {
+        position: relative;
+        z-index: 1;
+    }
+    /* Fix for iframe z-index */
+    body > iframe[data-paypal-checkout] {
+        z-index: 9999 !important;
     }
 </style>
 
@@ -644,12 +647,14 @@
                 <!-- Payment Forms -->
                 <form id="paymentForm" method="post" action="{% url 'payment:process_payment' order.id %}" novalidate>
                     {% csrf_token %}
-                    <input type="hidden" name="order_id" value="{{ cart.id }}">
+                    <input type="hidden" name="order_id" value="{{ order.id }}">
+                    <input type="hidden" name="amount" id="formAmount" value="{{ order.total_price }}">
                     <input type="hidden" name="payment_method" id="selectedMethod" value="{% firstof prioritized_methods.0 'card' %}">
                     <input type="hidden" name="currency" id="formCurrency" value="{{ default_currency }}">
                     <input type="hidden" name="conversion_rate" id="formConversionRate" value="1">
                     <input type="hidden" name="paypal_order_id" id="paypalOrderId">
                     <input type="hidden" name="paypal_payer_id" id="paypalPayerId">
+                    <input type="hidden" name="stripe_payment_intent_id" id="stripePaymentIntentId">
 
                     <!-- Mobile Money Fields -->
                     <div class="payment-form-section" id="mobileMoneySection" style="display: none;">
@@ -669,77 +674,50 @@
                         </div>
                     </div>
 
-                    <!-- Card Payment Fields -->
+                    <!-- Stripe Error Message -->
+                    {% if stripe_error %}
+                    <div class="payment-status error" style="margin-bottom: 1rem; color: #b00020; background-color: #ffe6e6; padding: 1rem; border-radius: 0.5rem;">
+                        <strong>Payment Error:</strong> {{ stripe_error }}
+                        <p>Please try another payment method or contact support.</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Card Payment Fields (Stripe Elements) -->
                     <div class="payment-form-section" id="cardPaymentSection" style="display: none;">
-                        <div class="card-details-grid">
-                            <!-- Card Number -->
-                            <div class="card-number">
-                                <div class="input-group">
-                                    <label class="input-label">Card Number</label>
-                                    <input
-                                        type="text"
-                                        class="text-input"
-                                        id="cardNumber"
-                                        name="card_number"
-                                        placeholder="1234 5678 9012 3456"
-                                        pattern="[0-9\s]{13,19}"
-                                        required>
-                                    <div id="cardNumberError" class="error-text"></div>
+                        <div class="input-group">
+                            <label class="input-label">Card Details</label>
+                          <div id="stripe-card-element" class="text-input">
+                                <!-- Fallback message -->
+                                <div id="stripe-fallback-message" style="display:none;" class="payment-status error">
+                                    Stripe payment is currently unavailable. Please try another payment method.
                                 </div>
-                            </div>
 
-                            <!-- Card Name -->
-                            <div class="card-name">
-                                <div class="input-group">
-                                    <label class="input-label">Name on Card</label>
-                                    <input
-                                        type="text"
-                                        class="text-input"
-                                        id="cardName"
-                                        name="card_name"
-                                        placeholder="John Doe"
-                                        required>
-                                    <div id="cardNameError" class="error-text"></div>
-                                </div>
                             </div>
-
-                            <!-- Expiry Date -->
-                            <div class="card-expiry">
-                                <div class="input-group">
-                                    <label class="input-label">Expiry Date</label>
-                                    <input
-                                        type="text"
-                                        class="text-input"
-                                        id="cardExpiry"
-                                        name="card_expiry"
-                                        placeholder="MM/YY"
-                                        pattern="(0[1-9]|1[0-2])\/\d{2}"
-                                        required>
-                                    <div id="cardExpiryError" class="error-text"></div>
-                                </div>
-                            </div>
-
-                            <!-- CVV -->
-                            <div class="card-cvv">
-                                <div class="input-group">
-                                    <label class="input-label">CVV</label>
-                                    <input
-                                        type="text"
-                                        class="text-input"
-                                        id="cardCvv"
-                                        name="card_cvv"
-                                        placeholder="123"
-                                        pattern="\d{3,4}"
-                                        required>
-                                    <div id="cardCvvError" class="error-text"></div>
-                                </div>
-                            </div>
+                            <div id="stripe-card-errors" class="error-text" role="alert"></div>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Name on Card</label>
+                            <input
+                                type="text"
+                                class="text-input"
+                                id="cardName"
+                                name="card_name"
+                                placeholder="John Doe"
+                                required>
+                            <div id="cardNameError" class="error-text"></div>
                         </div>
                     </div>
 
+
                     <!-- PayPal Fields -->
                     <div class="payment-form-section" id="paypalSection" style="display: none;">
-                        <div id="paypal-button-container"></div>
+                        <div id="paypal-button-container-wrapper">
+                            <div id="paypal-button-container">
+                            </div>
+                        </div>
+                        <div id="paypal-fallback" class="payment-status error" style="display: none;">
+                            PayPal payment is currently unavailable. Please try another payment method.
+                        </div>
                         <div id="paypal-status" class="payment-status info" style="display: none;"></div>
                         <div class="input-group">
                             <p>Click the PayPal button above to complete your payment</p>
@@ -786,9 +764,6 @@
 
         <!-- Order Summary Section -->
         <div class="order-summary-section">
-            <div class="summary-card">
-                <!-- Order summary remains unchanged -->
-                        <div class="order-summary-section">
             <div class="summary-card">
                 <h2 class="summary-title">Order Summary</h2>
 
@@ -838,434 +813,514 @@
 </div>
 
 <script>
-// Enhanced currency handling with decimal precision
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Checkout page loaded');
-    const paymentForm = document.getElementById('paymentForm');
-    const processingModal = document.getElementById('processingModal');
-    const paymentStatus = document.getElementById('paymentStatus');
-    const paymentErrors = document.getElementById('paymentErrors');
-    const selectedMethodInput = document.getElementById('selectedMethod');
-    const currencySelector = document.getElementById('currencySelector');
-    const methodConfirmation = document.getElementById('methodConfirmation');
-    const selectedMethodName = document.getElementById('selectedMethodName');
-    const currencyLoading = document.getElementById('currencyLoading');
-    const locationText = document.getElementById('locationText');
-    const paymentSubmitButton = document.getElementById('paymentSubmitButton');
-    const formCurrency = document.getElementById('formCurrency');
-    const formConversionRate = document.getElementById('formConversionRate');
+    try {
+        // Elements references
+        const paymentForm = document.getElementById('paymentForm');
+        const processingModal = document.getElementById('processingModal');
+        const paymentStatus = document.getElementById('paymentStatus');
+        const paymentErrors = document.getElementById('paymentErrors');
+        const selectedMethodInput = document.getElementById('selectedMethod');
+        const currencySelector = document.getElementById('currencySelector');
+        const methodConfirmation = document.getElementById('methodConfirmation');
+        const selectedMethodName = document.getElementById('selectedMethodName');
+        const currencyLoading = document.getElementById('currencyLoading');
+        const paymentSubmitButton = document.getElementById('paymentSubmitButton');
+        const formCurrency = document.getElementById('formCurrency');
+        const formConversionRate = document.getElementById('formConversionRate');
+        const stripePaymentIntentId = document.getElementById('stripePaymentIntentId');
+        const mobileMoneySection = document.getElementById('mobileMoneySection');
+        const cardPaymentSection = document.getElementById('cardPaymentSection');
+        const paypalSection = document.getElementById('paypalSection');
+        const paymentTabs = document.querySelectorAll('.payment-tab');
 
-    // Payment method sections
-    const mobileMoneySection = document.getElementById('mobileMoneySection');
-    const cardPaymentSection = document.getElementById('cardPaymentSection');
-    const paypalSection = document.getElementById('paypalSection');
-    const paypalButtonContainer = document.getElementById('paypal-button-container');
-    const paypalStatus = document.getElementById('paypal-status');
+        // State variables
+        let currentRate = 1;
+        let currentCurrency = '{{ default_currency|default:"USD" }}';
+        let currentConvertedAmount = parseFloat("{{ cart.total_price }}");
+        let paypalButtons = null;
+        let stripe = null;
+        let cardElement = null;
+        let paypalInitialized = false;
 
-    // Payment tabs
-    const paymentTabs = document.querySelectorAll('.payment-tab');
+        // Currency configuration
+        const currencySymbols = {
+            'USD': '$', 'EUR': '€', 'GBP': '£',
+            'KES': 'KSh', 'UGX': 'USh', 'TZS': 'TSh'
+        };
 
-    // Current conversion values
-    let currentRate = 1;
-    let currentCurrency = '{{ default_currency|default:"USD" }}';
-    let currentConvertedAmount = parseFloat("{{ cart.total_price }}");
-    let paypalButtons = null;
+        // Initialize with server-selected method
+        const serverSelectedMethod = '{{ selected_method|default:prioritized_methods.0 }}';
+        switchPaymentMethod(serverSelectedMethod);
+        restoreFormState();
 
-    // Simple currency symbol map
-    const currencySymbols = {
-        'USD': '$',
-        'EUR': '€',
-        'GBP': '£',
-        'KES': 'KSh',
-        'UGX': 'USh',
-        'TZS': 'TSh'
-    };
+        // ====================
+        // CORE FUNCTIONALITY
+        // ====================
 
-    // Function to update currency symbols
-    function updateCurrencySymbols(currency) {
-        const symbol = currencySymbols[currency] || currency;
-        document.querySelectorAll('.currency-symbol').forEach(el => {
-            el.textContent = symbol;
-        });
-        return symbol;
-    }
+        function switchPaymentMethod(method) {
+            // Update UI state
+            paymentTabs.forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.method === method);
+            });
 
-    // Function to format currency with proper decimal places
-    function formatCurrency(amount, currency) {
-        const decimalPlaces = currency === 'UGX' || currency === 'TZS' ? 0 : 2;
-        return amount.toLocaleString('en-US', {
-            minimumFractionDigits: decimalPlaces,
-            maximumFractionDigits: decimalPlaces
-        });
-    }
+            mobileMoneySection.style.display = ['mpesa', 'airtel'].includes(method) ? 'block' : 'none';
+            cardPaymentSection.style.display = method === 'card' ? 'block' : 'none';
+            paypalSection.style.display = method === 'paypal' ? 'block' : 'none';
+            paymentSubmitButton.style.display = method === 'paypal' ? 'none' : 'block';
 
-    // Function to update amounts with decimal precision
-    function updateAmounts(rate, currency) {
-        console.log(`Updating amounts with rate: ${rate}, currency: ${currency}`);
-        const symbol = updateCurrencySymbols(currency);
-        const baseTotal = parseFloat("{{ cart.total_price }}");
-        currentConvertedAmount = baseTotal * rate;
-
-        // Update item prices
-        document.querySelectorAll('.order-item').forEach(item => {
-            const basePrice = parseFloat(item.dataset.price);
-            const converted = basePrice * rate;
-            item.querySelector('.item-amount').textContent = formatCurrency(converted, currency);
-        });
-
-        // Update subtotal and total
-        document.querySelector('.subtotal-amount').textContent = formatCurrency(currentConvertedAmount, currency);
-        document.querySelector('.total-amount').textContent = formatCurrency(currentConvertedAmount, currency);
-
-        // Update payment amount
-        document.getElementById('amount').value =
-            `${currency} ${formatCurrency(currentConvertedAmount, currency)}`;
-    }
-
-    // Function to switch payment methods
-    function switchPaymentMethod(method) {
-        console.log(`Switching to payment method: ${method}`);
-        // Update active tab
-        paymentTabs.forEach(tab => {
-            if (tab.dataset.method === method) {
-                tab.classList.add('active');
-            } else {
-                tab.classList.remove('active');
+            // Reset PayPal when switching away
+            if (method !== 'paypal') {
+                const paypalContainer = document.getElementById('paypal-button-container');
+                if (paypalContainer) {
+                    paypalContainer.innerHTML = '';
+                    paypalInitialized = false;
+                }
             }
-        });
 
-        // Show/hide form sections
-        mobileMoneySection.style.display = method === 'mpesa' || method === 'airtel' ? 'block' : 'none';
-        cardPaymentSection.style.display = method === 'card' ? 'block' : 'none';
-        paypalSection.style.display = method === 'paypal' ? 'block' : 'none';
+            // Update form data
+            selectedMethodInput.value = method;
+            selectedMethodName.textContent = getMethodDisplayName(method);
+            methodConfirmation.style.display = 'flex';
 
-        // Show/hide submit button for PayPal
-        paymentSubmitButton.style.display = method === 'paypal' ? 'none' : 'block';
+            // Initialize payment processor
+            if (method === 'paypal') initializePayPal();
+            if (method === 'card') initializeStripe();
 
-        // Update hidden input
-        selectedMethodInput.value = method;
-
-        // Show confirmation
-        methodConfirmation.style.display = 'flex';
-        selectedMethodName.textContent =
-            method === 'mpesa' ? 'M-Pesa' :
-            method === 'airtel' ? 'Airtel Money' :
-            method === 'card' ? 'Credit/Debit Card' :
-            method === 'paypal' ? 'PayPal' : method;
-
-        // Initialize PayPal button if needed
-        if (method === 'paypal') {
-            initializePayPalButton();
+            // Update server and save state
+            updateServerPaymentMethod(method);
+            saveFormState();
         }
-    }
 
-    // Initialize PayPal payment button
-    function initializePayPalButton() {
-        // Destroy existing button if it exists
-        if (paypalButtons) {
+        function initializeStripe() {
             try {
-                paypalButtons.close();
-            } catch (e) {
-                console.warn('Error closing PayPal button:', e);
-            }
-        }
+                if (typeof Stripe === 'undefined') {
+                    handlePaymentMethodError('card', new Error('Stripe library not available'));
+                    return false;
+                }
 
-        // Render new PayPal button
-        paypalButtons = paypal.Buttons({
-            createOrder: function(data, actions) {
-                return actions.order.create({
-                    purchase_units: [{
-                        amount: {
-                            currency_code: currentCurrency,
-                            value: currentConvertedAmount.toFixed(2)
+                if (!stripe) {
+                    stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
+                }
+
+                if (!cardElement) {
+                    const elements = stripe.elements();
+                    cardElement = elements.create('card', {
+                        style: {
+                            base: {
+                                fontSize: '16px',
+                                color: '#32325d',
+                                fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                                '::placeholder': { color: '#aab7c4' }
+                            },
+                            invalid: { color: '#fa755a', iconColor: '#fa755a' }
                         }
-                    }]
-                });
-            },
-            onApprove: function(data, actions) {
-                return actions.order.capture().then(function(details) {
-                    console.log('PayPal transaction approved:', details);
-
-                    // Set PayPal details in hidden fields
-                    document.getElementById('paypalOrderId').value = data.orderID;
-                    document.getElementById('paypalPayerId').value = details.payer.payer_id;
-
-                    // Update status
-                    paypalStatus.textContent = 'Payment approved! Finalizing transaction...';
-                    paypalStatus.style.display = 'block';
-
-                    // Submit the form
-                    const formData = new FormData(paymentForm);
-                    submitPaymentForm(formData);
-                });
-            },
-            onError: function(err) {
-                console.error('PayPal error:', err);
-                paypalStatus.textContent = 'An error occurred with PayPal. Please try again.';
-                paypalStatus.className = 'payment-status error';
-                paypalStatus.style.display = 'block';
-            },
-            onCancel: function(data) {
-                console.log('PayPal payment cancelled');
-                paypalStatus.textContent = 'Payment was cancelled. You can try again.';
-                paypalStatus.className = 'payment-status info';
-                paypalStatus.style.display = 'block';
+                    });
+                    cardElement.mount('#stripe-card-element');
+                    cardElement.on('change', handleStripeChange);
+                }
+                return true;
+            } catch (error) {
+                handlePaymentMethodError('card', error);
+                return false;
             }
-        });
-
-        // Render the PayPal button
-        if (paypalButtons.isEligible()) {
-            paypalButtons.render('#paypal-button-container');
-        } else {
-            paypalButtonContainer.innerHTML = '<p>PayPal is not available in your region. Please choose another payment method.</p>';
-        }
-    }
-
-    // Add event listeners to payment tabs
-    paymentTabs.forEach(tab => {
-        tab.addEventListener('click', function() {
-            switchPaymentMethod(this.dataset.method);
-        });
-    });
-
-    // Currency change handler with improved error handling
-    currencySelector.addEventListener('change', function() {
-        const selectedCurrency = this.value;
-        const selectedOption = this.options[this.selectedIndex];
-        const currencySymbol = selectedOption.getAttribute('data-symbol');
-        const currencyRate = parseFloat(selectedOption.getAttribute('data-rate'));
-
-        console.log(`Currency changed to: ${selectedCurrency}, rate: ${currencyRate}`);
-
-        // Update form values
-        formCurrency.value = selectedCurrency;
-        formConversionRate.value = currencyRate;
-        currentCurrency = selectedCurrency;
-
-        // Show loading indicator
-        currencyLoading.style.display = 'inline-block';
-
-        // Update all amounts immediately
-        updateAmounts(currencyRate, selectedCurrency);
-        currencyLoading.style.display = 'none';
-
-        // Reinitialize PayPal button if it's the current method
-        if (selectedMethodInput.value === 'paypal') {
-            initializePayPalButton();
-        }
-    });
-
-    // Initialize payment method based on priority
-    {% if prioritized_methods %}
-        switchPaymentMethod('{{ prioritized_methods.0 }}');
-    {% else %}
-        switchPaymentMethod('card');
-    {% endif %}
-
-    // Initialize currency symbols and rates
-    updateCurrencySymbols('{{ default_currency|default:"USD" }}');
-    const initialCurrency = document.querySelector('#currencySelector option[selected]');
-    if (initialCurrency) {
-        formConversionRate.value = initialCurrency.getAttribute('data-rate');
-    }
-
-    // Validation functions
-    function validatePhoneNumber() {
-        const phoneInput = document.getElementById('phoneNumber');
-        const errorElement = document.getElementById('phoneError');
-        const regex = /^7\d{8}$/;
-
-        if (!regex.test(phoneInput.value)) {
-            phoneInput.classList.add('invalid');
-            errorElement.textContent = 'Please enter a valid phone number (7 followed by 8 digits)';
-            errorElement.style.display = 'block';
-            return false;
         }
 
-        phoneInput.classList.remove('invalid');
-        errorElement.style.display = 'none';
-        return true;
-    }
+        function initializePayPal() {
+            if (paypalInitialized) return;
+            paypalInitialized = true;
 
-    function validateCardNumber() {
-        const cardInput = document.getElementById('cardNumber');
-        const errorElement = document.getElementById('cardNumberError');
-        const cardValue = cardInput.value.replace(/\s/g, '');
+            try {
+                if (typeof paypal === 'undefined') {
+                    throw new Error('PayPal SDK not loaded');
+                }
 
-        if (!/^\d{13,19}$/.test(cardValue)) {
-            cardInput.classList.add('invalid');
-            errorElement.textContent = 'Please enter a valid card number';
-            errorElement.style.display = 'block';
-            return false;
-        }
+                const paypalContainer = document.getElementById('paypal-button-container');
+                paypalContainer.innerHTML = '';
 
-        cardInput.classList.remove('invalid');
-        errorElement.style.display = 'none';
-        return true;
-    }
+                // Calculate PayPal amount (always in USD)
+                let paypalAmount = currentConvertedAmount;
+                if (currentCurrency !== 'USD') {
+                    const usdOption = Array.from(currencySelector.options)
+                        .find(opt => opt.value === 'USD');
+                    const usdRate = usdOption ? parseFloat(usdOption.dataset.rate) : 0.0077;
+                    paypalAmount *= usdRate;
+                }
 
-    function validateCardExpiry() {
-        const expiryInput = document.getElementById('cardExpiry');
-        const errorElement = document.getElementById('cardExpiryError');
+                paypalButtons = paypal.Buttons({
+                    createOrder: (data, actions) => actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                currency_code: 'USD',
+                                value: paypalAmount.toFixed(2)
+                            }
+                        }],
+                        application_context: {
+                            shipping_preference: 'NO_SHIPPING'
+                        }
+                    }),
+                    onApprove: (data, actions) => {
+                        document.getElementById('paypalOrderId').value = data.orderID;
+                        actions.order.capture().then(details => {
+                            document.getElementById('paypalPayerId').value = details.payer.payer_id;
+                            paypalStatus.textContent = 'Payment approved! Finalizing...';
+                            paypalStatus.className = 'payment-status success';
+                            paypalStatus.style.display = 'block';
+                            submitPaymentForm(new FormData(paymentForm));
+                        });
+                    },
+                    onError: err => {
+                        showPayPalError(err.message || 'Please try again');
+                    },
+                    onCancel: () => {
+                        showPayPalStatus('Payment cancelled', 'info');
+                    },
+                    style: { layout: 'vertical' },
+                    fundingSource: paypal.FUNDING.PAYPAL
+                });
 
-        if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiryInput.value)) {
-            expiryInput.classList.add('invalid');
-            errorElement.textContent = 'Please enter a valid expiry date (MM/YY)';
-            errorElement.style.display = 'block';
-            return false;
-        }
-
-        expiryInput.classList.remove('invalid');
-        errorElement.style.display = 'none';
-        return true;
-    }
-
-    function validateCardCvv() {
-        const cvvInput = document.getElementById('cardCvv');
-        const errorElement = document.getElementById('cardCvvError');
-
-        if (!/^\d{3,4}$/.test(cvvInput.value)) {
-            cvvInput.classList.add('invalid');
-            errorElement.textContent = 'Please enter a valid CVV (3 or 4 digits)';
-            errorElement.style.display = 'block';
-            return false;
-        }
-
-        cvvInput.classList.remove('invalid');
-        errorElement.style.display = 'none';
-        return true;
-    }
-
-    function validateCardName() {
-        const nameInput = document.getElementById('cardName');
-        const errorElement = document.getElementById('cardNameError');
-
-        if (nameInput.value.trim().length < 3) {
-            nameInput.classList.add('invalid');
-            errorElement.textContent = 'Please enter the name on your card';
-            errorElement.style.display = 'block';
-            return false;
-        }
-
-        nameInput.classList.remove('invalid');
-        errorElement.style.display = 'none';
-        return true;
-    }
-
-    // Add real-time validation listeners
-    document.getElementById('phoneNumber')?.addEventListener('input', validatePhoneNumber);
-    document.getElementById('cardNumber')?.addEventListener('input', validateCardNumber);
-    document.getElementById('cardExpiry')?.addEventListener('input', validateCardExpiry);
-    document.getElementById('cardCvv')?.addEventListener('input', validateCardCvv);
-    document.getElementById('cardName')?.addEventListener('input', validateCardName);
-
-    // Function to submit payment form
-    function submitPaymentForm(formData) {
-        // Show processing UI
-        processingModal.classList.add('active');
-        paymentStatus.style.display = 'block';
-
-        fetch("{% url 'payment:process_payment' order.id%}", {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': "{{ csrf_token }}",
-                'X-Requested-With': 'XMLHttpRequest'
+                if (paypalButtons.isEligible()) {
+                    paypalButtons.render('#paypal-button-container');
+                } else {
+                    paypalContainer.innerHTML = `
+                        <p class="payment-status error">
+                            PayPal not available in your region
+                        </p>`;
+                }
+            } catch (error) {
+                handlePaymentMethodError('paypal', error);
+                paypalInitialized = false;
             }
-        })
-        .then(response => {
-            if (!response.ok) throw response;
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                paymentStatus.innerHTML = 'Payment successful! Redirecting...';
-                setTimeout(() => {
-                    window.location.href = data.redirect_url || "{% url 'orders:success' %}";
-                }, 2000);
+        }
+
+        // ====================
+        // HELPER FUNCTIONS
+        // ====================
+
+        function handleStripeChange(event) {
+            const displayError = document.getElementById('stripe-card-errors');
+            if (event.error) {
+                displayError.textContent = event.error.message;
+                displayError.style.display = 'block';
             } else {
-                processingModal.classList.remove('active');
-                paymentErrors.innerHTML = data.error_message || 'Payment failed. Please try again.';
+                displayError.textContent = '';
+                displayError.style.display = 'none';
+            }
+        }
+
+        function updateServerPaymentMethod(method) {
+            fetch('{% url "orders:update_payment_method" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': "{{ csrf_token }}"
+                },
+                body: `method=${method}`
+            }).catch(console.error);
+        }
+
+        function getMethodDisplayName(method) {
+            return {
+                'mpesa': 'M-Pesa',
+                'airtel': 'Airtel Money',
+                'card': 'Credit/Debit Card',
+                'paypal': 'PayPal'
+            }[method] || method;
+        }
+
+        function showPayPalError(message) {
+            paypalStatus.textContent = `PayPal error: ${message}`;
+            paypalStatus.className = 'payment-status error';
+            paypalStatus.style.display = 'block';
+        }
+
+        function showPayPalStatus(message, type) {
+            paypalStatus.textContent = message;
+            paypalStatus.className = `payment-status ${type}`;
+            paypalStatus.style.display = 'block';
+        }
+
+        function handlePaymentMethodError(method, error) {
+            console.error(`${method} payment error:`, error);
+            document.querySelectorAll(`.payment-tab[data-method="${method}"]`).forEach(tab => {
+                tab.style.opacity = '0.5';
+                tab.style.pointerEvents = 'none';
+                tab.title = `${method} payment unavailable`;
+            });
+
+            if (selectedMethodInput.value === method) {
+                const firstValid = document.querySelector('.payment-tab:not([style*="opacity: 0.5"])');
+                if (firstValid) switchPaymentMethod(firstValid.dataset.method);
+            }
+        }
+
+        function updateCurrencySymbols(currency) {
+            const symbol = currencySymbols[currency] || currency;
+            document.querySelectorAll('.currency-symbol').forEach(el => {
+                el.textContent = symbol;
+            });
+            return symbol;
+        }
+
+        function formatCurrency(amount, currency) {
+            const decimalPlaces = currency === 'UGX' || currency === 'TZS' ? 0 : 2;
+            return amount.toLocaleString('en-US', {
+                minimumFractionDigits: decimalPlaces,
+                maximumFractionDigits: decimalPlaces
+            });
+        }
+
+        function updateAmounts(rate, currency) {
+            const symbol = updateCurrencySymbols(currency);
+            const baseTotal = parseFloat("{{ cart.total_price }}");
+            currentConvertedAmount = baseTotal * rate;
+
+            document.querySelectorAll('.order-item').forEach(item => {
+                const basePrice = parseFloat(item.dataset.price);
+                item.querySelector('.item-amount').textContent =
+                    formatCurrency(basePrice * rate, currency);
+            });
+
+            document.querySelector('.subtotal-amount').textContent =
+                formatCurrency(currentConvertedAmount, currency);
+            document.querySelector('.total-amount').textContent =
+                formatCurrency(currentConvertedAmount, currency);
+
+            document.getElementById('formAmount').value = currentConvertedAmount;
+        }
+
+        // ====================
+        // FORM STATE MANAGEMENT
+        // ====================
+
+        function saveFormState() {
+            const state = {
+                method: selectedMethodInput.value,
+                currency: currencySelector.value,
+                phone: document.getElementById('phoneNumber')?.value || '',
+                cardName: document.getElementById('cardName')?.value || '',
+                terms: document.getElementById('termsAgreement').checked
+            };
+            localStorage.setItem('paymentFormState', JSON.stringify(state));
+        }
+
+        function restoreFormState() {
+            const state = JSON.parse(localStorage.getItem('paymentFormState') || '{}');
+            if (state.phone) document.getElementById('phoneNumber').value = state.phone;
+            if (state.cardName) document.getElementById('cardName').value = state.cardName;
+            if (state.terms) document.getElementById('termsAgreement').checked = true;
+        }
+
+        // ====================
+        // VALIDATION FUNCTIONS
+        // ====================
+
+        function validatePhoneNumber() {
+            const phoneInput = document.getElementById('phoneNumber');
+            const errorElement = document.getElementById('phoneError');
+            const isValid = /^7\d{8}$/.test(phoneInput.value);
+
+            phoneInput.classList.toggle('invalid', !isValid);
+            errorElement.textContent = isValid ? '' : 'Enter valid phone (7 followed by 8 digits)';
+            errorElement.style.display = isValid ? 'none' : 'block';
+
+            return isValid;
+        }
+
+        function validateCardName() {
+            const nameInput = document.getElementById('cardName');
+            const errorElement = document.getElementById('cardNameError');
+            const isValid = nameInput.value.trim().length >= 3;
+
+            nameInput.classList.toggle('invalid', !isValid);
+            errorElement.textContent = isValid ? '' : 'Enter name on card';
+            errorElement.style.display = isValid ? 'none' : 'block';
+
+            return isValid;
+        }
+
+        function validateTerms() {
+            const isValid = document.getElementById('termsAgreement').checked;
+            if (!isValid) {
+                paymentErrors.textContent = 'You must agree to the terms';
                 paymentErrors.style.display = 'block';
             }
-        })
-        .catch(async (error) => {
-            let errorMessage = 'An unexpected error occurred. Please try again.';
-            try {
-                const errorData = await error.json();
-                errorMessage = errorData.error_message || errorMessage;
-            } catch (e) {
-                console.error('Error parsing error response', e);
+            return isValid;
+        }
+
+        // ====================
+        // PAYMENT PROCESSING
+        // ====================
+
+        async function processStripePayment() {
+            // Get client secret from template
+            const clientSecret = '{{ payment_intent_client_secret|escapejs }}';
+
+            // Validate client secret format
+            if (!clientSecret || !clientSecret.startsWith('pi_')) {
+                const errorElement = document.getElementById('stripe-card-errors');
+                errorElement.textContent = 'Stripe payment is currently unavailable. Please try another payment method.';
+                errorElement.style.display = 'block';
+                return false;
             }
-            console.error('Payment processing error:', error);
+            if (!validateCardName() || !validateTerms()) return false;
+
+            processingModal.classList.add('active');
+
+
+    try {
+        const { paymentIntent, error } = await stripe.confirmCardPayment(
+            clientSecret, { // <-- CORRECTED LINE
+                payment_method: {
+                    card: cardElement,
+                    billing_details: {
+                        name: document.getElementById('cardName').value
+                    }
+                }
+            }
+        );
+
+                if (error) throw error;
+
+                stripePaymentIntentId.value = paymentIntent.id;
+                submitPaymentForm(new FormData(paymentForm));
+                return true;
+            } catch (error) {
+                processingModal.classList.remove('active');
+                const errorElement = document.getElementById('stripe-card-errors');
+                errorElement.textContent = error.message || 'Payment processing failed';
+                errorElement.style.display = 'block';
+                return false;
+            }
+        }
+
+        function submitPaymentForm(formData) {
+            processingModal.classList.add('active');
+            paymentStatus.style.display = 'block';
+
+            fetch("{% url 'payment:process_payment' order.id %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': "{{ csrf_token }}",
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(handlePaymentResponse)
+            .catch(handlePaymentError);
+        }
+
+        function handlePaymentResponse(response) {
+            if (!response.ok) return Promise.reject(response);
+            return response.json().then(data => {
+                if (data.success) {
+                    localStorage.removeItem('paymentFormState');
+                    paymentStatus.innerHTML = 'Payment successful! Redirecting...';
+                    setTimeout(() => {
+                        window.location.href = data.redirect_url || "{% url 'orders:success' %}";
+                    }, 2000);
+                } else {
+                    processingModal.classList.remove('active');
+                    paymentErrors.textContent = data.error_message || 'Payment failed';
+                    paymentErrors.style.display = 'block';
+                }
+            });
+        }
+
+        function handlePaymentError(error) {
             processingModal.classList.remove('active');
-            paymentErrors.innerHTML = errorMessage;
-            paymentErrors.style.display = 'block';
+            error.json().then(errorData => {
+                paymentErrors.textContent = errorData.error_message || 'Unexpected error';
+            }).catch(() => {
+                paymentErrors.textContent = 'Network error';
+            }).finally(() => {
+                paymentErrors.style.display = 'block';
+            });
+        }
+
+        // ====================
+        // EVENT HANDLERS
+        // ====================
+
+        paymentTabs.forEach(tab => {
+            tab.addEventListener('click', () => switchPaymentMethod(tab.dataset.method));
         });
-    }
 
-    // Payment form submit handler
-    paymentForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        console.log('Payment form submitted');
+        currencySelector.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const currency = selectedOption.value;
+            const rate = parseFloat(selectedOption.dataset.rate);
 
-        // Reset UI states
-        paymentStatus.style.display = 'none';
-        paymentErrors.style.display = 'none';
-        document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
-        document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
+            formCurrency.value = currency;
+            formConversionRate.value = rate;
+            currentCurrency = currency;
 
-        // Skip validation for PayPal since it's handled separately
-        if (selectedMethodInput.value === 'paypal') {
-            paymentErrors.innerHTML = 'Please complete the PayPal payment above';
-            paymentErrors.style.display = 'block';
-            return;
-        }
+            currencyLoading.style.display = 'inline-block';
+            updateAmounts(rate, currency);
+            currencyLoading.style.display = 'none';
 
-        // Validate based on payment method
-        let isValid = true;
-        const selectedMethod = selectedMethodInput.value;
+            if (selectedMethodInput.value === 'paypal') {
+                paypalInitialized = false;
+                initializePayPal();
+            }
 
-        if (selectedMethod === 'mpesa' || selectedMethod === 'airtel') {
-            isValid = validatePhoneNumber() && isValid;
-        } else if (selectedMethod === 'card') {
-            isValid = validateCardNumber() &&
-                     validateCardExpiry() &&
-                     validateCardCvv() &&
-                     validateCardName() &&
-                     isValid;
-        }
+            saveFormState();
+        });
 
-        // Check required fields
-        const requiredFields = paymentForm.querySelectorAll('[required]');
-        requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-                field.classList.add('invalid');
-                isValid = false;
+        paymentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            paymentStatus.style.display = 'none';
+            paymentErrors.style.display = 'none';
+
+            document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+            document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
+
+            const method = selectedMethodInput.value;
+
+            if (method === 'paypal') {
+                paymentErrors.textContent = 'Please complete the PayPal payment in the new window';
+                paymentErrors.style.display = 'block';
+            }
+            else if (method === 'card') {
+                processStripePayment();
+            }
+            else if (['mpesa', 'airtel'].includes(method)) {
+                if (validatePhoneNumber() && validateTerms()) {
+                    submitPaymentForm(new FormData(paymentForm));
+                } else {
+                    paymentErrors.style.display = 'block';
+                }
+            }
+            else {
+                submitPaymentForm(new FormData(paymentForm));
             }
         });
 
-        // Check terms agreement
-        if (!document.getElementById('termsAgreement').checked) {
-            paymentErrors.innerHTML = 'You must agree to the terms and conditions';
-            paymentErrors.style.display = 'block';
-            isValid = false;
-        }
+        // Set up input listeners for state persistence
+        document.getElementById('phoneNumber')?.addEventListener('input', () => {
+            validatePhoneNumber();
+            saveFormState();
+        });
 
-        if (!isValid) {
-            paymentErrors.style.display = 'block';
-            return;
-        }
+        document.getElementById('cardName')?.addEventListener('input', () => {
+            validateCardName();
+            saveFormState();
+        });
 
-        // Prepare form data
-        const formData = new FormData(paymentForm);
-        submitPaymentForm(formData);
-    });
+        document.getElementById('termsAgreement')?.addEventListener('change', saveFormState);
 
-    // Debug: Log initial values
-    console.log('Default currency:', '{{ default_currency|default:"USD" }}');
-    console.log('Prioritized methods:', [{% for m in prioritized_methods %}'{{ m }}',{% endfor %}]);
-    console.log('Cart total:', {{ cart.total_price }});
+        // Stripe fallback check
+        setTimeout(() => {
+            if (typeof Stripe === 'undefined' && selectedMethodInput.value === 'card') {
+                initializeStripe();
+            }
+        }, 3000);
+
+    } catch (error) {
+        console.error('Payment system error:', error);
+        paymentErrors.textContent = 'Payment system error. Please contact support';
+        paymentErrors.style.display = 'block';
+    }
 });
 </script>
 {% endblock %}

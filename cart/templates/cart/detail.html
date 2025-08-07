@@ -534,6 +534,18 @@
         height: 100%;
         object-fit: cover;
     }
+
+    .error-notice {
+        background: #ffebee;
+        color: #c62828;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-left: 4px solid #c62828;
+    }
 </style>
 
 <div class="cart-page-container">
@@ -549,6 +561,13 @@
             {{ cart.total_items }} item{{ cart.total_items|pluralize }}
         </div>
     </div>
+
+    {% if error_message %}
+    <div class="error-notice">
+        <i class="fas fa-exclamation-circle"></i>
+        {{ error_message }}
+    </div>
+    {% endif %}
 
     {% if cart.items.exists %}
     <!-- Cart Items Table -->
@@ -592,29 +611,25 @@
 
                     <!-- Quantity Column -->
                     <td class="cart-item-cell">
-                        <form method="post" action="{% url 'cart:cart_update' item.product.id %}" class="quantity-control">
-                            {% csrf_token %}
-                            <input type="hidden" name="update" value="true">
-                            <div class="quantity-form">
-                                <button type="button" class="quantity-btn decrease"
-                                    {% if not item.product.available %}disabled{% endif %}>
-                                    <i class="fas fa-minus"></i>
-                                </button>
-                                <input type="number"
-                                       name="quantity"
-                                       value="{{ item.quantity }}"
-                                       min="1"
-                                       max="{{ item.product.stock }}"
-                                       class="quantity-input"
-                                       data-product-id="{{ item.product.id }}"
-                                       data-unit-price="{{ item.product.get_display_price }}"
-                                       {% if not item.product.available %}disabled{% endif %}>
-                                <button type="button" class="quantity-btn increase"
-                                    {% if not item.product.available %}disabled{% endif %}>
-                                    <i class="fas fa-plus"></i>
-                                </button>
-                            </div>
-                        </form>
+                        <div class="quantity-form">
+                            <button type="button" class="quantity-btn decrease"
+                                data-product-id="{{ item.product.id }}"
+                                {% if not item.product.available %}disabled{% endif %}>
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number"
+                                   value="{{ item.quantity }}"
+                                   min="1"
+                                   max="{{ item.product.stock }}"
+                                   class="quantity-input"
+                                   data-product-id="{{ item.product.id }}"
+                                   {% if not item.product.available %}disabled{% endif %}>
+                            <button type="button" class="quantity-btn increase"
+                                data-product-id="{{ item.product.id }}"
+                                {% if not item.product.available %}disabled{% endif %}>
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
                         {% if item.quantity > item.product.stock %}
                         <div class="stock-warning">
                             <i class="fas fa-exclamation-triangle"></i>
@@ -639,14 +654,14 @@
                     </td>
 
                     <!-- Remove Column -->
-<td class="cart-item-cell">
-    <form method="post" action="{% url 'cart:cart_remove' item.product.id %}">
-        {% csrf_token %}
-        <button type="submit" class="cart-remove-btn" aria-label="Remove item">
-            <i class="fas fa-trash"></i>
-        </button>
-    </form>
-</td>
+                    <td class="cart-item-cell">
+                        <form method="post" action="{% url 'cart:cart_remove' item.product.id %}" class="cart-remove-form">
+                            {% csrf_token %}
+                            <button type="submit" class="cart-remove-btn" aria-label="Remove item">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -686,14 +701,14 @@
                     </div>
 
                     <!-- Checkout Button -->
-<form method="post" action="{% url 'cart:cart_detail' %}">
-    {% csrf_token %}
-    <button type="submit" name="checkout"
-            class="checkout-btn {% if not cart.items.exists %}disabled{% endif %}"
-            {% if not cart.items.exists %}disabled{% endif %}>
-        Proceed to Checkout
-    </button>
-</form>
+                    <form method="post" action="{% url 'cart:cart_detail' %}">
+                        {% csrf_token %}
+                        <button type="submit" name="checkout"
+                                class="checkout-btn"
+                                {% if not cart.items.exists %}disabled{% endif %}>
+                            Proceed to Checkout
+                        </button>
+                    </form>
 
                     <br>
                     <!-- Payment Methods -->
@@ -760,47 +775,141 @@
 </div>
 {% endblock %}
 
-
-
 {% block extra_js %}
 <script>
-// Update the updateCartOnServer function
-function updateCartOnServer(productId, quantity) {
-    const url = `{% url 'cart:cart_update' 0 %}`.replace('0', productId);
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-    return fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: `quantity=${quantity}&csrfmiddlewaretoken=${csrfToken}`
-    })
-    .then(response => response.json())
-}
-
-// Update event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    // Quantity buttons
-    document.querySelectorAll('.quantity-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const form = this.closest('form');
-            const input = form.querySelector('input[name="quantity"]');
+    // Function to update cart quantity via AJAX
+    function updateCartItem(productId, quantity) {
+        const url = `{% url 'cart:cart_update' 0 %}`.replace('0', productId);
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const data = new FormData();
+        data.append('quantity', quantity);
+        data.append('csrfmiddlewaretoken', csrfToken);
 
-            if (!input || input.disabled) return;
+        return fetch(url, {
+            method: 'POST',
+            body: data,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .catch(error => {
+            console.error('Error updating cart:', error);
+            return { success: false, message: 'Network error' };
+        });
+    }
 
-            const productId = input.dataset.productId;
-            let quantity = parseInt(input.value);
-
-            if (this.classList.contains('increase')) {
-                quantity = Math.min(quantity + 1, parseInt(input.max));
-            } else if (this.classList.contains('decrease') && quantity > 1) {
-                quantity = Math.max(quantity - 1, 1);
+    // Function to update UI after cart change
+    function updateCartUI(data, productId, input) {
+        if (data.success) {
+            // Update item total
+            const totalElement = document.getElementById(`total-${productId}`);
+            if (totalElement) {
+                totalElement.textContent = `KES ${parseFloat(data.item_total).toLocaleString('en-US')}`;
             }
 
-            input.value = quantity;
-            updateCartOnServer(productId, quantity)
+            // Update cart totals
+            const subtotalElement = document.getElementById('cart-subtotal');
+            const totalCartElement = document.getElementById('cart-total');
+            if (subtotalElement && totalCartElement) {
+                subtotalElement.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString('en-US')}`;
+                totalCartElement.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString('en-US')}`;
+            }
+
+            // Update cart count in header
+            const cartCountElement = document.querySelector('.cart-item-count');
+            if (cartCountElement) {
+                cartCountElement.textContent = `${data.cart_total_items} item${data.cart_total_items !== 1 ? 's' : ''}`;
+            }
+
+            // Update max stock and input value
+            input.max = data.product_stock;
+            input.value = data.item_quantity;
+
+            // Show stock warning if needed
+            const formRow = input.closest('.cart-item-cell');
+            if (formRow) {
+                const existingWarnings = formRow.querySelectorAll('.stock-warning');
+                existingWarnings.forEach(el => el.remove());
+
+                if (input.value >= data.product_stock) {
+                    showStockWarning(input, data.product_stock);
+                }
+            }
+
+            // Show success notification
+            showNotification('Cart updated successfully', 'success');
+        } else if (data.message) {
+            showNotification(data.message, 'error');
+        }
+    }
+
+    // Function to show stock warnings
+    function showStockWarning(input, maxStock) {
+        const formRow = input.closest('.cart-item-cell');
+        if (!formRow) return;
+
+        const warning = document.createElement('div');
+        warning.className = 'stock-warning';
+        warning.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Only ${maxStock} available`;
+        formRow.appendChild(warning);
+    }
+
+    // Function to show notifications
+    function showNotification(message, type) {
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 6px;
+            z-index: 9999;
+            color: ${type === 'success' ? '#155724' : '#721c24'};
+            background: ${type === 'success' ? '#d4edda' : '#f8d7da'};
+            border: 1px solid ${type === 'success' ? '#c3e6cb' : '#f5c6cb'};
+            animation: fadeIn 0.3s forwards;
+        `;
+
+        document.body.appendChild(toast);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.style.animation = 'fadeOut 0.3s forwards';
+            toast.addEventListener('animationend', () => {
+                toast.remove();
+            });
+        }, 2700);
+    }
+
+    // Quantity button event listeners
+    document.querySelectorAll('.quantity-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            const input = this.parentElement.querySelector('.quantity-input');
+            if (!input || input.disabled) return;
+
+            // Calculate new quantity
+            let newQuantity = parseInt(input.value);
+            const maxStock = parseInt(input.max);
+
+            if (this.classList.contains('increase')) {
+                newQuantity = Math.min(newQuantity + 1, maxStock);
+                if (newQuantity >= maxStock) {
+                    showStockWarning(input, maxStock);
+                }
+            } else if (this.classList.contains('decrease') && newQuantity > 1) {
+                newQuantity = Math.max(newQuantity - 1, 1);
+            }
+
+            input.value = newQuantity;
+
+            // Update cart
+            updateCartItem(productId, newQuantity)
                 .then(data => updateCartUI(data, productId, input));
         });
     });
@@ -808,13 +917,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // Quantity input changes
     document.querySelectorAll('.quantity-input').forEach(input => {
         input.addEventListener('change', function() {
-            const form = this.closest('form');
             const productId = this.dataset.productId;
-            let quantity = parseInt(this.value) || 1;
-            quantity = Math.max(1, Math.min(quantity, parseInt(this.max)));
-            this.value = quantity;
+            if (!productId || this.disabled) return;
 
-            updateCartOnServer(productId, quantity)
+            let newQuantity = parseInt(this.value);
+            const maxStock = parseInt(this.max);
+
+            // Validate quantity
+            if (isNaN(newQuantity) || newQuantity < 1) newQuantity = 1;
+            if (newQuantity > maxStock) {
+                newQuantity = maxStock;
+                showStockWarning(this, maxStock);
+            }
+
+            this.value = newQuantity;
+
+            // Update cart
+            updateCartItem(productId, newQuantity)
                 .then(data => updateCartUI(data, productId, this));
         });
     });
@@ -835,147 +954,31 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    // Remove row from table
                     this.closest('.cart-item-row').remove();
-                    updateGlobalCartCount(data.cart_total_items);
 
                     // Update cart totals
                     const subtotal = document.getElementById('cart-subtotal');
                     const total = document.getElementById('cart-total');
                     if (subtotal && total) {
-                        subtotal.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString()}`;
-                        total.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString()}`;
+                        subtotal.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString('en-US')}`;
+                        total.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString('en-US')}`;
+                    }
+
+                    // Update cart count in header
+                    const cartCountElement = document.querySelector('.cart-item-count');
+                    if (cartCountElement) {
+                        cartCountElement.textContent = `${data.cart_total_items} item${data.cart_total_items !== 1 ? 's' : ''}`;
                     }
 
                     // Show empty cart if needed
                     if (data.cart_total_items === 0) {
-                        location.reload(); // Or show empty cart UI
+                        location.reload();
                     }
+
+                    showNotification('Item removed from cart', 'success');
                 }
             });
-        });
-    });
-});
-
-function updateCartUI(data, productId, input) {
-    if (data.success) {
-        const totalElement = document.getElementById(`total-${productId}`);
-        if (totalElement) {
-            totalElement.textContent = `KES ${parseFloat(data.item.item_total).toLocaleString('en-US')}`;
-        }
-
-        const subtotalElement = document.getElementById('cart-subtotal');
-        const totalCartElement = document.getElementById('cart-total');
-        if (subtotalElement && totalCartElement) {
-            subtotalElement.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString('en-US')}`;
-            totalCartElement.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString('en-US')}`;
-        }
-
-        updateGlobalCartCount(data.cart_total_items);
-        input.max = data.item.product_stock;
-        input.value = data.item.quantity;
-
-        const formRow = input.closest('.cart-item-cell');
-        if (formRow) {
-            const existingWarnings = formRow.querySelectorAll('.stock-warning');
-            existingWarnings.forEach(el => el.remove());
-
-            if (input.value >= data.item.product_stock) {
-                showStockWarning(input, data.item.product_stock);
-            }
-        }
-
-        if (data.message) {
-            showTemporaryAlert(data.message);
-        }
-    } else if (data.message) {
-        alert(`Error: ${data.message}`);
-    }
-}
-
-function updateGlobalCartCount(count) {
-    const cartCountEl = document.querySelector('.cart-item-count');
-    if (cartCountEl) {
-        cartCountEl.textContent = `${count} item${count !== 1 ? 's' : ''}`;
-    }
-}
-
-function showStockWarning(input, max) {
-    const formRow = input.closest('.cart-item-cell');
-    if (!formRow) return;
-
-    const warning = document.createElement('div');
-    warning.className = 'stock-warning';
-    warning.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Only ${max} available`;
-
-    formRow.querySelectorAll('.stock-warning').forEach(el => el.remove());
-    formRow.appendChild(warning);
-
-    setTimeout(() => {
-        if (warning.parentNode === formRow) {
-            warning.remove();
-        }
-    }, 3000);
-}
-
-function showTemporaryAlert(message) {
-    const alertBox = document.createElement('div');
-    alertBox.className = 'cart-alert';
-    alertBox.textContent = message;
-    alertBox.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-        padding: 10px 20px;
-        border-radius: 6px;
-        z-index: 9999;
-    `;
-    document.body.appendChild(alertBox);
-    setTimeout(() => alertBox.remove(), 3000);
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.quantity-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const form = this.closest('form');
-            if (!form) return;
-
-            const input = form.querySelector('input[name="quantity"]');
-            if (!input || input.disabled) return;
-
-            const productId = input.dataset.productId;
-            const currentValue = parseInt(input.value) || 1;
-            const maxStock = parseInt(input.max) || 99999;
-
-            if (this.classList.contains('increase')) {
-                if (currentValue < maxStock) {
-                    input.value = currentValue + 1;
-                    updateCartOnServer(productId, input.value, form)
-                        .then(data => updateCartUI(data, productId, input));
-                }
-            } else if (this.classList.contains('decrease') && currentValue > 1) {
-                input.value = currentValue - 1;
-                updateCartOnServer(productId, input.value, form)
-                    .then(data => updateCartUI(data, productId, input));
-            }
-        });
-    });
-
-    document.querySelectorAll('.quantity-input').forEach(input => {
-        input.addEventListener('change', function() {
-            const form = this.closest('form');
-            if (!form) return;
-
-            const productId = this.dataset.productId;
-            let value = parseInt(this.value);
-            if (isNaN(value) || value < 1) value = 1;
-            if (value > parseInt(this.max)) value = parseInt(this.max);
-
-            this.value = value;
-            updateCartOnServer(productId, value, form)
-                .then(data => updateCartUI(data, productId, this));
         });
     });
 });

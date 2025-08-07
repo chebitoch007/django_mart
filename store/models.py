@@ -1,6 +1,6 @@
 from django.db import transaction
 import uuid
-from django.db.models import Q, Value
+from django.db.models import Q, Value, CharField, TextField
 from django.db.models.functions import Greatest
 from django.templatetags.static import static
 from django.urls import reverse
@@ -190,13 +190,15 @@ class Product(models.Model):
 
         # Update search vector without joins
         category_name = self.search_category or ''
+
+        # FIX: Add output_field to each Value expression
         with transaction.atomic():
             Product.objects.filter(pk=self.pk).update(
                 search_vector=(
-                    SearchVector(Value(self.name), weight='A') +
-                    SearchVector(Value(self.short_description), weight='B') +
-                    SearchVector(Value(self.description), weight='C') +
-                    SearchVector(Value(category_name), weight='A')
+                        SearchVector(Value(self.name, output_field=CharField()), weight='A') +
+                        SearchVector(Value(self.short_description, output_field=CharField()), weight='B') +
+                        SearchVector(Value(self.description, output_field=TextField()), weight='C') +
+                        SearchVector(Value(category_name, output_field=CharField()), weight='A')
                 )
             )
 

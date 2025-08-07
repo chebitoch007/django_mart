@@ -133,6 +133,45 @@
     .related-price { font-size: 1.2rem; font-weight: 700; color: #2563eb; }
     .related-rating { display: flex; align-items: center; gap: 5px; color: #64748b; }
     .related-rating i { color: #f59e0b; }
+
+
+    /* Add loading indicator styles */
+    .htmx-indicator {
+        display: none;
+    }
+    .htmx-request .htmx-indicator {
+        display: inline-block;
+    }
+    .htmx-request .htmx-hide-indicator {
+        display: none;
+    }
+
+    /* Toast notifications */
+    .toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        border-radius: 8px;
+        color: white;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: fadeIn 0.3s, fadeOut 0.3s 2.7s;
+    }
+    .toast.success {
+        background: #10b981;
+    }
+    .toast.error {
+        background: #ef4444;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeOut {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(20px); }
+    }
 </style>
 
 <div class="product-detail-container">
@@ -152,7 +191,7 @@
 
                 {% for image in product.additional_images.all %}
                 <div class="thumbnail-item">
-                    <img src="{{ image.get_image_url }}" alt="Product image" class="thumbnail-image" data-src="{{ image.image.url }}">
+                    <img src="{{ image.get_image_url }}" alt="Product image" class="thumbnail-image" data-src="{{ image.get_image_url }}">
                 </div>
                 {% endfor %}
             </div>
@@ -224,11 +263,22 @@
                     {{ product.short_description|default:product.description|truncatewords:30 }}
                 </p>
 
-                <form action="{% url 'cart:cart_add' product.id %}" method="post" class="add-to-cart-form">
+                <!-- Updated Add to Cart Form -->
+                <form action="{% url 'cart:cart_add' product.id %}" method="post" class="add-to-cart-form"
+                      hx-post="{% url 'cart:cart_add' product.id %}"
+                      hx-swap="none"
+                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
                     {% csrf_token %}
                     <div class="quantity-control">
-                        <button type="submit" class="add-to-cart-btn" {% if product.stock <= 0 %}disabled{% endif %}>
-                            <i class="fas fa-shopping-cart mr-2"></i>Add to Cart
+                        <button type="submit" class="add-to-cart-btn"
+                                {% if product.stock <= 0 %}disabled{% endif %}
+                                hx-indicator="#spinner-{{ product.id }}">
+                            <span class="htmx-hide-indicator">
+                                <i class="fas fa-shopping-cart mr-2"></i>Add to Cart
+                            </span>
+                            <span id="spinner-{{ product.id }}" class="htmx-indicator">
+                                <i class="fas fa-spinner fa-spin mr-2"></i>Adding...
+                            </span>
                         </button>
                     </div>
                     {{ cart_product_form }}
@@ -408,6 +458,64 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+
+
+    // Cart functionality
+    function updateGlobalCartCount(count) {
+        // Update navigation bar cart count
+        const cartCountElements = document.querySelectorAll('.cart-count');
+        cartCountElements.forEach(el => {
+            el.textContent = count;
+        });
+
+        // Animate cart icon
+        const cartIcon = document.querySelector('.cart-box');
+        if (cartIcon) {
+            cartIcon.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                cartIcon.style.transform = 'scale(1)';
+            }, 300);
+        }
+    }
+
+    // Handle cart add responses
+    document.body.addEventListener('htmx:afterRequest', function(event) {
+        const form = event.detail.elt.closest('.add-to-cart-form');
+        if (form && event.detail.xhr.status === 200) {
+            try {
+                const response = JSON.parse(event.detail.xhr.responseText);
+                if (response.success) {
+                    updateGlobalCartCount(response.cart_total_items);
+
+                    // Show success notification
+                    showNotification(response.message, 'success');
+                } else {
+                    showNotification(response.message, 'error');
+                }
+            } catch (e) {
+                console.error('Error parsing cart response:', e);
+                showNotification('Item added to cart', 'success');
+            }
+        }
+    });
+
+    // Notification function
+    function showNotification(message, type) {
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.style.animation = 'fadeOut 0.3s forwards';
+            toast.addEventListener('animationend', () => {
+                toast.remove();
+            });
+        }, 2700);
+    }
+
 });
 </script>
 {% endblock %}

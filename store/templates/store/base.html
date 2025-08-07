@@ -22,8 +22,17 @@
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+    <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer" />
+
   <!-- HTMX -->
   <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+
+
+  {% block extra_head_scripts %}{% endblock %}
 
   <style>
     :root {
@@ -118,21 +127,6 @@
         transform: scale(1.2);
     }
 
-    .nav-location {
-        display: flex;
-        align-items: center;
-        color: #cbd5e1;
-        padding: 0.5rem;
-        border: 1px solid transparent;
-        border-radius: 3px;
-        cursor: pointer;
-        margin-right: 0.5rem;
-        transition: var(--transition-default);
-    }
-
-    .nav-location:hover {
-        border-color: #cbd5e1;
-    }
 
     .nav-right {
         display: flex;
@@ -304,9 +298,8 @@
 
     .hero {
         height: 400px;
-        background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5));
         background-size: cover;
-        background-position: center;
+        background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)) center;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -335,7 +328,7 @@
         padding: 12px 30px;
         border: none;
         border-radius: 4px;
-        font-size: 16px;
+        font-size: 20px;
         font-weight: bold;
         cursor: pointer;
         transition: background 0.2s, transform 0.2s;
@@ -902,7 +895,7 @@
     /* Category Dropdown */
     .category-selector {
         position: relative;
-        width: 180px;
+        width: 200px;
         min-width: 180px;
         z-index: 10;
     }
@@ -1308,66 +1301,78 @@
                 </div>
             </a>
 
-            <!-- Search Bar -->
-            <div class="search-container flex-grow max-w-3xl mx-4 relative">
-                <form action="{% url 'store:product_search' %}" method="get" class="w-full">
-                    <div class="search-bar">
-                        <div class="category-selector">
-                            <button type="button" class="category-toggle" id="categoryToggle">
-                                <span id="selectedCategoryText">All</span>
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
-                            <div class="category-dropdown" id="categoryDropdown">
-                                <div class="category-section">
-                                    <div class="category-item" data-category-slug="">All Categories</div>
-                                </div>
-
-                                {% for parent_category in top_level_categories %}
-                                <div class="category-section">
-                                    <div class="category-header" data-category-slug="{{ parent_category.slug }}">
-                                        {{ parent_category.name }}
-                                    </div>
-                                    <div class="subcategories">
-                                        {% for child_category in parent_category.children.all %}
-                                        <div class="category-item subcategory"
-                                            data-category-slug="{{ child_category.slug }}"
-                                            data-parent-slug="{{ parent_category.slug }}">
-                                            {{ child_category.name }}
-                                        </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            <input type="hidden" name="category" id="selectedCategory" value="{{ request.GET.category }}">
-                        </div>
-
-                        <input
-                            type="text"
-                            name="q"
-                            value="{{ request.GET.q }}"
-                            placeholder="Search for products..."
-                            class="flex-grow px-4 py-2 focus:outline-none text-base"
-                            hx-get="{% url 'store:search_suggestions' %}"
-                            hx-trigger="keyup changed delay:200ms"
-                            hx-target="#search-suggestions"
-                            hx-indicator=".search-indicator"
-                            autocomplete="off">
-
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 transition-colors duration-200">
-                            <i class="fas fa-search"></i>
-                        </button>
+<!-- Enhanced Search Bar -->
+<div class="search-container flex-grow max-w-3xl mx-4 relative">
+    <form action="{% url 'store:product_search' %}" method="get" class="w-full" id="search-form">
+        <div class="search-bar flex">
+            <div class="category-selector">
+                <button type="button" class="category-toggle" id="categoryToggle"
+                        aria-haspopup="true" aria-expanded="false" aria-label="Select category">
+                    <span id="selectedCategoryText">All</span>
+                    <i class="fas fa-chevron-down ml-2 text-gray-600"></i>
+                </button>
+                <div class="category-dropdown" id="categoryDropdown" aria-labelledby="categoryToggle">
+                    <div class="category-section">
+                        <div class="category-item" data-category-slug="">All Categories</div>
                     </div>
-                </form>
 
-                <!-- Suggestions dropdown -->
-                <div id="search-suggestions"></div>
-
-                <!-- Loading indicator -->
-                <div class="search-indicator htmx-indicator absolute right-16 top-2">
-                    <i class="fas fa-spinner fa-spin text-gray-400"></i>
+                    {% for parent_category in top_level_categories %}
+                    <div class="category-section">
+                        <div class="category-header" data-category-slug="{{ parent_category.slug }}"
+                             aria-expanded="false" role="button" tabindex="0">
+                            {{ parent_category.name }}
+                        </div>
+                        <div class="subcategories">
+                            {% for child_category in parent_category.children.all %}
+                            <div class="category-item subcategory"
+                                 data-category-slug="{{ child_category.slug }}"
+                                 data-parent-slug="{{ parent_category.slug }}"
+                                 role="option">
+                                {{ child_category.name }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
+                <input type="hidden" name="category" id="selectedCategory" value="{{ request.GET.category }}">
             </div>
+
+            <input
+                type="text"
+                name="q"
+                value="{{ request.GET.q }}"
+                placeholder="Search for products..."
+                class="flex-grow px-4 py-2 focus:outline-none text-base"
+                hx-get="{% url 'store:search_suggestions' %}"
+                hx-trigger="keyup changed delay:200ms, input"
+                hx-target="#search-suggestions"
+                hx-include="#selectedCategory"
+                hx-indicator=".search-indicator"
+                autocomplete="off"
+                aria-label="Search products"
+                aria-controls="search-suggestions"
+                aria-autocomplete="list">
+
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 transition-colors duration-200"
+                    aria-label="Search">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </form>
+
+    <!-- Suggestions dropdown -->
+    <div id="search-suggestions"
+         class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-b-lg shadow-xl max-h-96 overflow-y-auto"
+         role="listbox"
+         aria-labelledby="search-form">
+    </div>
+
+    <!-- Loading indicator -->
+    <div class="search-indicator htmx-indicator absolute right-16 top-3">
+        <i class="fas fa-spinner fa-spin text-gray-500"></i>
+    </div>
+</div>
 
             <div class="nav-right">
                 {% if user.is_authenticated %}
@@ -1560,247 +1565,335 @@
         <i class="fas fa-chevron-up"></i>
     </button>
 
-    <script>
-    // ===== NAVIGATION & UI BEHAVIORS =====
-    window.addEventListener('scroll', function() {
-        const navbar = document.querySelector('.amazon-nav');
-        const scrolled = window.scrollY > 50;
-        navbar.classList.toggle('scrolled', scrolled);
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // ===== ELEMENTS AND VARIABLES =====
+        const paymentForm = document.getElementById('paymentForm');
+        const processingModal = document.getElementById('processingModal');
+        const paymentStatus = document.getElementById('paymentStatus');
+        const paymentErrors = document.getElementById('paymentErrors');
+        const selectedMethodInput = document.getElementById('selectedMethod');
+        const currencySelector = document.getElementById('currencySelector');
+        const methodConfirmation = document.getElementById('methodConfirmation');
+        const selectedMethodName = document.getElementById('selectedMethodName');
+        const paymentSubmitButton = document.getElementById('paymentSubmitButton');
+        const mobileMoneySection = document.getElementById('mobileMoneySection');
+        const cardPaymentSection = document.getElementById('cardPaymentSection');
+        const paypalSection = document.getElementById('paypalSection');
+        const paypalButtonContainer = document.getElementById('paypal-button-container');
+        const paymentTabs = document.querySelectorAll('.payment-tab');
 
-        // Back to top button visibility
-        const backToTop = document.getElementById('back-to-top');
-        backToTop.classList.toggle('visible', window.scrollY > 500);
-    });
+        // Stripe-specific elements
+        const stripeCardElement = document.getElementById('stripe-card-element');
+        const stripeCardErrors = document.getElementById('stripe-card-errors');
 
-    // Mobile menu toggle
-    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-    const mobileMenu = document.getElementById('mobile-menu');
+        // Payment state
+        let stripe = null;
+        let cardElement = null;
+        let paypalButtons = null;
+        let currentRate = 1;
+        let currentCurrency = '{{ default_currency|default:"USD" }}';
+        let stripeRetryCount = 0;
+        const MAX_STRIPE_RETRIES = 3;
 
-    if (mobileMenu) {
-        // Close mobile menu when clicking outside
-        document.addEventListener('click', function(e) {
-            if (mobileMenu.classList.contains('active') &&
-                !mobileMenu.contains(e.target) &&
-                !(mobileMenuToggle && mobileMenuToggle.contains(e.target))) {
-                mobileMenu.classList.remove('active');
-                mobileMenu.setAttribute('aria-hidden', 'true');
-                if (mobileMenuToggle) {
-                    mobileMenuToggle.setAttribute('aria-expanded', 'false');
+        // ===== STRIPE INITIALIZATION =====
+        function initializeStripe() {
+            try {
+                // Check if Stripe.js is loaded
+                if (typeof Stripe === 'undefined') {
+                    throw new Error('Stripe.js not loaded');
                 }
+
+                // Initialize Stripe instance
+                stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
+
+                // Create and mount card element
+                const elements = stripe.elements();
+                cardElement = elements.create('card', {
+                    style: {
+                        base: {
+                            fontSize: '16px',
+                            color: '#32325d',
+                            fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                            '::placeholder': { color: '#aab7c4' }
+                        },
+                        invalid: { color: '#fa755a', iconColor: '#fa755a' }
+                    }
+                });
+
+                cardElement.mount('#stripe-card-element');
+
+                // Handle real-time validation
+                cardElement.on('change', handleStripeChange);
+
+                return true;
+            } catch (error) {
+                handlePaymentMethodError('card', error);
+                return false;
             }
-        });
-
-        // Close mobile menu when pressing Escape
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
-                mobileMenu.classList.remove('active');
-                mobileMenu.setAttribute('aria-hidden', 'true');
-                if (mobileMenuToggle) {
-                    mobileMenuToggle.setAttribute('aria-expanded', 'false');
-                }
-            }
-        });
-    }
-
-    // Back to top functionality
-    const backToTopBtn = document.getElementById('back-to-top');
-    if (backToTopBtn) {
-        backToTopBtn.addEventListener('click', function() {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-            // Focus on main content for screen reader users
-            const mainContent = document.getElementById('main-content');
-            if (mainContent) mainContent.focus();
-        });
-    }
-
-    // ===== CART FUNCTIONALITY =====
-    // Global function to update cart count
-    function updateGlobalCartCount(count) {
-        // Update navigation bar cart count
-        const cartCountElements = document.querySelectorAll('.cart-count');
-        cartCountElements.forEach(el => {
-            el.textContent = count;
-        });
-
-        // Animate cart icon
-        const cartIcon = document.querySelector('.cart-box');
-        if (cartIcon) {
-            cartIcon.style.transform = 'scale(1.2)';
-            setTimeout(() => {
-                cartIcon.style.transform = 'scale(1)';
-            }, 300);
-        }
-    }
-
-    // Initialize cart count on page load
-    function initializeCartCount() {
-        // Fetch cart count from server
-        fetch('{% url "cart:cart_total" %}')
-            .then(response => {
-                if (!response.ok) throw new Error('Network response was not ok');
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    updateGlobalCartCount(data.cart_total_items);
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching cart count:', error);
-            });
-    }
-
-    // ===== SEARCH SUGGESTIONS =====
-    function setupSearchSuggestions() {
-        const searchInput = document.querySelector('.search-bar input[name="q"]');
-        const suggestionsContainer = document.getElementById('search-suggestions');
-
-        if (!searchInput || !suggestionsContainer) return;
-
-        // Function to fetch suggestions
-        function fetchSuggestions(query) {
-            fetch(`{% url 'store:search_suggestions' %}?q=${encodeURIComponent(query)}`)
-                .then(response => response.json())
-                .then(data => {
-                    renderSuggestions(data.suggestions);
-                })
-                .catch(console.error);
         }
 
-        // Function to render suggestions
-        function renderSuggestions(suggestions) {
-            if (!suggestions || suggestions.length === 0) {
-                suggestionsContainer.innerHTML = `
-                    <div class="no-suggestions">
-                        <i class="fas fa-search"></i>
-                        <div>No suggestions found</div>
-                    </div>
-                `;
-                suggestionsContainer.style.display = 'block';
-                return;
-            }
-
-            suggestionsContainer.innerHTML = '';
-
-            // Render suggestions
-            suggestions.forEach(suggestion => {
-                const item = document.createElement('a');
-                item.className = 'suggestion-item';
-                item.href = suggestion.url;
-
-                // Highlight matching text
-                let highlightedName = suggestion.name;
-                if (searchInput.value.trim()) {
-                    const regex = new RegExp(`(${searchInput.value.trim()})`, 'gi');
-                    highlightedName = suggestion.name.replace(regex, '<strong>$1</strong>');
-                }
-
-                item.innerHTML = `
-                    <div class="suggestion-image">
-                        ${suggestion.image ? `<img src="${suggestion.image}" alt="${suggestion.name}">` : '<i class="fas fa-box"></i>'}
-                    </div>
-                    <div class="suggestion-details">
-                        <div class="suggestion-name">${highlightedName}</div>
-                        <div class="suggestion-category">${suggestion.category || ''}</div>
-                    </div>
-                    <div class="suggestion-price">KES ${suggestion.price}</div>
-                `;
-
-                suggestionsContainer.appendChild(item);
-            });
-            suggestionsContainer.style.display = 'block';
-        }
-
-        // Event listeners
-        searchInput.addEventListener('input', function() {
-            const query = this.value.trim();
-            if (query.length > 2) {
-                fetchSuggestions(query);
+        function handleStripeChange(event) {
+            if (event.error) {
+                stripeCardErrors.textContent = event.error.message;
+                stripeCardErrors.style.display = 'block';
             } else {
-                suggestionsContainer.style.display = 'none';
+                stripeCardErrors.textContent = '';
+                stripeCardErrors.style.display = 'none';
             }
-        });
+        }
 
-        searchInput.addEventListener('focus', function() {
-            if (this.value.trim().length > 2) {
-                fetchSuggestions(this.value.trim());
-            }
-        });
-
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('.search-container')) {
-                suggestionsContainer.style.display = 'none';
-            }
-        });
-    }
-
-    // ===== CATEGORY DROPDOWN =====
-    function setupCategoryDropdown() {
-        const categoryToggle = document.getElementById('categoryToggle');
-        const categoryDropdown = document.getElementById('categoryDropdown');
-        const selectedCategoryText = document.getElementById('selectedCategoryText');
-        const selectedCategoryInput = document.getElementById('selectedCategory');
-
-        if (!categoryToggle || !categoryDropdown) return;
-
-        // Toggle dropdown visibility
-        categoryToggle.addEventListener('click', function(e) {
-            e.stopPropagation();
-            categoryDropdown.classList.toggle('show');
-        });
-
-        // Handle category selection
-        categoryDropdown.addEventListener('click', function(e) {
-            const target = e.target;
-
-            if (target.classList.contains('category-header')) {
-                // Toggle subcategories
-                target.classList.toggle('active');
-                e.stopPropagation();
-            }
-            else if (target.classList.contains('category-item') ||
-                    target.classList.contains('subcategory')) {
-                // Select category
-                const categorySlug = target.getAttribute('data-category-slug');
-                const parentSlug = target.getAttribute('data-parent-slug');
-
-                // Update selection display
-                if (categorySlug === "") {
-                    selectedCategoryText.textContent = "All";
-                } else if (parentSlug) {
-                    // For subcategories, show parent > child
-                    const parentText = document.querySelector(`.category-header[data-category-slug="${parentSlug}"]`)
-                                    .textContent.trim();
-                    selectedCategoryText.textContent = `${parentText} > ${target.textContent.trim()}`;
-                } else {
-                    // For top-level categories
-                    selectedCategoryText.textContent = target.textContent.trim();
+        // ===== PAYPAL INITIALIZATION =====
+        function initializePayPal() {
+            try {
+                // Check if PayPal SDK is loaded
+                if (typeof paypal === 'undefined') {
+                    throw new Error('PayPal SDK not loaded');
                 }
 
-                // Update hidden input
-                selectedCategoryInput.value = categorySlug;
+                // Create PayPal buttons
+                paypalButtons = paypal.Buttons({
+                    createOrder: function(data, actions) {
+                        return actions.order.create({
+                            purchase_units: [{
+                                amount: {
+                                    currency_code: currentCurrency,
+                                    value: parseFloat("{{ cart.total_price }}").toFixed(2)
+                                }
+                            }]
+                        });
+                    },
+                    onApprove: function(data, actions) {
+                        return actions.order.capture().then(function(details) {
+                            document.getElementById('paypalOrderId').value = data.orderID;
+                            document.getElementById('paypalPayerId').value = details.payer.payer_id;
+                            submitPaymentForm(new FormData(paymentForm));
+                        });
+                    },
+                    onError: function(err) {
+                        showError('PayPal payment failed. Please try again.');
+                    }
+                });
 
-                // Close dropdown
-                categoryDropdown.classList.remove('show');
-                e.stopPropagation();
+                // Render PayPal button
+                if (paypalButtons.isEligible()) {
+                    paypalButtons.render('#paypal-button-container');
+                } else {
+                    paypalButtonContainer.innerHTML = '<p>PayPal not available in your region</p>';
+                }
+
+                return true;
+            } catch (error) {
+                handlePaymentMethodError('paypal', error);
+                return false;
+            }
+        }
+
+        // ===== PAYMENT METHOD HANDLING =====
+        function switchPaymentMethod(method) {
+            // Update UI
+            paymentTabs.forEach(tab => tab.classList.toggle('active', tab.dataset.method === method));
+            mobileMoneySection.style.display = ['mpesa', 'airtel'].includes(method) ? 'block' : 'none';
+            cardPaymentSection.style.display = method === 'card' ? 'block' : 'none';
+            paypalSection.style.display = method === 'paypal' ? 'block' : 'none';
+            paymentSubmitButton.style.display = method === 'paypal' ? 'none' : 'block';
+
+            // Update selected method
+            selectedMethodInput.value = method;
+            selectedMethodName.textContent = getMethodName(method);
+            methodConfirmation.style.display = 'flex';
+
+            // Initialize payment processor
+            if (method === 'paypal') initializePayPal();
+            if (method === 'card') initializeStripe();
+        }
+
+        function getMethodName(method) {
+            const names = {
+                'mpesa': 'M-Pesa',
+                'airtel': 'Airtel Money',
+                'card': 'Credit/Debit Card',
+                'paypal': 'PayPal'
+            };
+            return names[method] || method;
+        }
+
+        function handlePaymentMethodError(method, error) {
+            console.error(`Payment method error (${method}):`, error);
+
+            // Disable affected tabs
+            document.querySelectorAll(`.payment-tab[data-method="${method}"]`).forEach(tab => {
+                tab.style.opacity = '0.5';
+                tab.style.pointerEvents = 'none';
+                tab.title = `Unavailable: ${error.message || 'Error'}`;
+            });
+
+            // Fallback to first available method
+            if (selectedMethodInput.value === method) {
+                const firstValid = document.querySelector('.payment-tab:not([style*="opacity: 0.5"])');
+                if (firstValid) switchPaymentMethod(firstValid.dataset.method);
+            }
+
+            // Show error in UI
+            if (method === 'card') {
+                stripeCardElement.innerHTML = `<div class="payment-status error">${error.message}</div>`;
+            }
+        }
+
+        // ===== PAYMENT PROCESSING =====
+        async function processStripePayment() {
+            // Validate inputs
+            if (!validateCardName() || !validateTerms()) return;
+
+            showProcessingUI(true);
+
+            try {
+                const { paymentIntent, error } = await stripe.confirmCardPayment(
+                    '{{ payment_intent_client_secret }}', {
+                        payment_method: { card: cardElement }
+                    }
+                );
+
+                if (error) throw error;
+
+                // Submit to server
+                document.getElementById('stripePaymentIntentId').value = paymentIntent.id;
+                submitPaymentForm(new FormData(paymentForm));
+            } catch (error) {
+                handleStripeError(error);
+            }
+        }
+
+        function handleStripeError(error) {
+            showProcessingUI(false);
+            stripeCardErrors.textContent = error.message || 'Payment failed. Please try again.';
+            stripeCardErrors.style.display = 'block';
+        }
+
+        function submitPaymentForm(formData) {
+            showProcessingUI(true);
+
+            fetch(paymentForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': "{{ csrf_token }}" }
+            })
+            .then(handleResponse)
+            .catch(handleNetworkError);
+        }
+
+        async function handleResponse(response) {
+            if (!response.ok) throw await response.json();
+
+            const data = await response.json();
+            if (data.success) {
+                paymentStatus.innerHTML = 'Payment successful! Redirecting...';
+                setTimeout(() => window.location.href = data.redirect_url, 2000);
+            } else {
+                throw new Error(data.error_message || 'Payment failed');
+            }
+        }
+
+        function handleNetworkError(error) {
+            showProcessingUI(false);
+            showError(error.message || 'Network error. Please try again.');
+        }
+
+        function showError(message) {
+            paymentErrors.innerHTML = message;
+            paymentErrors.style.display = 'block';
+        }
+
+        function showProcessingUI(show) {
+            processingModal.classList.toggle('active', show);
+            paymentStatus.style.display = show ? 'block' : 'none';
+        }
+
+        // ===== VALIDATION =====
+        function validatePhoneNumber() {
+            const phoneInput = document.getElementById('phoneNumber');
+            const errorElement = document.getElementById('phoneError');
+            const isValid = /^7\d{8}$/.test(phoneInput.value);
+
+            phoneInput.classList.toggle('invalid', !isValid);
+            errorElement.textContent = isValid ? '' : 'Enter valid phone (7 followed by 8 digits)';
+            errorElement.style.display = isValid ? 'none' : 'block';
+
+            return isValid;
+        }
+
+        function validateCardName() {
+            const nameInput = document.getElementById('cardName');
+            const errorElement = document.getElementById('cardNameError');
+            const isValid = nameInput.value.trim().length >= 3;
+
+            nameInput.classList.toggle('invalid', !isValid);
+            errorElement.textContent = isValid ? '' : 'Enter name on card';
+            errorElement.style.display = isValid ? 'none' : 'block';
+
+            return isValid;
+        }
+
+        function validateTerms() {
+            const isValid = document.getElementById('termsAgreement').checked;
+            if (!isValid) showError('You must agree to the terms and conditions');
+            return isValid;
+        }
+
+        // ===== EVENT LISTENERS =====
+        paymentTabs.forEach(tab => {
+            tab.addEventListener('click', () => switchPaymentMethod(tab.dataset.method));
+        });
+
+        paymentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            resetErrors();
+
+            const method = selectedMethodInput.value;
+
+            if (method === 'paypal') {
+                showError('Complete PayPal payment above');
+            } else if (method === 'card') {
+                processStripePayment();
+            } else if (['mpesa', 'airtel'].includes(method)) {
+                if (validatePhoneNumber() && validateTerms()) {
+                    submitPaymentForm(new FormData(paymentForm));
+                }
+            } else {
+                submitPaymentForm(new FormData(paymentForm));
             }
         });
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function() {
-            categoryDropdown.classList.remove('show');
-        });
-    }
+        function resetErrors() {
+            paymentErrors.style.display = 'none';
+            document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+            document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
+        }
 
-    // ===== INITIALIZATION =====
-    document.addEventListener('DOMContentLoaded', function() {
-        initializeCartCount();
-        setupSearchSuggestions();
-        setupCategoryDropdown();
-    });
-    </script>
+        // ===== INITIALIZATION =====
+        {% if prioritized_methods %}
+            switchPaymentMethod('{{ prioritized_methods.0 }}');
+        {% else %}
+            switchPaymentMethod('card');
+        {% endif %}
+
+        // Retry Stripe if not loaded
+        const stripeRetryInterval = setInterval(() => {
+            if (typeof Stripe === 'undefined' && stripeRetryCount < MAX_STRIPE_RETRIES) {
+                stripeRetryCount++;
+                console.log(`Retrying Stripe (attempt ${stripeRetryCount})`);
+                initializeStripe();
+            } else {
+                clearInterval(stripeRetryInterval);
+            }
+        }, 2000);
+
+    } catch (error) {
+        console.error('Checkout error:', error);
+        showError('Payment system error. Please contact support.');
+    }
+});
+</script>
 </body>
 </html>

@@ -1,12 +1,11 @@
+
+import logging
+
+from django.conf import settings
 import hmac
 import hashlib
-
 import stripe
 from django.http import JsonResponse, HttpResponse
-
-from asai import settings
-
-
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
@@ -122,21 +121,62 @@ def payment_webhook(request, provider):
 
 @csrf_exempt
 @require_POST
-@WebhookSecurity.secure_webhook_view
-def stripe_webhook(request):
-    payload = json.loads(request.body)
-    payment_id = payload['data']['object']['metadata'].get('payment_id')
+def stripe_webhook(request):  # REMOVED THE PROBLEMATIC DECORATOR
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
 
-    if not payment_id:
-        return JsonResponse({'status': 'missing payment id'}, status=400)
+    if not sig_header:
+        logger.warning("Stripe webhook: Missing signature header")
+        return HttpResponse(status=400)
 
     try:
-        payment = Payment.objects.get(id=payment_id)
-        processor = PaymentProcessor(payment)
-        processor.provider.handle_webhook(payload)
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError as e:
+        logger.error(f"Invalid payload: {e}")
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError as e:
+        logger.error(f"Signature verification failed: {e}")
+        return HttpResponse(status=400)
+
+    # Handle successful payment
+    if event['type'] == 'payment_intent.succeeded':
+        intent = event['data']['object']
+        payment_id = intent.get('metadata', {}).get('payment_id')
+
+        try:
+            if payment_id:
+                payment = Payment.objects.get(id=payment_id)
+            else:
+                payment = Payment.objects.get(gateway_transaction_id=intent['id'])
+
+            # Mark payment as paid
+            payment.mark_as_paid(transaction_id=intent['id'])
+            return JsonResponse({'status': 'success'})
+
+        except Payment.DoesNotExist:
+            logger.error(f"Stripe webhook: Payment not found for intent {intent['id']} (payment_id={payment_id})")
+            return JsonResponse({'status': 'payment not found'}, status=404)
+        except Exception as e:
+            logger.exception(f"Error processing Stripe webhook: {e}")
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    # Other event types can be handled if needed
+    return HttpResponse(status=200)
+
+@csrf_exempt
+def paypal_webhook(request):
+    if request.method == "POST":
+        payload = json.loads(request.body)
+
+        # Log or process event here
+        logging.info(f"Received PayPal webhook: {payload}")
+
+        # TODO: Validate with PayPal and act accordingly
+
         return JsonResponse({'status': 'success'})
-    except Payment.DoesNotExist:
-        return JsonResponse({'status': 'payment not found'}, status=404)
+    return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
 

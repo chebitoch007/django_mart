@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.dispatch.dispatcher import logger
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -24,17 +24,33 @@ def cart_detail(request):
 
     # Handle checkout request
     if request.method == 'POST' and 'checkout' in request.POST:
-        # Only proceed if cart has items
         if not cart.items.exists():
             return redirect('cart:cart_detail')
 
-        # Create order only when proceeding to checkout
-        order = Order.objects.create(
-            user=request.user if request.user.is_authenticated else None,
-            total=cart.total_price,
-        )
-        request.session['order_id'] = order.id
-        return redirect('orders:checkout')
+        try:
+            # Create order for authenticated users or guests
+            order = Order.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                total=cart.total_price,
+                # Add default values for required fields
+                first_name='Guest' if not request.user.is_authenticated else request.user.first_name,
+                last_name='User' if not request.user.is_authenticated else request.user.last_name,
+                email=request.user.email if request.user.is_authenticated else 'guest@example.com',
+                address='To be provided' if not request.user.is_authenticated else '',
+                postal_code='00000',
+                city='N/A',
+                country='Kenya'
+            )
+            request.session['order_id'] = order.id
+            return redirect('orders:checkout')
+        except IntegrityError as e:
+            # Handle database errors gracefully
+            logger.error(f"Order creation failed: {str(e)}")
+            return render(request, 'cart/detail.html', {
+                'cart': cart,
+                'cart_has_stock_issues': cart_has_stock_issues,
+                'error_message': 'Could not process your order. Please try again or contact support.'
+            })
 
     return render(request, 'cart/detail.html', {
         'cart': cart,
@@ -51,7 +67,7 @@ def cart_add(request, product_id):
 
     if request.method == 'POST' and form.is_valid():
         quantity = form.cleaned_data['quantity']
-        update_quantity = form.cleaned_data.get('update', False)
+        update_quantity = form.cleaned_data.get('update') or form.cleaned_data.get('override') or False
 
         try:
             with transaction.atomic():
@@ -62,23 +78,32 @@ def cart_add(request, product_id):
                     response_data['message'] = 'Product is already in your cart'
                 else:
                     cart.add_product(product, quantity, update_quantity=update_quantity)
-                    response_data['success'] = True
-                    response_data['message'] = 'Product added to cart!'
-                    response_data['cart_total_items'] = cart.total_items
-                    response_data['is_new_item'] = not cart_item_exists
+                    response_data.update({
+                        'success': True,
+                        'message': f'{product.name} added to cart',
+                        'cart_total_items': cart.total_items,
+                        'is_new_item': not cart_item_exists
+                    })
 
         except Exception as e:
             logger.error(f"Cart add error: {str(e)}")
             response_data['message'] = 'Server error. Please try again later.'
 
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # HTMX or AJAX response
+        if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse(response_data)
+
         return redirect('cart:cart_detail')
 
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        response_data['message'] = 'Form is invalid'
-        return JsonResponse(response_data, status=400)
+    # Invalid form handling
+    if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid quantity or request data.'
+        }, status=400)
+
     return redirect(product.get_absolute_url())
+
 
 
 def cart_remove(request, product_id):
@@ -114,38 +139,36 @@ def cart_update(request, product_id):
     response_data = {'success': False, 'message': 'Item not in cart'}
 
     if request.method == 'POST':
-        form = CartAddProductForm(request.POST)
-        if form.is_valid():
-            quantity = form.cleaned_data['quantity']
-            exceeded_stock = False
+        try:
+            quantity = int(request.POST.get('quantity', 1))
+        except (TypeError, ValueError):
+            quantity = 1
 
-            try:
-                item = cart.items.get(product=product)
-                item.quantity = quantity
+        exceeded_stock = False
 
-                if quantity > product.stock:
-                    item.quantity = product.stock
-                    exceeded_stock = True
-                elif quantity < 1:
-                    item.quantity = 1
+        try:
+            item = cart.items.get(product=product)
+            # Ensure quantity doesn't exceed stock
+            if quantity > product.stock:
+                quantity = product.stock
+                exceeded_stock = True
 
-                item.save()
-                response_data = {
-                    'success': True,
-                    'item': {
-                        'item_total': item.total_price,
-                        'quantity': item.quantity,
-                        'product_stock': product.stock
-                    },
-                    'cart_total_items': cart.total_items,
-                    'cart_total_price': cart.total_price,
-                    'message': 'Quantity adjusted due to stock limits' if exceeded_stock else ''
-                }
-            except CartItem.DoesNotExist:
-                pass
+            item.quantity = quantity
+            item.save()
 
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse(response_data)
+            response_data = {
+                'success': True,
+                'item_total': item.total_price,
+                'cart_total': cart.total_price,
+                'cart_total_items': cart.total_items,
+                'message': 'Quantity adjusted due to stock limits' if exceeded_stock else 'Quantity updated'
+            }
+        except CartItem.DoesNotExist:
+            response_data['message'] = 'Item not found in cart'
+
+        # Return JSON response for AJAX requests
+        return JsonResponse(response_data)
+
     return redirect('cart:cart_detail')
 
 

@@ -59,7 +59,9 @@ class Order(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='orders'
+        related_name='orders',
+        null=True,  # Allow null for guest orders
+        blank=True
     )
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
@@ -118,6 +120,7 @@ class Order(models.Model):
 
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"
+
 
     @property
     def total_cost(self):

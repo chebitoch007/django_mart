@@ -9,6 +9,7 @@ def get_prioritized_payment_methods(request):
         return ['paypal', 'card', 'mpesa', 'airtel']
 
 
+
 def get_currency_options():
     return [
         {'code': 'KES', 'name': 'Kenyan Shilling'},

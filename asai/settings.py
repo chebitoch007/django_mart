@@ -5,6 +5,7 @@ Django settings for asai project.
 import os
 from pathlib import Path
 import environ
+from django.urls import reverse_lazy
 
 # Initialize environment
 env = environ.Env()
@@ -56,6 +57,13 @@ PAYMENT_SETTINGS = {
     'SITE_URL': env('SITE_URL', default='http://localhost:8000'),
 }
 
+ENABLED_PAYMENT_METHODS = [
+    'mpesa',
+    'airtel',
+    'card',
+    'paypal'
+]
+
 # ================== Application Definition ==================
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -82,6 +90,7 @@ INSTALLED_APPS = [
     'easycart',
     'widget_tweaks',
     'db_cleaner',
+    'stripe',
 ]
 
 MIDDLEWARE = [
@@ -95,6 +104,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.cache.UpdateCacheMiddleware',
     'django.middleware.cache.FetchFromCacheMiddleware',
+    'django.middleware.locale.LocaleMiddleware'
+
 ]
 
 
@@ -235,11 +246,19 @@ AIRTEL_SIGNATURE_KEY = env('AIRTEL_SIGNATURE_KEY')
 STRIPE_PUBLIC_KEY = env('STRIPE_PUBLIC_KEY')
 STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET')
+STRIPE_SUCCESS_URL = env('STRIPE_SUCCESS_URL', default='/orders/success/')
+STRIPE_CANCEL_URL = env('STRIPE_CANCEL_URL', default='/cart/')
+
+STRIPE_WEBHOOK_ENDPOINT = env('STRIPE_WEBHOOK_ENDPOINT',
+                              default='http://127.0.0.1:8080/payment/stripe/webhook/')
+
 
 # PayPal Configuration
 PAYPAL_CLIENT_ID = env('PAYPAL_CLIENT_ID')
 PAYPAL_SECRET = env('PAYPAL_SECRET')
 PAYPAL_WEBHOOK_ID = env('PAYPAL_WEBHOOK_ID')
+PAYPAL_RECEIVER_EMAIL = env('PAYPAL_RECEIVER_EMAIL')
+
 
 # Currency Settings
 CURRENCIES = (
@@ -370,74 +389,7 @@ LOGGING = {
 RECAPTCHA_SITE_KEY = env('RECAPTCHA_SITE_KEY')
 RECAPTCHA_SECRET_KEY = env('RECAPTCHA_SECRET_KEY')
 
-'''# ================== Content Security Policy ==================
-# Development-friendly settings (safe for local work)
-CSP_ENABLED = False  # Disable CSP in development
-CSP_IGNORE_MIGRATION_CHECK = True  # Bypass migration checks
-SILENCED_SYSTEM_CHECKS = ['csp.E001']  # Disable CSP system checks"""
 
-CSP_EXCLUDE_TEMPLATE_TAGS = True
-# ================== PRODUCTION-READY CSP CONFIG (UNCOMMENT WHEN DEPLOYING) ==================
-# Remove the development settings above and uncomment this section for production
-
-if DEBUG:
-    CSP_ENABLED = False  # Disable CSP in development
-    CSP_IGNORE_MIGRATION_CHECK = True  # Bypass migration checks
-    SILENCED_SYSTEM_CHECKS = ['csp.E001']  # Disable CSP system checks
-else:
-    # Production CSP settings (copied from above)
-    CSP_ENABLED = True
-
-# Strict CSP directives for production
-CSP_DEFAULT_SRC = ["'self'"]
-CSP_SCRIPT_SRC = [
-    "'self'",
-    "https://js.stripe.com",
-    "https://www.paypal.com",
-    "https://unpkg.com"
-]
-CSP_STYLE_SRC = [
-    "'self'",
-    "https://fonts.googleapis.com",
-    "https://cdnjs.cloudflare.com",
-    "https://cdn.jsdelivr.net"
-]
-CSP_IMG_SRC = [
-    "'self'",
-    "data:",
-    "https://*.stripe.com",
-    "https://www.paypal.com",
-    "https://cdnjs.cloudflare.com"
-]
-CSP_FONT_SRC = [
-    "'self'",
-    "https://fonts.gstatic.com",
-    "https://cdnjs.cloudflare.com"
-]
-CSP_FRAME_SRC = [
-    "'self'",
-    "https://js.stripe.com",
-    "https://www.paypal.com"
-]
-CSP_CONNECT_SRC = [
-    "'self'",
-    "https://api.stripe.com",
-    "https://api.paypal.com",
-    "https://fonts.googleapis.com",
-    "https://fonts.gstatic.com"
-]
-CSP_OBJECT_SRC = ["'none'"]
-CSP_BASE_URI = ["'self'"]
-CSP_FORM_ACTION = ["'self'"]
-
-# Security hardening (production only)
-CSP_INCLUDE_NONCE_IN = ['script-src', 'style-src']  # Require nonces for inline code
-CSP_BLOCK_ALL_MIXED_CONTENT = True
-CSP_UPGRADE_INSECURE_REQUESTS = True
-CSP_REPORT_ONLY = False  # Enforce policy (not just report)
-
-# ================== END PRODUCTION CSP CONFIG ==================
-'''
 '''# AliExpress Affiliate
 ALIEXPRESS_API_KEY = env('ALIEXPRESS_API_KEY', default='')
 ALIEXPRESS_API_SECRET = env('ALIEXPRESS_API_SECRET', default='')

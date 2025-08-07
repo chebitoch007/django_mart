@@ -1,4 +1,5 @@
 from django.urls import path
+from .webhooks import stripe_webhook
 
 from . import views
 from .views import (
@@ -35,10 +36,17 @@ urlpatterns = [
 
     path('paypal/<int:order_id>/', PayPalPaymentView.as_view(), name='paypal-payment'),
 
+    path('paypal/success/', views.paypal_success, name='paypal_success'),
+    path('paypal/cancel/', views.paypal_cancel, name='paypal_cancel'),
+
     path('currency-convert/', views.currency_convert, name='currency_convert'),
     path('process-payment/<int:order_id>/', views.process_payment, name='process_payment'),
 
-
-
     path('expired/', PaymentExpiredView.as_view(), name='payment-expired'),
+
+    path("stripe/webhook/", stripe_webhook, name="stripe_webhook")
+
+
+
+
 ]

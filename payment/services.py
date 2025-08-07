@@ -28,6 +28,7 @@ class PaymentProcessor:
         self.payment_method = payment.payment_method
         self.idempotency_key = kwargs.get('idempotency_key')
 
+
     def process(self):
         logger.info(f"Processing payment for order {self.order.id}")
 

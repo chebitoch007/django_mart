@@ -1,26 +1,26 @@
-from decimal import Decimal, ROUND_HALF_UP
+
+import stripe
 import logging
 from django.conf import settings
-import requests
 from django.core.cache import cache
 from django.db import transaction
-from django.http import Http404
+from django.http import Http404, JsonResponse
+from django.views.decorators.http import require_POST
 from django.views.generic import ListView, DetailView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Prefetch
-
-from cart.cart import Cart
 from cart.utils import get_cart
 from asai import settings
 from payment.models import Payment
-#from payment.models import Payment
 from .models import Order, OrderItem, CurrencyRate
 from django.contrib.auth.decorators import login_required
 from payment.utils import get_prioritized_payment_methods
 from core.utils import get_exchange_rate
 from django import forms
-from django.core.exceptions import ValidationError
+
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -162,63 +162,119 @@ class OrderSuccessView(TemplateView):
     template_name = 'orders/success.html'
 
 
+
+
+
 class CheckoutView(TemplateView):
     template_name = 'orders/checkout.html'
 
+    # Stripe minimum amounts in cents (from https://stripe.com/docs/currencies)
+    STRIPE_MINIMUMS = {
+        'usd': 50,   # $0.50
+        'kes': 50,   # KES 0.50
+        'eur': 50,   # €0.50
+        'gbp': 30,   # £0.30
+        'ugx': 1000, # 1000 UGX
+        'tzs': 1000, # 1000 TZS
+    }
+
     def get(self, request, *args, **kwargs):
-        # If we have an order ID in session, use it
+        order = self.get_order_from_session_or_cart(request)
+
+        if not order:
+            return redirect('cart:cart_detail')
+
+        return render(request, self.template_name, self.get_context_data(order=order))
+
+    def get_order_from_session_or_cart(self, request):
         order_id = request.session.get('order_id')
         if order_id:
             try:
-                order = Order.objects.get(id=order_id)
-                return render(request, self.template_name, self.get_context_data(order=order))
+                return Order.objects.get(id=order_id, user=request.user)
             except Order.DoesNotExist:
-                # Fall through to create new order
                 pass
 
-        # If no order exists, try to create one from cart
         cart = get_cart(request)
         if cart.items.exists():
             order = Order.objects.create(
                 user=request.user if request.user.is_authenticated else None,
                 total=cart.total_price,
+                currency=settings.DEFAULT_CURRENCY,
             )
             request.session['order_id'] = order.id
-            return render(request, self.template_name, self.get_context_data(order=order))
-
-        # If cart is empty, redirect back to cart
-        return redirect('cart:cart_detail')
+            return order
+        return None
 
     def get_context_data(self, order, **kwargs):
         context = super().get_context_data(**kwargs)
         cart = get_cart(self.request)
         base_currency = settings.DEFAULT_CURRENCY
+        context['order'] = order
+        context['cart'] = cart
 
-        # Ensure payment exists
-        if not hasattr(order, 'payment'):
-            # Create payment if missing
-            payment = Payment.objects.create(
-                order=order,
-                amount=order.total,
-                currency=order.currency,
-                status='PENDING'
+        # Get prioritized methods
+        prioritized_methods = get_prioritized_payment_methods(self.request)
+        context['prioritized_methods'] = prioritized_methods
+
+        # Get or initialize selected payment method in session
+        selected_method = self.request.session.get(
+            'selected_payment_method',
+            prioritized_methods[0] if prioritized_methods else 'card'
+        )
+        context['selected_method'] = selected_method
+
+        # Get or create payment
+        payment, _ = Payment.objects.get_or_create(
+            order=order,
+            defaults={
+                'amount': order.total,
+                'currency': order.currency,
+                'status': 'PENDING'
+            }
+        )
+        context['payment'] = payment
+
+        # Stripe PaymentIntent logic
+        stripe_error = None
+        payment_intent_client_secret = None
+        amount_in_cents = int(payment.amount * 100)
+        currency_lower = payment.currency.lower()
+        min_amount = self.STRIPE_MINIMUMS.get(currency_lower, 50)
+
+        if amount_in_cents < min_amount:
+            stripe_error = (
+                f"The amount is too small for {payment.currency} payments. "
+                f"Minimum is {min_amount / 100:.2f} {payment.currency.upper()}."
             )
-            order.payment = payment
-            order.save()
+        else:
+            try:
+                intent = stripe.PaymentIntent.create(
+                    amount=amount_in_cents,
+                    currency=currency_lower,
+                    automatic_payment_methods={"enabled": True},
+                    metadata={
+                        'order_id': order.id,
+                        'payment_id': payment.id,
+                        'user_id': self.request.user.id if self.request.user.is_authenticated else 'guest'
+                    }
+                )
+                payment_intent_client_secret = intent.client_secret
+            except stripe.error.StripeError as e:
+                stripe_error = str(e)
+            except Exception:
+                stripe_error = "An error occurred while setting up payment. Please try again."
+                logger.exception("Stripe PaymentIntent creation failed")
 
 
-
-        # Get currency options
+        # Prepare currency options
         currency_options = []
         for code, name in settings.CURRENCIES:
             if code == base_currency:
                 rate = 1.0
             else:
-                # Try to get from cache or database
                 cache_key = f'rate_{base_currency}_{code}'
                 rate = cache.get(cache_key)
                 if rate is None:
-                    # Try database
                     try:
                         db_rate = CurrencyRate.objects.get(
                             base_currency=base_currency,
@@ -228,6 +284,7 @@ class CheckoutView(TemplateView):
                         cache.set(cache_key, rate, settings.CURRENCY_CACHE_TIMEOUT)
                     except CurrencyRate.DoesNotExist:
                         rate = get_exchange_rate(base_currency, code)
+                        cache.set(cache_key, rate, settings.CURRENCY_CACHE_TIMEOUT)
 
             currency_options.append({
                 'code': code,
@@ -237,18 +294,31 @@ class CheckoutView(TemplateView):
             })
 
         context.update({
-            'order': order,
-            'payment': order.payment,
-            'cart': cart,
-            'prioritized_methods': get_prioritized_payment_methods(self.request),
             'currency_options': currency_options,
             'default_currency': base_currency,
             'default_currency_symbol': settings.CURRENCY_SYMBOLS.get(base_currency, base_currency),
+            'PAYPAL_CLIENT_ID': settings.PAYPAL_CLIENT_ID,
+            'STRIPE_PUBLIC_KEY': settings.STRIPE_PUBLIC_KEY,
+            'payment_intent_client_secret': payment_intent_client_secret,
+            'stripe_error': stripe_error,
         })
+
         return context
+
+
+
 
 def get_country_name(country_code):
     # Implement country code to name conversion
     country_map = {'KE': 'Kenya', 'US': 'United States', 'GB': 'United Kingdom'}
     return country_map.get(country_code, country_code)
+
+@login_required
+@require_POST
+def update_payment_method(request):
+    method = request.POST.get('method')
+    if method in ['card', 'paypal', 'mpesa', 'airtel']:
+        request.session['selected_payment_method'] = method
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'invalid method'}, status=400)
 

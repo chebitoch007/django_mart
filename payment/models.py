@@ -408,8 +408,10 @@ class Payment(models.Model):
     order = models.OneToOneField(
         'orders.Order',  # Use string reference
         on_delete=models.CASCADE,
-        related_name='payment_relation'
+        related_name='payment_relation',
+        unique=True  # Enforce one payment per order
     )
+
     method = models.CharField(
         max_length=20,
         choices=PAYMENT_PROVIDER_CHOICES,

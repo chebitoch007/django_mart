@@ -697,6 +697,50 @@
         box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
     }
 
+    /* Toast notifications */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 8px;
+    color: white;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: fadeIn 0.3s, fadeOut 0.3s 2.7s;
+}
+
+.toast.success {
+    background: #10b981;
+}
+
+.toast.error {
+    background: #ef4444;
+}
+
+/* Loading indicators */
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator {
+    display: inline-block;
+}
+
+.htmx-request .htmx-hide-indicator {
+    display: none;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(20px); }
+}
+
     @media (max-width: 991px) {
         .filter-toggle {
             display: flex;
@@ -900,17 +944,26 @@
                             {% endif %}
                         </div>
 
-                        <form action="{% url 'cart:cart_add' product.id %}" method="post" class="add-to-cart-form">
+                        <form action="{% url 'cart:cart_add' product.id %}" method="post" class="add-to-cart-form"
+                              hx-post="{% url 'cart:cart_add' product.id %}"
+                              hx-swap="none"
+                              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
                             {% csrf_token %}
                             <input type="hidden" name="quantity" value="1">
-                            <button class="add-to-cart-btn" {% if product.stock <= 0 %}disabled{% endif %}>
-                                {% if product.stock > 0 %}
-                                <i class="fas fa-shopping-cart"></i> Add to Cart
-                                {% else %}
-                                Out of Stock
-                                {% endif %}
+                            <button class="add-to-cart-btn"
+                                    {% if product.stock <= 0 %}disabled{% endif %}
+                            hx-indicator="#spinner-{{ product.id }}">
+                            {% if product.stock > 0 %}
+                            <i class="fas fa-shopping-cart"></i> Add to Cart
+                            {% else %}
+                            Out of Stock
+                            {% endif %}
+                            <span id="spinner-{{ product.id }}" class="htmx-indicator ml-2">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
                             </button>
                         </form>
+
                     </div>
                 </div>
                 {% endfor %}
@@ -1057,6 +1110,62 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.href = url.toString();
         });
     }
+
+    // Function to update cart count
+    function updateGlobalCartCount(count) {
+        const cartCountElements = document.querySelectorAll('.cart-count');
+        cartCountElements.forEach(el => {
+            el.textContent = count;
+        });
+
+        // Animate cart icon
+        const cartIcon = document.querySelector('.cart-box');
+        if (cartIcon) {
+            cartIcon.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                cartIcon.style.transform = 'scale(1)';
+            }, 300);
+        }
+    }
+
+    // Handle cart add responses
+    document.body.addEventListener('htmx:afterRequest', function(event) {
+        const form = event.detail.elt.closest('.add-to-cart-form');
+        if (form && event.detail.xhr.status === 200) {
+            try {
+                const response = JSON.parse(event.detail.xhr.responseText);
+                if (response.success) {
+                    updateGlobalCartCount(response.cart_total_items);
+
+                    // Show success notification
+                    showNotification(response.message, 'success');
+                } else {
+                    showNotification(response.message, 'error');
+                }
+            } catch (e) {
+                console.error('Error parsing cart response:', e);
+                showNotification('Item added to cart', 'success');
+            }
+        }
+    });
+
+    // Notification function
+    function showNotification(message, type) {
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.style.animation = 'fadeOut 0.3s forwards';
+            toast.addEventListener('animationend', () => {
+                toast.remove();
+            });
+        }, 2700);
+    }
+
 });
 </script>
 {% endblock %}

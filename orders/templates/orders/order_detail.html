@@ -337,6 +337,7 @@
             </tfoot>
         </table>
 
+
         {% if order.status == 'PENDING' %}
         <div class="payment-required">
             <div class="payment-header">
@@ -346,11 +347,15 @@
             <p class="payment-text">
                 Please complete your payment to process this order. Your items will be shipped once payment is confirmed.
             </p>
-            <a href="{% url 'payment:process_payment' order.id %}" class="payment-btn">
-                <i class="fas fa-lock"></i> Proceed to Payment
-            </a>
+            <form method="post" action="{% url 'payment:process_payment' order.id %}">
+                {% csrf_token %}
+                <button type="submit" class="payment-btn">
+                    <i class="fas fa-lock"></i> Proceed to Payment
+                </button>
+            </form>
         </div>
         {% endif %}
+
     </div>
 </div>
 {% endblock %}

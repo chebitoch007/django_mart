@@ -115,7 +115,7 @@ singleton3==1.0
 six==1.16.0
 SQLAlchemy==2.0.41
 sqlparse==0.5.3
-stripe==12.1.0
+stripe==12.4.0
 systemd-python==234
 typing-inspection==0.4.1
 typing_extensions==4.14.1

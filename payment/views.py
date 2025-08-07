@@ -1,34 +1,25 @@
-from decimal import Decimal
-
-import requests
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-
+from django.utils import timezone
+import stripe
+from django.core.mail import mail_admins
+from decimal import Decimal
+import requests
 from .models import PaymentLog
-from django.core.cache import cache
-from django.core.exceptions import PermissionDenied
 from django.views.generic import DetailView, FormView, TemplateView, View, DeleteView, UpdateView, CreateView
 from django.shortcuts import redirect, get_object_or_404, render
 from django.contrib import messages
 from django.db import transaction
 from django.conf import settings
-from django.urls import reverse
-from django.http import JsonResponse
 from .models import Payment, PaymentMethod
 from orders.models import Order
 from .forms import MobileMoneyVerificationForm, PaymentMethodForm, PayPalPaymentForm
 from django.views.decorators.http import require_GET
 from django.utils.decorators import method_decorator
-from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy
-from .services import PaymentProcessor, convert_currency
-from django.views.decorators.http import require_POST
+from .services import PaymentProcessor
 from .forms import PaymentProcessingForm
-import logging
 from core.utils import get_exchange_rate
-
-logger = logging.getLogger(__name__)
-
-
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
@@ -38,14 +29,19 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import reverse
 import logging
 
+stripe.api_key = settings.STRIPE_SECRET_KEY
 logger = logging.getLogger(__name__)
 
-@csrf_protect
+
 @csrf_protect
 @require_POST
 @login_required
 def process_payment(request, order_id):
-    # Rate limiting implementation
+    if request.headers.get('X-Debug') == 'true':
+        logger.debug(f"Payment request for order {order_id}:")
+        logger.debug(f"POST data: {request.POST}")
+        logger.debug(f"User: {request.user}")
+
     user_key = f"payment_attempts_{request.user.id}"
     attempts = cache.get(user_key, 0)
 
@@ -55,29 +51,38 @@ def process_payment(request, order_id):
             'error_message': 'Too many attempts. Please try again later.'
         }, status=429)
 
-    cache.set(user_key, attempts + 1, 300)  # 5 min window
+    # Increment attempt count (5-minute window)
+    cache.set(user_key, attempts + 1, timeout=300)
+
     try:
-        form = PaymentProcessingForm(request.POST, user=request.user)
+        # Get order instance
+        order = get_object_or_404(Order, id=order_id, user=request.user)
+
+        # Use both path parameter and form data
+        post_data = request.POST.copy()
+        post_data['order_id'] = order_id  # Ensure order_id is always set
+
+        # Add amount from order if missing
+        if 'amount' not in post_data:
+            post_data['amount'] = str(order.total_cost)
+
+        form = PaymentProcessingForm(post_data, user=request.user)
+
         if not form.is_valid():
-            error_msg = '; '.join(f"{k}: {v[0]}" for k, v in form.errors.items())
+            error_msg = '; '.join(f"{field}: {errs[0]}" for field, errs in form.errors.items())
             return JsonResponse({'success': False, 'error_message': error_msg}, status=400)
 
         order = form.cleaned_data['order']
-        payment=order.order_payment
         payment_method = form.cleaned_data['payment_method']
+        payment = order.payment  # Assumes a OneToOneField or FK from Order to Payment
 
-        # Validate method
-        if payment_method not in ['mpesa', 'airtel', 'card', 'paypal']:
-            return JsonResponse({'success': False, 'error_message': 'Invalid payment method'}, status=400)
-
-        # Ensure order ownership
+        # Sanity check
         if order.user != request.user:
             raise PermissionDenied("Order does not belong to this user")
 
-        payment = order.order_payment  # Assumes Payment FK relation exists
-
-        # Idempotency and duplicate prevention
+        # Check payment status
         if payment.status != 'PENDING':
+            logger.warning(f"Duplicate payment attempt for order {order.id}, status: {payment.status}")
             PaymentLog.objects.create(
                 payment=payment,
                 log_type='FAILED',
@@ -88,20 +93,94 @@ def process_payment(request, order_id):
                 'error_message': 'Order has already been processed'
             }, status=400)
 
+        # Validate currency conversion rate
+        conversion_rate = form.cleaned_data.get('conversion_rate', 1)
+        if conversion_rate <= 0:
+            logger.error(f"Invalid conversion rate: {conversion_rate} for order {order.id}")
+            return JsonResponse({
+                'success': False,
+                'error_message': 'Invalid currency conversion rate'
+            }, status=400)
+
+        # Log processing start
         PaymentLog.objects.create(
             payment=payment,
             log_type='PROCESSING',
             details={
                 'method': payment_method,
                 'amount': form.cleaned_data['amount'],
-                'currency': form.cleaned_data['currency']
+                'currency': form.cleaned_data['currency'],
+                'conversion_rate': conversion_rate
             }
         )
 
-        processor = PaymentProcessor(
-            payment=payment,
-            **form.cleaned_data
-        )
+        if payment_method == 'card':
+            return process_stripe_payment(request, order, payment, form.cleaned_data)
+
+        elif payment_method == 'paypal':
+            paypal_order_id = form.cleaned_data.get('paypal_order_id')
+            paypal_payer_id = form.cleaned_data.get('paypal_payer_id')
+
+            if not paypal_order_id or not paypal_payer_id:
+                logger.error(f"Missing PayPal IDs for order {order.id}")
+                return JsonResponse({
+                    'success': False,
+                    'error_message': 'Missing PayPal payment information'
+                }, status=400)
+
+            capture_result = capture_paypal_payment(paypal_order_id)
+
+            if not capture_result.get('success'):
+                logger.error(f"PayPal capture failed for order {order.id}: {capture_result.get('error')}")
+                PaymentLog.objects.create(
+                    payment=payment,
+                    log_type='FAILED',
+                    details={
+                        'method': 'paypal',
+                        'error': capture_result.get('error'),
+                        'order_id': paypal_order_id
+                    }
+                )
+                return JsonResponse({
+                    'success': False,
+                    'error_message': capture_result.get('error', 'PayPal payment failed')
+                }, status=400)
+
+            amount = payment.amount
+            if form.cleaned_data['currency'] != payment.currency:
+                rate = conversion_rate
+                amount = round(amount * rate, 2)
+
+            # Mark payment as complete
+            payment.status = 'COMPLETED'
+            payment.paid_at = timezone.now()
+            payment.payment_method = 'paypal'
+            payment.amount_paid = amount
+            payment.transaction_id = paypal_order_id
+            payment.save()
+
+            order.status = 'PAID'
+            order.save()
+
+            PaymentLog.objects.create(
+                payment=payment,
+                log_type='SUCCESS',
+                details={
+                    'method': 'paypal',
+                    'order_id': paypal_order_id,
+                    'payer_id': paypal_payer_id,
+                    'converted_amount': amount,
+                    'from_currency': form.cleaned_data['currency'],
+                    'to_currency': payment.currency,
+                    'conversion_rate': conversion_rate
+                }
+            )
+
+            redirect_url = reverse('payment:payment_complete', kwargs={'pk': order.id})
+            return JsonResponse({'success': True, 'redirect_url': redirect_url})
+
+        # Default: use generic processor
+        processor = PaymentProcessor(payment=payment, **form.cleaned_data)
         result = processor.process()
 
         if result.get('success'):
@@ -110,11 +189,8 @@ def process_payment(request, order_id):
                 log_type='SUCCESS',
                 details={'gateway_response': result.get('gateway_data', {})}
             )
-            if payment_method == 'paypal':
-                url = reverse('payment:paypal_payment', args=[order.id])
-            else:
-                url = reverse('payment:payment_complete', kwargs={'pk': order.id})
-            return JsonResponse({'success': True, 'redirect_url': url})
+            redirect_url = reverse('payment:payment_complete', kwargs={'pk': order.id})
+            return JsonResponse({'success': True, 'redirect_url': redirect_url})
         else:
             PaymentLog.objects.create(
                 payment=payment,
@@ -131,16 +207,128 @@ def process_payment(request, order_id):
             }, status=400)
 
     except PermissionDenied:
-        logger.warning("Permission denied during payment processing")
+        logger.warning(f"[Payment] Permission denied: user={request.user.id}, order={order_id}")
         return JsonResponse({'success': False, 'error_message': 'Permission denied'}, status=403)
-    except Exception as exc:
-        logger.exception("Internal payment processing error")
+
+    except Exception as e:
+        logger.exception("Payment processing failed unexpectedly.")
         if not settings.DEBUG:
-            from django.core.mail import mail_admins
-            mail_admins("Payment Error", f"User: {request.user.email}\nError: {exc}")
-        return JsonResponse({'success': False, 'error_message': 'Internal server error'}, status=500)
+            mail_admins(
+                subject="Payment Processing Error",
+                message=f"User: {request.user.email}\nOrder ID: {order_id}\nError: {str(e)}"
+            )
+        return JsonResponse({
+            'success': False,
+            'error_message': 'Internal server error. Please try again later.'
+        }, status=500)
 
 
+def capture_paypal_payment(order_id):
+    try:
+        access_token = get_paypal_access_token()
+        capture_url = f"https://api-m.sandbox.paypal.com/v2/checkout/orders/{order_id}/capture"
+        response = requests.post(
+            capture_url,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}"
+            }
+        )
+
+        if response.status_code == 201:
+            return {'success': True, 'data': response.json()}
+        else:
+            error_msg = response.json().get('message', 'PayPal capture failed')
+            return {'success': False, 'error': error_msg}
+
+    except Exception as e:
+        logger.exception("PayPal capture error")
+        return {'success': False, 'error': str(e)}
+
+def paypal_return(request):
+    token = request.GET.get('token')
+    payer_id = request.GET.get('PayerID')
+    if token and payer_id:
+        # Capture payment and process order
+        return redirect('payment_success')
+    return redirect('payment_failed')
+
+
+
+
+def process_stripe_payment(request, order, payment, data):
+    """
+    Process a Stripe payment by retrieving and verifying an existing PaymentIntent.
+    """
+    # The frontend confirms the payment and sends us the ID.
+    payment_intent_id = data.get('stripe_payment_intent_id')
+
+    if not payment_intent_id:
+        return JsonResponse({
+            'success': False,
+            'error_message': 'Payment Intent ID was not provided.'
+        }, status=400)
+
+    try:
+        # Retrieve the PaymentIntent from Stripe's API to check its status.
+        intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+
+        # --- Verification Step ---
+        # Ensure the payment details from Stripe match your database records.
+        expected_amount_cents = int(payment.amount * 100)
+        if intent.amount_received != expected_amount_cents or intent.currency != payment.currency.lower():
+            logger.error(
+                f"Amount mismatch for Order {order.id}. "
+                f"Expected: {expected_amount_cents} {payment.currency.lower()}. "
+                f"Got: {intent.amount_received} {intent.currency}."
+            )
+            # You might want to automatically issue a refund here
+            # stripe.Refund.create(payment_intent=intent.id)
+            return JsonResponse({
+                'success': False,
+                'error_message': 'Payment amount does not match order total. Please contact support.'
+            }, status=400)
+
+
+        # --- Status Check ---
+        if intent.status == 'succeeded':
+            # The payment is successful and verified. Fulfill the order.
+            payment.status = 'COMPLETED'
+            payment.paid_at = timezone.now()
+            payment.payment_method = 'card'
+            payment.transaction_id = intent.id
+            payment.save()
+
+            order.status = 'PAID'
+            order.save()
+
+            PaymentLog.objects.create(
+                payment=payment,
+                log_type='SUCCESS',
+                details={'method': 'stripe', 'intent_id': intent.id, 'status': intent.status}
+            )
+
+            redirect_url = reverse('payment:payment-complete', kwargs={'pk': order.id})
+            return JsonResponse({'success': True, 'redirect_url': redirect_url})
+        else:
+            # The payment was not successful for another reason.
+            PaymentLog.objects.create(
+                payment=payment,
+                log_type='FAILED',
+                details={'method': 'stripe', 'intent_id': intent.id, 'status': intent.status}
+            )
+            return JsonResponse({
+                'success': False,
+                'error_message': 'Payment confirmation failed. Please try again.'
+            }, status=400)
+
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe API error while processing {payment_intent_id}: {str(e)}")
+        PaymentLog.objects.create(payment=payment, log_type='FAILED', details={'error_message': str(e)})
+        return JsonResponse({'success': False, 'error_message': str(e)}, status=400)
+    except Exception as e:
+        logger.exception(f"A general error occurred in process_stripe_payment for order {order.id}")
+        return JsonResponse({'success': False, 'error_message': 'An internal server error occurred.'}, status=500)
 
 
 @method_decorator(login_required, name='dispatch')
@@ -386,17 +574,36 @@ def get_fallback_rate(from_curr, to_curr):
     pass
 
 
+
 def get_live_exchange_rate(from_curr, to_curr):
+    """Fetch live rates from external API with access key support"""
     try:
-        # Use a real exchange rate API
+        # Use a real exchange rate API with access key
+        params = {
+            'base': from_curr,
+            'symbols': to_curr,
+        }
+
+        # Add access key if configured
+        if hasattr(settings, 'EXCHANGERATE_API_KEY'):
+            params['access_key'] = settings.EXCHANGERATE_API_KEY
+
         response = requests.get(
-            f"https://api.exchangerate.host/latest?base={from_curr}&symbols={to_curr}",
+            "https://api.exchangerate.host/latest",
+            params=params,
             timeout=3
         )
+        response.raise_for_status()
         data = response.json()
-        return data['rates'].get(to_curr)
+
+        if data.get('success', True):  # Some APIs don't have 'success' field
+            return data['rates'].get(to_curr)
+        else:
+            error_msg = data.get('error', {}).get('info', 'API error')
+            logger.error(f"Exchange rate API error: {error_msg}")
+            return None
     except Exception as e:
-        logger.error(f"Exchange rate API error: {str(e)}")
+        logger.error(f"Exchange rate API exception: {str(e)}")
         return None
 
 
@@ -412,6 +619,15 @@ def currency_convert(request):
     try:
         # Use the shared exchange rate function
         rate = get_exchange_rate(from_curr, to_curr)
+        if rate is None:
+            # Use fallback rates
+            fallback_rates = getattr(settings, 'CURRENCY_FALLBACK_RATES', {})
+            rate_key = f"{from_curr}_{to_curr}"
+            if rate_key in fallback_rates:
+                rate = fallback_rates[rate_key]
+            else:
+                return JsonResponse({'error': 'Exchange rate not available'}, status=400)
+
         converted = Decimal(amount) * rate
 
         return JsonResponse({
@@ -428,3 +644,40 @@ def currency_convert(request):
 
 class PaymentExpiredView(TemplateView):
     template_name = 'payment/expired.html'
+
+@csrf_exempt
+def paypal_success(request):
+    token = request.GET.get('token')
+    if not token:
+        return HttpResponse("Missing token", status=400)
+
+    # Capture payment
+    access_token = get_paypal_access_token()
+    capture_url = f"https://api-m.sandbox.paypal.com/v2/checkout/orders/{token}/capture"
+    response = requests.post(
+        capture_url,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}"
+        }
+    )
+    data = response.json()
+
+    if response.status_code == 201:
+        return HttpResponse(f"Payment successful! Data: {data}")
+    else:
+        return HttpResponse(f"Capture failed! Error: {data}", status=400)
+
+def paypal_cancel(request):
+    return HttpResponse("Payment cancelled.")
+
+def get_paypal_access_token():
+    from requests.auth import HTTPBasicAuth
+    auth = HTTPBasicAuth(settings.PAYPAL_CLIENT_ID, settings.PAYPAL_SECRET)
+    response = requests.post(
+        'https://api-m.sandbox.paypal.com/v1/oauth2/token',
+        headers={"Accept": "application/json", "Accept-Language": "en_US"},
+        data={'grant_type': 'client_credentials'},
+        auth=auth
+    )
+    return response.json()['access_token']
