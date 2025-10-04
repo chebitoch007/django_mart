@@ -1,0 +1,52 @@
+# === Python Bytecode ===
+__pycache__/
+*.py[cod]
+*.so
+
+# === C Extensions ===
+*.pyd
+
+# === Environment Variables ===
+.env
+*.env
+*.key
+*.crt
+
+# === Virtual Environments ===
+.venv/
+venv/
+ENV/
+env/
+
+# === IDEs & Editors ===
+.vscode/
+.idea/
+
+# === Logs and Dumps ===
+*.log
+*.pot
+*.psql
+*.pgsql
+*.sql
+
+# === Django Specific ===
+*.pyc
+staticfiles/
+media/
+local_settings.py
+db.sqlite3
+
+# === Node/npm (if ever used for frontend) ===
+node_modules/
+
+# === System Files ===
+.DS_Store
+Thumbs.db
+
+# === Python Wheels (local packages you may have) ===
+*.whl
+
+# === Compiled Output (if building stuff) ===
+dist/
+build/
+*.egg-info/
