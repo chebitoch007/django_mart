@@ -1,0 +1,7 @@
+Confirm your subscription: {{ confirmation_url }}
+
+If you didn't request this, unsubscribe here: {{ unsubscribe_url }}
+
+Privacy Policy: {{ privacy_url }}
+IP Address: {{ ip_address }}
+Timestamp: {{ timestamp|date:"M d, Y H:i" }}

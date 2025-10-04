@@ -1,0 +1,74 @@
+<!-- users/templates/users/account_delete_confirm.html -->
+{% extends "store/base.html" %}
+
+{% block content %}
+<div class="max-w-md mx-auto p-4 md:p-6 lg:p-8 mt-10 mb-10">
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-red-200">
+        <div class="bg-red-600 text-white p-4 md:p-6">
+            <h2 class="text-lg font-bold flex items-center">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                Delete Your Account
+            </h2>
+        </div>
+
+        <div class="p-4 md:p-6 lg:p-8">
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <h3 class="text-red-700 font-bold mb-2">Warning: Permanent Account Deletion</h3>
+                <p class="text-red-600">This action will immediately and permanently delete your account. You will lose access to all order history and account information.</p>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-6">
+                    <h4 class="font-bold mb-2">What will be deleted:</h4>
+                    <ul class="list-disc list-inside">
+                        <li class="text-gray-700">
+                            <i class="fas fa-user text-red-500 mr-2"></i>
+                            <strong>Your Profile</strong>
+                            <p class="text-gray-500 text-sm">Personal information and settings</p>
+                        </li>
+                        <li class="text-gray-700">
+                            <i class="fas fa-shopping-bag text-red-500 mr-2"></i>
+                            <strong>Order History</strong>
+                            <p class="text-gray-500 text-sm">Access to past orders and receipts</p>
+                        </li>
+                        <li class="text-gray-700">
+                            <i class="fas fa-credit-card text-red-500 mr-2"></i>
+                            <strong>Saved Payment Methods</strong>
+                            <p class="text-gray-500 text-sm">All stored payment information</p>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="mb-6">
+                    {{ form.confirm }}
+                    <label class="ml-2 text-gray-700" for="{{ form.confirm.id_for_label }}">
+                        {{ form.confirm.label }}
+                    </label>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-gray-700 font-bold mb-2" for="{{ form.password.id_for_label }}">
+                        {{ form.password.label }}
+                    </label>
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                        <div class="text-red-600 text-sm mt-1">
+                            {{ form.password.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg">
+                        <i class="fas fa-trash-alt mr-2"></i>Permanently Delete Account
+                    </button>
+                    <a href="{% url 'users:account' %}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-4 rounded-lg text-center">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+</div>
+{% endblock %}

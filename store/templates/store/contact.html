@@ -1,0 +1,99 @@
+{% extends 'store/base.html' %}
+
+{% block content %}
+<style>
+  :root {
+    --primary-color: #2196f3; /* Blue */
+    --primary-color-dark: #1a237e; /* Indigo */
+  }
+
+  .btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+
+  .btn-primary:hover {
+    background-color: var(--primary-color-dark);
+    border-color: var(--primary-color-dark);
+  }
+
+  .btn-primary:focus {
+    box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.5);
+  }
+
+  .card {
+    border-color: #ddd;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  }
+
+  .form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.25);
+  }
+
+  a {
+    color: var(--primary-color);
+  }
+
+  a:hover {
+    color: var(--primary-color-dark);
+  }
+
+  h1, h4 {
+    color: #1a237e;
+  }
+
+  .fas {
+    color: #2196f3;
+  }
+</style>
+
+<section class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6 mx-auto">
+            <h1 class="mb-2">Get in Touch</h1>
+            <p class="text-muted mb-4">Have questions or need assistance? We're here to help!</p>
+
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Your Name</label>
+                            <input type="text" class="form-control form-control-lg" required placeholder="John Doe">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Email Address</label>
+                            <input type="email" class="form-control form-control-lg" required placeholder="john.doe@example.com">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Message</label>
+                            <textarea class="form-control form-control-lg" rows="5" required placeholder="Type your message here..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">Send Message</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="mt-5">
+                <h4 class="mb-3">Contact Information</h4>
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-envelope me-2"></i>
+                        <a href="mailto:support@djangomart.com">support@djangomart.com</a>
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-phone me-2"></i>
+                        +1 (555) 123-4567
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-map-marker-alt me-2"></i>
+                        123 E-commerce Street, Web City
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

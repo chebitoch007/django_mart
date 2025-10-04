@@ -1,0 +1,26 @@
+{% extends "store/base.html" %}
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow">
+        <div class="card-header bg-danger text-white">
+            <h3 class="mb-0">Payment Expired</h3>
+        </div>
+
+        <div class="card-body">
+            <div class="alert alert-danger">
+                <h4 class="alert-heading">Payment Window Closed</h4>
+                <p>This payment link has expired. Please choose an option:</p>
+                <hr>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'contact-support' %}" class="btn btn-outline-danger">
+                        Contact Support
+                    </a>
+                    <a href="{% url 'create-order' %}" class="btn btn-primary">
+                        Create New Order
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

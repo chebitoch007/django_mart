@@ -1,0 +1,1875 @@
+{% extends "store/base.html" %}
+{% load humanize static %}
+
+
+
+{% block extra_head_scripts %}
+  {% if not paypal_loaded %}
+    <script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&currency=USD&commit=false&components=buttons" async></script>
+  {% endif %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+
+<style>
+    /* Enhanced Checkout Page Styles */
+    :root {
+        --primary-color: #3b82f6;
+        --primary-hover: #2563eb;
+        --success-color: #10b981;
+        --error-color: #ef4444;
+        --warning-color: #f59e0b;
+        --text-primary: #1f2937;
+        --text-secondary: #6b7280;
+        --border-color: #e5e7eb;
+        --background-light: #f9fafb;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .checkout-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .checkout-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+
+    @media (min-width: 992px) {
+        .checkout-layout {
+            flex-direction: row;
+        }
+    }
+
+    .payment-section {
+        flex: 2;
+    }
+
+    .order-summary-section {
+        flex: 1;
+    }
+
+    /* Enhanced Payment Card */
+    .payment-card {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        padding: 32px;
+        box-shadow: var(--shadow-lg);
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .payment-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-color), #8b5cf6);
+    }
+
+    .payment-title {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 28px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .payment-title i {
+        color: var(--primary-color);
+    }
+
+    /* Enhanced Location Indicator */
+    .location-indicator {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+        border-radius: 10px;
+        margin-bottom: 24px;
+        font-size: 0.9rem;
+        border: 1px solid #bae6fd;
+    }
+
+    .location-indicator i {
+        color: #0ea5e9;
+        font-size: 1.1rem;
+    }
+
+    /* Enhanced Currency Selector */
+    .currency-selector {
+        margin-bottom: 24px;
+    }
+
+    .currency-label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+    }
+
+    .currency-dropdown {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid var(--border-color);
+        border-radius: 10px;
+        background: white;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .currency-dropdown:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    /* Enhanced Payment Tabs with Smooth Animations */
+    .payment-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+        overflow-x: auto;
+        padding: 4px;
+        background: var(--background-light);
+        border-radius: 12px;
+    }
+
+    .payment-tab {
+        flex: 1;
+        min-width: 120px;
+        text-align: center;
+        padding: 14px 16px;
+        border-radius: 8px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 600;
+        color: var(--text-secondary);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        position: relative;
+        transform: scale(1);
+    }
+
+    .payment-tab:hover:not(.active) {
+        background: rgba(59, 130, 246, 0.05);
+        color: var(--primary-color);
+        transform: scale(1.02);
+    }
+
+    .payment-tab.active {
+        background: var(--primary-color);
+        color: white;
+        box-shadow: var(--shadow-md);
+        transform: scale(1.05);
+    }
+
+    .payment-tab i {
+        font-size: 1.2rem;
+        transition: transform 0.2s ease;
+    }
+
+    .payment-tab.active i {
+        transform: scale(1.1);
+    }
+
+    .payment-tab small {
+        font-weight: 500;
+        font-size: 0.75rem;
+        opacity: 0.9;
+    }
+
+    /* Enhanced Method Confirmation */
+    .method-confirmation {
+        background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);
+        border-left: 4px solid var(--success-color);
+        padding: 14px 18px;
+        margin-bottom: 24px;
+        border-radius: 0 10px 10px 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    .method-confirmation i {
+        color: var(--success-color);
+        font-size: 1.2rem;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    /* Enhanced Form Layout - Side by Side on Desktop */
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+
+    @media (min-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    .input-group {
+        position: relative;
+    }
+
+    .input-label {
+        display: block;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+    }
+
+    .text-input, .phone-input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid var(--border-color);
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+        background: white;
+    }
+
+    .text-input:focus, .phone-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .amount-input {
+        padding: 14px 16px;
+        background: var(--background-light);
+        border: 2px solid var(--border-color);
+        border-radius: 10px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Enhanced Inline Validation */
+    .input-error {
+        border-color: var(--error-color) !important;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+        animation: shake 0.3s ease-in-out;
+    }
+
+    .input-success {
+        border-color: var(--success-color) !important;
+    }
+
+    .error-text {
+        color: var(--error-color);
+        font-size: 0.85rem;
+        margin-top: 6px;
+        display: none;
+        animation: slideDown 0.2s ease-out;
+    }
+
+    .error-text.show {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .error-text i {
+        font-size: 0.8rem;
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Terms Agreement */
+    .terms-group {
+        margin: 24px 0;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .terms-checkbox {
+        margin-top: 3px;
+        transform: scale(1.2);
+    }
+
+    .terms-label {
+        color: var(--text-secondary);
+        line-height: 1.5;
+        font-size: 0.9rem;
+    }
+
+    .terms-link {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .terms-link:hover {
+        text-decoration: underline;
+    }
+
+    /* Enhanced Payment Button with Dynamic Text */
+    .submit-button {
+        width: 100%;
+        padding: 16px 24px;
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        position: relative;
+        margin-top: 24px;
+        box-shadow: var(--shadow-md);
+    }
+
+    .submit-button:hover:not(:disabled) {
+        background: linear-gradient(135deg, var(--primary-hover) 0%, #1d4ed8 100%);
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+    }
+
+    .submit-button:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .submit-button.loading {
+        color: transparent;
+    }
+
+    .button-spinner {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 22px;
+        height: 22px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        display: none;
+    }
+
+    .submit-button.loading .button-spinner {
+        display: block;
+    }
+
+    /* Trust Badges */
+    .trust-badges {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        margin-top: 16px;
+        padding: 12px;
+        background: var(--background-light);
+        border-radius: 8px;
+        opacity: 0.8;
+    }
+
+    .trust-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .trust-badge i {
+        font-size: 1.2rem;
+        color: var(--primary-color);
+    }
+
+    /* Enhanced Order Summary with Collapsible Mobile Version */
+    .summary-card {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-lg);
+        position: sticky;
+        top: 20px;
+        overflow: hidden;
+    }
+
+    .summary-header {
+        padding: 24px 24px 0;
+        display: flex;
+        align-items: center;
+        justify-content: between;
+    }
+
+    .summary-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        flex: 1;
+    }
+
+    .summary-toggle {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--primary-color);
+        font-weight: 600;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 6px;
+        transition: background 0.2s ease;
+    }
+
+    .summary-toggle:hover {
+        background: rgba(59, 130, 246, 0.1);
+    }
+
+    .summary-content {
+        padding: 0 24px 24px;
+        transition: all 0.3s ease;
+    }
+
+    @media (max-width: 991px) {
+        .summary-card {
+            position: static;
+            margin-top: 20px;
+        }
+
+        .summary-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-content.collapsed {
+            max-height: 0;
+            overflow: hidden;
+            padding: 0 24px;
+        }
+
+        .summary-toggle i {
+            transition: transform 0.2s ease;
+        }
+
+        .summary-toggle.collapsed i {
+            transform: rotate(180deg);
+        }
+    }
+
+    .order-items {
+        margin: 20px 0;
+    }
+
+    .order-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .item-image {
+        width: 64px;
+        height: 64px;
+        border-radius: 10px;
+        object-fit: contain;
+        background: var(--background-light);
+        padding: 8px;
+        border: 1px solid var(--border-color);
+    }
+
+    .item-info {
+        flex: 1;
+    }
+
+    .item-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 6px;
+        font-size: 0.95rem;
+    }
+
+    .item-quantity {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+    }
+
+    .item-price {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 1rem;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .summary-label {
+        color: var(--text-secondary);
+    }
+
+    .summary-value {
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .summary-total {
+        display: flex;
+        justify-content: space-between;
+        padding: 20px 0;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        background: var(--background-light);
+        margin: 16px -24px 0;
+        padding: 20px 24px;
+    }
+
+    /* Enhanced Processing Modal with Staged Messages */
+    .processing-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(4px);
+    }
+
+    .processing-modal.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 20px;
+        padding: 48px;
+        text-align: center;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: var(--shadow-lg);
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+    }
+
+    .processing-modal.active .modal-content {
+        transform: scale(1);
+    }
+
+    .spinner {
+        width: 64px;
+        height: 64px;
+        border: 4px solid rgba(59, 130, 246, 0.2);
+        border-top-color: var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 24px;
+    }
+
+    .modal-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 12px;
+    }
+
+    .modal-text {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        font-size: 1rem;
+    }
+
+    /* Currency Conversion Tooltip */
+    .currency-tooltip {
+        background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+        border: 1px solid #fdba74;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-top: 12px;
+        font-size: 0.9rem;
+        color: #9a3412;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    .currency-tooltip i {
+        color: var(--warning-color);
+        font-size: 1.1rem;
+    }
+
+    /* Payment Status Messages */
+    .payment-status {
+        padding: 16px 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        display: none;
+        align-items: center;
+        gap: 10px;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    .payment-status i {
+        font-size: 1.1rem;
+    }
+
+    .payment-status.info {
+        background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
+        color: #1e40af;
+        border: 1px solid #93c5fd;
+    }
+
+    .payment-status.error {
+        background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
+        color: #dc2626;
+        border: 1px solid #fca5a5;
+    }
+
+    .payment-status.success {
+        background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);
+        color: #166534;
+        border: 1px solid #86efac;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Responsive Improvements */
+    @media (max-width: 767px) {
+        .checkout-container {
+            padding: 12px;
+        }
+
+        .payment-card {
+            padding: 24px 16px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card {
+            border-radius: 12px;
+        }
+
+        .payment-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .payment-tabs {
+            gap: 4px;
+            padding: 2px;
+        }
+
+        .payment-tab {
+            min-width: 100px;
+            padding: 12px 8px;
+            font-size: 0.85rem;
+        }
+
+        .payment-tab small {
+            display: none;
+        }
+
+        .form-row {
+            gap: 16px;
+        }
+
+        .modal-content {
+            padding: 32px 24px;
+            margin: 20px;
+        }
+    }
+
+    /* PayPal specific styles */
+    #paypal-button-container-wrapper {
+        position: relative;
+        z-index: 1;
+        min-height: 55px;
+        margin-bottom: 20px;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    #paypal-button-container {
+        position: relative;
+        z-index: 1;
+    }
+
+    body > iframe[data-paypal-checkout] {
+        z-index: 9999 !important;
+    }
+
+    /* Form section transitions */
+    .payment-form-section {
+        margin-top: 20px;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.3s ease;
+    }
+
+    .payment-form-section.active {
+        opacity: 1;
+        transform: translateY(0);
+    }
+</style>
+
+<div class="checkout-container">
+    <div class="checkout-layout">
+        <!-- Payment Section -->
+        <div class="payment-section">
+            <div class="payment-card">
+                <h2 class="payment-title">
+                    <i class="fas fa-credit-card"></i>
+                    Secure Payment
+                </h2>
+
+                <!-- Geolocation Indicator -->
+                <div class="location-indicator">
+                    <i class="fas fa-location-dot"></i>
+                    <span id="locationText">
+                        {% if request.country_name %}
+                            Detected location: {{ request.country_name }}.
+                        {% else %}
+                            Detected location: Kenya.
+                        {% endif %}
+                        {% if prioritized_methods|length > 1 %}
+                            Multiple payment options available
+                        {% elif prioritized_methods|length == 1 %}
+                            {{ prioritized_methods.0|upper }} prioritized
+                        {% else %}
+                            Please select payment method
+                        {% endif %}
+                    </span>
+                </div>
+
+                <!-- Currency Selection -->
+                <div class="currency-selector">
+                    <label class="currency-label">Payment Currency</label>
+                    <select class="currency-dropdown" id="currencySelector">
+                        {% for currency in currency_options %}
+                        <option value="{{ currency.code }}"
+                                {% if currency.code == default_currency %}selected{% endif %}
+                                data-symbol="{{ currency.symbol }}"
+                                data-rate="{{ currency.rate }}">
+                            {{ currency.name }} ({{ currency.code }}) {{ currency.symbol }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div id="currencyTooltip" class="currency-tooltip" style="display: none;">
+                        <i class="fas fa-info-circle"></i>
+                        <span id="tooltipText"></span>
+                    </div>
+                </div>
+
+                <!-- Enhanced Payment Method Tabs -->
+                <div class="payment-tabs">
+                    <button type="button" class="payment-tab active" data-method="mpesa">
+                        <i class="fas fa-mobile-alt"></i>
+                        <span>M-Pesa</span>
+                        <small>Mobile Money</small>
+                    </button>
+                    <button type="button" class="payment-tab" data-method="paypal">
+                        <i class="fab fa-paypal"></i>
+                        <span>PayPal</span>
+                        <small>Credit & Debit Cards</small>
+                    </button>
+                </div>
+
+                <!-- Payment Method Confirmation -->
+                <div class="method-confirmation" id="methodConfirmation">
+                    <i class="fas fa-check-circle"></i>
+                    <span>You've selected to pay with <strong id="selectedMethodName">M-Pesa</strong></span>
+                </div>
+
+                <!-- Payment Forms -->
+                <form id="paymentForm" method="post" action="{% url 'payment:process_payment' order.id %}" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="checkout_request_id" id="checkoutRequestId">
+                    <input type="hidden" name="order_id" value="{{ order.id }}">
+                    <input type="hidden" name="amount" id="formAmount" value="{{ order.total_price }}">
+                    <input type="hidden" name="payment_method" id="selectedMethod" value="mpesa">
+                    <input type="hidden" name="currency" id="formCurrency" value="{{ default_currency }}">
+                    <input type="hidden" name="conversion_rate" id="formConversionRate" value="1">
+
+
+                    <!-- Mobile Money Section -->
+                    <div class="payment-form-section active" id="mobileMoneySection">
+                        <!-- Enhanced Side-by-Side Form Layout -->
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label class="input-label">Phone Number</label>
+                                <input
+                                    type="tel"
+                                    class="phone-input"
+                                    id="phoneNumber"
+                                    name="phone_number"
+                                    pattern="[0-9]{10}"
+                                    placeholder="712345678"
+                                    required>
+                                <div id="phoneError" class="error-text">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    Please enter a valid phone number (e.g. 712345678)
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Amount to Pay</label>
+                                <input
+                                    type="text"
+                                    class="amount-input"
+                                    id="amount"
+                                    value="{{ default_currency }} {{ cart.total_price|floatformat:2|intcomma }}"
+                                    readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Terms Agreement -->
+                    <div class="terms-group">
+                        <input type="checkbox" id="termsAgreement" class="terms-checkbox" required>
+                        <label for="termsAgreement" class="terms-label">
+                            I agree to the <a href="{% url 'store:terms' %}" class="terms-link" target="_blank">Terms of Service</a>
+                            and <a href="{% url 'store:privacy' %}" class="terms-link" target="_blank">Privacy Policy</a>
+                        </label>
+                    </div>
+
+                    <!-- Status Messages -->
+                    <div id="paymentStatus" class="payment-status info" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Processing your payment...</span>
+                    </div>
+
+                    <div id="paymentErrors" class="payment-status error" style="display: none;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Please fix the errors below.</span>
+                    </div>
+
+                    <!-- Enhanced Submit Button with Dynamic Text -->
+                    <button type="submit" id="paymentSubmitButton" class="submit-button">
+                        <i class="fas fa-lock" id="submitIcon"></i>
+                        <span id="submitText">Pay with M-Pesa</span>
+                        <div class="button-spinner"></div>
+                    </button>
+
+                    <!-- Trust Badges -->
+                    <div class="trust-badges">
+                        <div class="trust-badge">
+                            <i class="fab fa-cc-visa"></i>
+                            <span>Visa</span>
+                        </div>
+                        <div class="trust-badge">
+                            <i class="fab fa-cc-mastercard"></i>
+                            <span>MasterCard</span>
+                        </div>
+                        <div class="trust-badge">
+                            <i class="fab fa-paypal"></i>
+                            <span>PayPal</span>
+                        </div>
+                        <div class="trust-badge">
+                            <i class="fas fa-mobile-alt"></i>
+                            <span>M-Pesa</span>
+                        </div>
+                        <div class="trust-badge">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Secure</span>
+                        </div>
+                    </div>
+                </form>
+
+
+                <!-- PayPal Section (Moved outside the form) -->
+                <div class="payment-form-section" id="paypalSection" style="display: none;">
+                    <div id="paypal-button-container-wrapper">
+                        <div id="paypal-button-container"></div>
+                    </div>
+                    <div id="paypal-fallback" class="payment-status error" style="display: none;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        PayPal payment is currently unavailable. Please try another payment method.
+                    </div>
+                    <div id="paypal-status" class="payment-status info" style="display: none;">
+                        <i class="fas fa-info-circle"></i>
+                        <span></span>
+                    </div>
+                </div>
+
+                <!-- PayPal Hidden Fields (Moved outside the form) -->
+                <input type="hidden" name="paypal_order_id" id="paypalOrderId">
+                <input type="hidden" name="paypal_payer_id" id="paypalPayerId">
+
+            </div>
+        </div>
+
+        <!-- Enhanced Order Summary Section with Collapsible Mobile Version -->
+        <div class="order-summary-section">
+            <div class="summary-card">
+                <div class="summary-header">
+                    <h2 class="summary-title">Order Summary</h2>
+                    <button type="button" class="summary-toggle" id="summaryToggle">
+                        <span>Show Details</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+
+                <div class="summary-content" id="summaryContent">
+                    <div class="order-items" id="orderItems">
+                        {% for item in cart.items.all %}
+                        <div class="order-item" data-price="{{ item.total_price }}">
+                            <img src="{{ item.product.get_image_url }}" alt="{{ item.product.name }}" class="item-image">
+                            <div class="item-info">
+                                <div class="item-name">{{ item.product.name }}</div>
+                                <div class="item-quantity">Qty: {{ item.quantity }}</div>
+                            </div>
+                            <div class="item-price">
+                                <span class="currency-symbol">{{ default_currency_symbol|default:"$" }}</span>
+                                <span class="item-amount">{{ item.total_price|intcomma }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="summary-row">
+                        <div class="summary-label">Subtotal</div>
+                        <div class="summary-value">
+                            <span class="currency-symbol">{{ default_currency_symbol|default:"$" }}</span>
+                            <span class="subtotal-amount">{{ cart.total_price|intcomma }}</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-total">
+                        <div>Total</div>
+                        <div>
+                            <span class="currency-symbol">{{ default_currency_symbol|default:"Ksh" }}</span>
+                            <span class="total-amount">{{ cart.total_price|intcomma }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Processing Modal with Staged Messages -->
+<div class="processing-modal" id="processingModal">
+    <div class="modal-content">
+        <div class="spinner"></div>
+        <h3 class="modal-title" id="modalTitle">Processing Payment</h3>
+        <p class="modal-text" id="modalText">Please wait while we complete your transaction</p>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // Elements references
+        const paymentForm = document.getElementById('paymentForm');
+        const processingModal = document.getElementById('processingModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalText = document.getElementById('modalText');
+        const paymentStatus = document.getElementById('paymentStatus');
+        const paymentErrors = document.getElementById('paymentErrors');
+        const selectedMethodInput = document.getElementById('selectedMethod');
+        const currencySelector = document.getElementById('currencySelector');
+        const currencyTooltip = document.getElementById('currencyTooltip');
+        const tooltipText = document.getElementById('tooltipText');
+        const methodConfirmation = document.getElementById('methodConfirmation');
+        const selectedMethodName = document.getElementById('selectedMethodName');
+        const paymentSubmitButton = document.getElementById('paymentSubmitButton');
+        const submitText = document.getElementById('submitText');
+        const submitIcon = document.getElementById('submitIcon');
+        const formCurrency = document.getElementById('formCurrency');
+        const formConversionRate = document.getElementById('formConversionRate');
+        const mobileMoneySection = document.getElementById('mobileMoneySection');
+        const paypalSection = document.getElementById('paypalSection');
+        const paymentTabs = document.querySelectorAll('.payment-tab');
+        const phoneInput = document.getElementById('phoneNumber');
+        const phoneError = document.getElementById('phoneError');
+        const termsCheckbox = document.getElementById('termsAgreement');
+        const paypalButtonContainer = document.getElementById('paypal-button-container');
+        const summaryToggle = document.getElementById('summaryToggle');
+        const summaryContent = document.getElementById('summaryContent');
+
+        // State variables
+        let currentRate = 1;
+        let currentCurrency = '{{ default_currency|default:"USD" }}';
+        let currentConvertedAmount = parseFloat("{{ cart.total_price }}");
+        let paypalButtons;
+        let paypalInitialized = false;
+        let paypalProcessing = false;
+        let processingStage = 0;
+
+        // PayPal supported currencies
+        const paypalSupportedCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY'];
+
+        // Currency configuration - FIXED the syntax error here
+        const currencySymbols = {
+            'USD': '$', 'EUR': '€', 'GBP': '£',
+            'KES': 'KSh', 'UGX': 'USh', 'TZS': 'TSh'
+        };
+
+        // Staged processing messages
+        const processingStages = {
+            mpesa: [
+                { title: 'Connecting to M-Pesa', text: 'Establishing secure connection with Safaricom...' },
+                { title: 'Sending Payment Request', text: 'Your phone will receive a payment prompt shortly...' },
+                { title: 'Awaiting Confirmation', text: 'Please complete the transaction on your phone...' },
+                { title: 'Finalizing Transaction', text: 'Processing payment confirmation...' }
+            ],
+            paypal: [
+                { title: 'Connecting to PayPal', text: 'Establishing secure connection...' },
+                { title: 'Processing Payment', text: 'Completing your PayPal transaction...' },
+                { title: 'Finalizing Order', text: 'Confirming payment and updating your order...' }
+            ]
+        };
+
+        // ====================
+        // INITIALIZATION
+        // ====================
+
+        // Check if PayPal supports a currency
+        function isPaypalCurrencySupported(currency) {
+            return paypalSupportedCurrencies.includes(currency);
+        }
+
+        // Initialize with proper state
+        const savedState = restoreFormState();
+        let initialMethod = savedState.method || 'mpesa';
+
+        // Ensure UI consistency
+        updatePaymentMethodUI(initialMethod);
+        switchPaymentMethod(initialMethod);
+
+        // Initialize mobile summary toggle
+        if (window.innerWidth <= 991) {
+            summaryContent.classList.add('collapsed');
+            summaryToggle.classList.add('collapsed');
+            summaryToggle.querySelector('span').textContent = 'Show Details';
+        }
+
+        // ====================
+        // CORE FUNCTIONALITY
+        // ====================
+
+        function updatePaymentMethodUI(method) {
+            // Update UI tabs with smooth transitions
+            paymentTabs.forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.method === method);
+            });
+
+            // Update confirmation message with animation
+            selectedMethodName.textContent = getMethodDisplayName(method);
+            methodConfirmation.style.display = 'flex';
+
+            // Update button text dynamically
+            updateSubmitButton(method);
+
+            // Update hidden field
+            selectedMethodInput.value = method;
+        }
+
+        function updateSubmitButton(method) {
+            const buttonTexts = {
+                'mpesa': { text: 'Pay with M-Pesa', icon: 'fas fa-mobile-alt' },
+                'paypal': { text: 'Pay with PayPal', icon: 'fab fa-paypal' }
+            };
+
+            const config = buttonTexts[method];
+            submitText.textContent = config.text;
+            submitIcon.className = config.icon;
+        }
+
+        function switchPaymentMethod(method) {
+            // Update UI first
+            updatePaymentMethodUI(method);
+
+            // Handle section transitions with animations
+            if (method === 'paypal') {
+                mobileMoneySection.classList.remove('active');
+                setTimeout(() => {
+                    mobileMoneySection.style.display = 'none';
+                    paypalSection.style.display = 'block';
+                    setTimeout(() => paypalSection.classList.add('active'), 50);
+                }, 300);
+
+                // Check currency compatibility and show tooltip
+                showCurrencyTooltip(method);
+
+                // Check if terms are agreed before initializing PayPal
+                if (termsCheckbox.checked) {
+                    setTimeout(() => initializePayPal(), 400);
+                } else {
+                    showPayPalStatus('Please agree to terms before using PayPal', 'info');
+                }
+            } else {
+                paypalSection.classList.remove('active');
+                setTimeout(() => {
+                    paypalSection.style.display = 'none';
+                    mobileMoneySection.style.display = 'block';
+                    setTimeout(() => mobileMoneySection.classList.add('active'), 50);
+                }, 300);
+
+                hideCurrencyTooltip();
+                clearPayPalStatus();
+
+                // Clean up PayPal buttons when switching away
+                if (paypalButtons) {
+                    try {
+                        paypalButtons.close();
+                    } catch (e) {
+                        console.log('Error closing PayPal buttons:', e);
+                    }
+                    document.getElementById('paypal-button-container').innerHTML = '';
+                    paypalButtons = null;
+                    paypalInitialized = false;
+                }
+            }
+
+            // Update server
+            updateServerPaymentMethod(method);
+
+            // Save state
+            saveFormState();
+        }
+
+        function showCurrencyTooltip(method) {
+            if (method === 'paypal' && !isPaypalCurrencySupported(currentCurrency)) {
+                tooltipText.textContent = `Don't worry! PayPal doesn't support ${currentCurrency}, but we'll automatically convert your payment to USD at the current exchange rate.`;
+                currencyTooltip.style.display = 'flex';
+            } else {
+                hideCurrencyTooltip();
+            }
+        }
+
+        function hideCurrencyTooltip() {
+            currencyTooltip.style.display = 'none';
+        }
+
+        // Initialize PayPal buttons with enhanced error handling
+function initializePayPal() {
+    clearPayPalStatus();
+
+    const paypalButtonContainer = document.getElementById('paypal-button-container');
+    const termsCheckbox = document.getElementById('terms');
+    const currencySelector = document.getElementById('currency-selector');
+    let currentCurrency = currencySelector?.value || 'USD';
+    let currentConvertedAmount = parseFloat("{{ cart.total_price }}");
+
+    if (paypalButtons) {
+        try {
+            paypalButtons.close();
+        } catch (e) {
+            console.warn('Error closing PayPal buttons:', e);
+        }
+        paypalButtonContainer.innerHTML = '';
+    }
+
+    if (paypalInitialized) return;
+
+    try {
+        if (typeof paypal === 'undefined') {
+            console.error('PayPal SDK not loaded');
+            document.getElementById('paypal-fallback').style.display = 'block';
+            return;
+        }
+
+        let paypalCurrency = currentCurrency;
+        let paypalAmount = currentConvertedAmount;
+
+        if (!isPaypalCurrencySupported(currentCurrency) && currentCurrency !== 'USD') {
+            paypalCurrency = 'USD';
+            const usdOption = Array.from(currencySelector.options).find(opt => opt.value === 'USD');
+            if (usdOption) {
+                const usdRate = parseFloat(usdOption.dataset.rate);
+                const baseAmount = parseFloat("{{ cart.total_price }}");
+                paypalAmount = baseAmount * usdRate;
+
+                showPayPalStatus(
+                    `Your ${currentCurrency} ${formatCurrency(currentConvertedAmount, currentCurrency)} payment will be processed as USD ${formatCurrency(paypalAmount, 'USD')}.`,
+                    'info'
+                );
+            }
+        }
+
+        paypalButtons = paypal.Buttons({
+            onInit: function(data, actions) {
+                actions.disable();
+
+                const enableCheck = () => {
+                    if (termsCheckbox && termsCheckbox.checked) {
+                        actions.enable();
+                    } else {
+                        actions.disable();
+                    }
+                };
+
+                termsCheckbox?.addEventListener('change', enableCheck);
+            },
+
+            onClick: function(data, actions) {
+                if (!termsCheckbox.checked) {
+                    showPayPalError('You must agree to the terms and conditions');
+                    return actions.reject();
+                }
+            },
+
+            createOrder: function(data, actions) {
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: paypalAmount.toFixed(2),
+                            currency_code: paypalCurrency
+                        }
+                    }]
+                });
+            },
+
+            onApprove: function(data, actions) {
+                paypalProcessing = true;
+                startProcessingAnimation('paypal');
+
+                return actions.order.capture().then(function(details) {
+                    document.getElementById('paypalOrderId').value = data.orderID;
+                    document.getElementById('paypalPayerId').value = details.payer.payer_id;
+
+                    const formData = new FormData();
+                    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                    formData.append('order_id', '{{ order.id }}');
+                    formData.append('payment_method', 'paypal');
+                    formData.append('paypal_order_id', data.orderID);
+                    formData.append('paypal_payer_id', details.payer.payer_id);
+                    formData.append('amount', paypalAmount.toFixed(2));
+                    formData.append('currency', paypalCurrency);
+
+                    if (!isPaypalCurrencySupported(currentCurrency) && currentCurrency !== 'USD') {
+                        const usdOption = Array.from(currencySelector.options).find(opt => opt.value === 'USD');
+                        formData.append('conversion_rate', parseFloat(usdOption.dataset.rate));
+                    } else {
+                        formData.append('conversion_rate', '1');
+                    }
+
+                    submitPaymentForm(formData);
+                }).catch(function(err) {
+                    console.error('PayPal capture error:', err);
+                    stopProcessingAnimation();
+                    showPaymentError('Failed to complete PayPal payment. Please try again.');
+                    paypalProcessing = false;
+                });
+            },
+
+            onError: function(err) {
+                console.error('PayPal error:', err);
+                showPayPalError('PayPal payment failed. Please try another method.');
+                paypalProcessing = false;
+            },
+
+            onCancel: function(data) {
+                paypalProcessing = false;
+                showPayPalStatus('Payment canceled', 'info');
+            }
+        });
+
+        if (paypalButtons.isEligible()) {
+            paypalButtons.render('#paypal-button-container').then(() => {
+                console.log('PayPal buttons rendered successfully');
+                paypalInitialized = true;
+                document.getElementById('paypal-fallback').style.display = 'none';
+            }).catch(err => {
+                console.error('Error rendering PayPal buttons', err);
+                document.getElementById('paypal-fallback').style.display = 'block';
+            });
+        } else {
+            console.log('PayPal buttons not eligible');
+            document.getElementById('paypal-fallback').style.display = 'block';
+        }
+    } catch (error) {
+        console.error('PayPal initialization error:', error);
+        document.getElementById('paypal-fallback').style.display = 'block';
+    }
+}
+
+        // Enhanced processing animation with staged messages
+        function startProcessingAnimation(method) {
+            processingModal.classList.add('active');
+            processingStage = 0;
+
+            function updateStage() {
+                const stages = processingStages[method] || processingStages.mpesa;
+                if (processingStage < stages.length) {
+                    const stage = stages[processingStage];
+                    modalTitle.textContent = stage.title;
+                    modalText.textContent = stage.text;
+                    processingStage++;
+
+                    if (processingStage < stages.length) {
+                        setTimeout(updateStage, 2000);
+                    }
+                }
+            }
+
+            updateStage();
+        }
+
+        function stopProcessingAnimation() {
+            processingModal.classList.remove('active');
+            processingStage = 0;
+        }
+
+        // Clear PayPal status messages
+        function clearPayPalStatus() {
+            const paypalStatus = document.getElementById('paypal-status');
+            paypalStatus.style.display = 'none';
+            paypalStatus.querySelector('span').textContent = '';
+        }
+
+        // Process M-Pesa payment with enhanced UX
+        async function processMpesaPayment() {
+            try {
+                const phoneNumber = phoneInput.value.trim();
+                const formattedPhone = validatePhoneNumber(phoneNumber);
+
+                if (!formattedPhone) {
+                    showInputError(phoneInput, phoneError, 'Please enter a valid phone number');
+                    return false;
+                }
+
+                setSubmitButtonState(true);
+                startProcessingAnimation('mpesa');
+
+                const response = await fetch('{% url "payment:initiate_payment" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': "{{ csrf_token }}"
+                    },
+                    body: JSON.stringify({
+                        phone: formattedPhone,
+                        amount: currentConvertedAmount,
+                        order_id: "{{ order.id }}",
+                        currency: currentCurrency,
+                        provider: 'MPESA'
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    modalTitle.textContent = 'Payment Sent to Phone';
+                    modalText.textContent = 'Please check your phone and complete the M-Pesa transaction.';
+                    pollMpesaPaymentStatus(data.checkout_request_id);
+                    return true;
+                } else {
+                    throw new Error(data.error || 'Failed to initiate payment');
+                }
+            } catch (error) {
+                console.error('M-PESA error:', error);
+                stopProcessingAnimation();
+                showPaymentError(error.message || 'Network error. Please try again.');
+                setSubmitButtonState(false);
+                return false;
+            }
+        }
+
+        function pollMpesaPaymentStatus(checkoutRequestId) {
+            const pollInterval = 3000;
+            const maxAttempts = 20;
+            let attempts = 0;
+
+            const poller = setInterval(() => {
+                attempts++;
+
+                if (attempts > maxAttempts) {
+                    clearInterval(poller);
+                    stopProcessingAnimation();
+                    showPaymentError('Payment timed out. Please check your phone or try again.');
+                    setSubmitButtonState(false);
+                    return;
+                }
+
+                fetch(`{% url 'payment:mpesa_status' %}?checkout_request_id=${checkoutRequestId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        clearInterval(poller);
+                        modalTitle.textContent = 'Payment Confirmed';
+                        modalText.textContent = 'Finalizing your order...';
+                        finalizeMpesaPayment(checkoutRequestId);
+                    } else if (data.status === 'failed') {
+                        clearInterval(poller);
+                        stopProcessingAnimation();
+                        showPaymentError(data.message || 'Payment failed');
+                        setSubmitButtonState(false);
+                    }
+                })
+                .catch(error => {
+                    console.error("Polling error:", error);
+                });
+            }, pollInterval);
+        }
+
+        function finalizeMpesaPayment(checkoutRequestId) {
+            fetch(`/payment/process-payment/{{ order.id }}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: new URLSearchParams({
+                    order_id: '{{ order.id }}',
+                    payment_method: 'mpesa',
+                    checkout_request_id: checkoutRequestId,
+                    phone_number: phoneInput.value,
+                    amount: document.getElementById('formAmount').value,
+                    currency: currentCurrency,
+                    conversion_rate: 1
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    modalTitle.textContent = 'Payment Successful!';
+                    modalText.textContent = 'Redirecting you to your order confirmation...';
+                    setTimeout(() => {
+                        stopProcessingAnimation();
+                        window.location.href = data.redirect_url;
+                    }, 2000);
+                } else {
+                    stopProcessingAnimation();
+                    showPaymentError(data.error_message || 'Payment verification failed');
+                    setSubmitButtonState(false);
+                }
+            })
+            .catch(error => {
+                console.error('Finalization error:', error);
+                stopProcessingAnimation();
+                showPaymentError('Error finalizing payment');
+                setSubmitButtonState(false);
+            });
+        }
+
+        // ====================
+        // HELPER FUNCTIONS
+        // ====================
+
+        function updateServerPaymentMethod(method) {
+            fetch('{% url "orders:update_payment_method" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': "{{ csrf_token }}"
+                },
+                body: `method=${method}`
+            }).catch(console.error);
+        }
+
+        function getMethodDisplayName(method) {
+            return {
+                'mpesa': 'M-Pesa',
+                'paypal': 'PayPal'
+            }[method] || method;
+        }
+
+        function showPayPalError(message) {
+            const paypalStatus = document.getElementById('paypal-status');
+            paypalStatus.querySelector('span').textContent = message;
+            paypalStatus.className = 'payment-status error';
+            paypalStatus.style.display = 'flex';
+        }
+
+        function showPayPalStatus(message, type) {
+            const paypalStatus = document.getElementById('paypal-status');
+            paypalStatus.querySelector('span').textContent = message;
+            paypalStatus.className = `payment-status ${type}`;
+            paypalStatus.style.display = 'flex';
+        }
+
+        function updateCurrencySymbols(currency) {
+            const symbol = currencySymbols[currency] || currency;
+            document.querySelectorAll('.currency-symbol').forEach(el => {
+                el.textContent = symbol;
+            });
+            return symbol;
+        }
+
+        function formatCurrency(amount, currency) {
+            const decimalPlaces = currency === 'UGX' || currency === 'TZS' ? 0 : 2;
+            return amount.toLocaleString('en-US', {
+                minimumFractionDigits: decimalPlaces,
+                maximumFractionDigits: decimalPlaces
+            });
+        }
+
+        function updateAmounts(rate, currency) {
+            const symbol = updateCurrencySymbols(currency);
+            const baseTotal = parseFloat("{{ cart.total_price }}");
+            currentConvertedAmount = baseTotal * rate;
+
+            document.querySelectorAll('.order-item').forEach(item => {
+                const basePrice = parseFloat(item.dataset.price);
+                item.querySelector('.item-amount').textContent =
+                    formatCurrency(basePrice * rate, currency);
+            });
+
+            document.querySelector('.subtotal-amount').textContent =
+                formatCurrency(currentConvertedAmount, currency);
+            document.querySelector('.total-amount').textContent =
+                formatCurrency(currentConvertedAmount, currency);
+
+            document.getElementById('formAmount').value = currentConvertedAmount.toFixed(2);
+            document.getElementById('amount').value = `${currency} ${formatCurrency(currentConvertedAmount, currency)}`;
+        }
+
+        // ====================
+        // FORM STATE MANAGEMENT
+        // ====================
+
+        function saveFormState() {
+            const state = {
+                method: selectedMethodInput.value,
+                currency: currencySelector.value,
+                phone: document.getElementById('phoneNumber')?.value || '',
+                terms: document.getElementById('termsAgreement').checked
+            };
+            localStorage.setItem('paymentFormState', JSON.stringify(state));
+        }
+
+        function restoreFormState() {
+            const state = JSON.parse(localStorage.getItem('paymentFormState') || '{}');
+            if (state.phone) document.getElementById('phoneNumber').value = state.phone;
+            if (state.terms) document.getElementById('termsAgreement').checked = true;
+            if (state.currency) {
+                currencySelector.value = state.currency;
+                const selectedOption = currencySelector.options[currencySelector.selectedIndex];
+                updateAmounts(parseFloat(selectedOption.dataset.rate), state.currency);
+                currentCurrency = state.currency;
+            }
+            return state;
+        }
+
+        // ====================
+        // VALIDATION FUNCTIONS
+        // ====================
+
+        function validatePhoneNumber(phoneNumber) {
+            if (!phoneNumber) return false;
+
+            const cleanPhone = phoneNumber.trim().replace(/\s+/g, '');
+            const phoneRegex = /^(?:254|\+254|0)?(7[0-9]{8})$/;
+            const match = cleanPhone.match(phoneRegex);
+
+            if (!match) return false;
+            return `254${match[1]}`;
+        }
+
+        function validateForm() {
+            let isValid = true;
+
+            if (selectedMethodInput.value === 'mpesa') {
+                const phoneValue = phoneInput.value.trim();
+                if (!validatePhoneNumber(phoneValue)) {
+                    showInputError(phoneInput, phoneError, 'Please enter a valid phone number (e.g. 712345678)');
+                    isValid = false;
+                } else {
+                    clearInputError(phoneInput, phoneError);
+                }
+            }
+
+            if (!termsCheckbox.checked) {
+                showPaymentError('You must agree to the terms and conditions');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        function showInputError(input, errorElement, message) {
+            input.classList.add('input-error');
+            input.classList.remove('input-success');
+            errorElement.querySelector('span') ?
+                errorElement.querySelector('span').textContent = message :
+                errorElement.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+            errorElement.classList.add('show');
+        }
+
+        function clearInputError(input, errorElement) {
+            input.classList.remove('input-error');
+            input.classList.add('input-success');
+            errorElement.classList.remove('show');
+        }
+
+        function showPaymentStatus(message, type) {
+            paymentStatus.querySelector('span').textContent = message;
+            paymentStatus.className = `payment-status ${type}`;
+            paymentStatus.style.display = 'flex';
+            paymentErrors.style.display = 'none';
+        }
+
+        function showPaymentError(message) {
+            paymentErrors.querySelector('span').textContent = message;
+            paymentErrors.style.display = 'flex';
+            paymentStatus.style.display = 'none';
+        }
+
+        function setSubmitButtonState(loading) {
+            if (loading) {
+                paymentSubmitButton.classList.add('loading');
+                paymentSubmitButton.disabled = true;
+            } else {
+                paymentSubmitButton.classList.remove('loading');
+                paymentSubmitButton.disabled = false;
+            }
+        }
+
+        // ====================
+        // PAYMENT PROCESSING
+        // ====================
+
+
+        function submitPaymentForm(formData) {
+            fetch("{% url 'payment:process_payment' order.id %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': "{{ csrf_token }}",
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(handlePaymentResponse)
+                .catch(handlePaymentError);
+        }
+
+        function handlePaymentResponse(response) {
+            if (!response.ok) return Promise.reject(response);
+            return response.json().then(data => {
+                if (data.success) {
+                    localStorage.removeItem('paymentFormState');
+                    modalTitle.textContent = 'Payment Successful!';
+                    modalText.textContent = 'Redirecting you to your order confirmation...';
+                    setTimeout(() => {
+                        stopProcessingAnimation();
+                        window.location.href = data.redirect_url || "{% url 'orders:success' %}";
+                    }, 2000);
+                } else {
+                    stopProcessingAnimation();
+                    showPaymentError(data.error_message || 'Payment failed');
+                    setSubmitButtonState(false);
+                }
+            });
+        }
+
+        function handlePaymentError(error) {
+            stopProcessingAnimation();
+            setSubmitButtonState(false);
+
+            if (error.json) {
+                error.json().then(errorData => {
+                    showPaymentError(errorData.error_message || 'Unexpected error occurred');
+                }).catch(() => {
+                    showPaymentError('Network error. Please check your connection.');
+                });
+            } else {
+                showPaymentError('Network error. Please check your connection.');
+            }
+        }
+
+        // ====================
+        // EVENT HANDLERS
+        // ====================
+
+        // Enhanced payment tab switching
+        paymentTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                if (!tab.classList.contains('active')) {
+                    switchPaymentMethod(tab.dataset.method);
+                }
+            });
+        });
+
+        // Enhanced currency selector with tooltip management
+        currencySelector.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const currency = selectedOption.value;
+            const rate = parseFloat(selectedOption.dataset.rate);
+
+            formCurrency.value = currency;
+            formConversionRate.value = rate;
+            currentCurrency = currency;
+
+            updateAmounts(rate, currency);
+
+            // Update PayPal and show tooltip if needed
+            if (selectedMethodInput.value === 'paypal') {
+                paypalInitialized = false;
+                showCurrencyTooltip('paypal');
+
+                if (!isPaypalCurrencySupported(currency) && currency !== 'USD') {
+                    setTimeout(() => switchPaymentMethod('mpesa'), 1000);
+                } else {
+                    setTimeout(() => initializePayPal(), 500);
+                }
+            }
+
+            saveFormState();
+        });
+
+        // Enhanced phone input validation
+        phoneInput.addEventListener('input', function() {
+            const phoneValue = this.value.trim();
+            if (phoneValue && validatePhoneNumber(phoneValue)) {
+                clearInputError(phoneInput, phoneError);
+            }
+            saveFormState();
+        });
+
+        // Enhanced terms checkbox handling
+        termsCheckbox.addEventListener('change', function() {
+            saveFormState();
+
+            if (selectedMethodInput.value === 'paypal') {
+                if (this.checked) {
+                    clearPayPalStatus();
+                    setTimeout(() => initializePayPal(), 300);
+                } else {
+                    showPayPalStatus('Please agree to terms before using PayPal', 'info');
+                }
+            }
+        });
+
+        // Mobile summary toggle functionality
+        summaryToggle.addEventListener('click', function() {
+            const isCollapsed = summaryContent.classList.contains('collapsed');
+
+            if (isCollapsed) {
+                summaryContent.classList.remove('collapsed');
+                this.classList.remove('collapsed');
+                this.querySelector('span').textContent = 'Hide Details';
+                this.querySelector('i').style.transform = 'rotate(180deg)';
+            } else {
+                summaryContent.classList.add('collapsed');
+                this.classList.add('collapsed');
+                this.querySelector('span').textContent = 'Show Details';
+                this.querySelector('i').style.transform = 'rotate(0deg)';
+            }
+        });
+
+        // Enhanced form submission with validation
+        paymentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Hide previous errors
+            paymentErrors.style.display = 'none';
+
+            // Validate form
+            if (!validateForm()) {
+                return;
+            }
+
+            const method = selectedMethodInput.value;
+
+            // For PayPal, show message to use the PayPal button
+            if (method === 'paypal') {
+                showPaymentError('Please complete the PayPal payment using the button above');
+                return false;
+            }
+
+            // Handle M-Pesa normally
+             if (method === 'mpesa') {
+                 processMpesaPayment();
+             }
+        });
+
+        // Window resize handler for responsive behavior
+        window.addEventListener('resize', function() {
+            if (window.innerWidth <= 991 && !summaryContent.classList.contains('collapsed')) {
+                // On mobile, default to collapsed if not already
+                if (!summaryToggle.classList.contains('initialized')) {
+                    summaryContent.classList.add('collapsed');
+                    summaryToggle.classList.add('collapsed');
+                    summaryToggle.querySelector('span').textContent = 'Show Details';
+                    summaryToggle.classList.add('initialized');
+                }
+            } else if (window.innerWidth > 991) {
+                // On desktop, always show expanded
+                summaryContent.classList.remove('collapsed');
+                summaryToggle.classList.remove('collapsed');
+            }
+        });
+
+        // Initialize responsive behavior
+        if (window.innerWidth <= 991) {
+            summaryToggle.classList.add('initialized');
+        }
+
+    } catch (error) {
+        console.error('Payment system error:', error);
+        showPaymentError('Payment system error. Please contact support');
+    }
+});
+</script>
+{% endblock %}

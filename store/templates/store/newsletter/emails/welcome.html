@@ -1,0 +1,27 @@
+{% extends "store/newsletter/emails/base_email.html" %}
+
+{% block title %}Welcome to DjangoMart!{% endblock %}
+
+{% block content %}
+<h2 style="color: #1e293b; margin-top: 0; margin-bottom: 20px;">
+    Welcome to DjangoMart!
+</h2>
+
+<p>Thanks for subscribing to our newsletter. Here's what you'll get:</p>
+
+<ul style="margin: 20px 0; padding-left: 20px;">
+    <li>🎮 Early access to new products</li>
+    <li>🔥 Exclusive member discounts</li>
+    <li>💡 Gaming gear tips and tutorials</li>
+</ul>
+
+<p style="margin-bottom: 25px;">
+    Manage your subscription preferences at any time:
+</p>
+
+<a href="{{ management_url }}"
+   style="background-color: #3b82f6; color: white; padding: 12px 24px;
+          text-decoration: none; border-radius: 6px; display: inline-block;">
+    Manage Preferences
+</a>
+{% endblock %}

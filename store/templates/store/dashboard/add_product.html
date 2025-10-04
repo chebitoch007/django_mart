@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if form.instance.pk %}Edit Product{% else %}Add New Product{% endif %} - ASAI Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .form-control {
+            display: block;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            background-color: white;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus {
+            border-color: #3b82f6;
+            outline: 0;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        input[type="checkbox"] {
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 0.25rem;
+            border: 1px solid #d1d5db;
+        }
+
+        input[type="checkbox"]:checked {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        input[type="file"] {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            background-color: white;
+        }
+
+        .image-preview-container {
+            position: relative;
+            display: inline-block;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .image-preview {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .preview-overlay {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .image-preview-container:hover .preview-overlay {
+            opacity: 1;
+        }
+
+        .preview-overlay i {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <div class="bg-white rounded-xl shadow-xl overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 py-6 px-8">
+                <div class="flex justify-between items-center flex-wrap">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">
+                            {% if form.instance.pk %}Edit Product{% else %}Add New Product{% endif %}
+                        </h1>
+                        <p class="text-blue-100">
+                            {% if form.instance.pk %}
+                                Update details for {{ form.instance.name }}
+                            {% else %}
+                                Fill out the form to add a new product
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="flex items-center px-3 py-1 bg-white/20 rounded-full text-sm text-white mt-2 sm:mt-0">
+                        <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} mr-2"></i>
+                        <span>{% if form.instance.pk %}Editing Mode{% else %}Creation Mode{% endif %}</span>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" action="{% if form.instance.pk %}{% url 'store:edit_product' slug=form.instance.slug %}{% else %}{% url 'store:add_product' %}{% endif %}" enctype="multipart/form-data" class="p-6" id="product-form">
+                {% csrf_token %}
+
+                {% if form.errors or image_formset.errors %}
+                <div class="rounded-md bg-red-50 p-4 mb-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">
+                                Please correct the errors below
+                            </h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <ul class="list-disc pl-5 space-y-1">
+                                    {% for field in form %}
+                                        {% if field.errors %}
+                                            {% for error in field.errors %}
+                                                <li>{{ error|escape }}</li>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% for form in image_formset %}
+                                        {% for field in form %}
+                                            {% for error in field.errors %}
+                                                <li>{{ error|escape }}</li>
+                                            {% endfor %}
+                                        {% endfor %}
+
+                                        {% if form.non_field_errors %}
+                                            {% for error in form.non_field_errors %}
+                                                <li>{{ error|escape }}</li>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="bg-gray-50 p-6 rounded-xl mb-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-info-circle mr-2 text-blue-500"></i> Product Information
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Product Name *
+                            </label>
+                            {{ form.name }}
+                            <p class="mt-1 text-sm text-gray-500">5-100 characters (letters, numbers, spaces, hyphens)</p>
+                        </div>
+
+                        <div>
+                            <label for="{{ form.category.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Category *
+                            </label>
+                            <select name="{{ form.category.name }}" id="{{ form.category.id_for_label }}"
+                                    class="form-control {% if form.category.errors %}border-red-500{% endif %}">
+                                {% for value, label in form.category.field.choices %}
+                                    <option value="{{ value }}" {% if value == form.category.value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.category.errors %}
+                                <div class="text-red-500 text-sm mt-1">
+                                    {{ form.category.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Full Description *
+                            </label>
+                            {{ form.description }}
+                            <p class="mt-1 text-sm text-gray-500">Detailed product description</p>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label for="{{ form.short_description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Short Description
+                            </label>
+                            {{ form.short_description }}
+                            {% if form.short_description.help_text %}
+                            <p class="mt-1 text-sm text-gray-500">{{ form.short_description.help_text }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 p-6 rounded-xl mb-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-tag mr-2 text-blue-500"></i> Pricing & Inventory
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label for="{{ form.price.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Price (KSh) *
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500">KSh</span>
+                                </div>
+                                {{ form.price }}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="{{ form.discount_price.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Discount Price (KSh)
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500">KSh</span>
+                                </div>
+                                {{ form.discount_price }}
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">Leave blank if no discount</p>
+                        </div>
+
+                        <div>
+                            <label for="{{ form.stock.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Stock Quantity *
+                            </label>
+                            {{ form.stock }}
+                            {% if form.stock.help_text %}
+                            <p class="mt-1 text-sm text-gray-500">{{ form.stock.help_text }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 p-6 rounded-xl mb-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-images mr-2 text-blue-500"></i> Product Images
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="{{ form.image.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Main Product Image *
+                            </label>
+                            {{ form.image }}
+                            <p class="mt-1 text-sm text-gray-500">Primary image shown on product listings</p>
+
+                            {% if form.instance.pk and form.instance.image %}
+                            <div class="mt-4">
+                                <h3 class="text-sm font-medium text-gray-700 mb-2">Current Image:</h3>
+                                <div class="w-40 h-40 border rounded-md overflow-hidden">
+                                    <img src="{{ form.instance.image.url }}" alt="Current product image" class="w-full h-full object-contain">
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-2">Additional Images</h3>
+                            {{ image_formset.management_form }}
+
+                            {% for form in image_formset %}
+                            <div class="border rounded-lg p-4 mb-4 image-form" data-form-id="{{ form.prefix }}">
+                                {% if form.instance.pk %}
+                                <div class="flex items-center mb-3">
+                                    <div class="w-16 h-16 border rounded-md overflow-hidden mr-3">
+                                        <img src="{{ form.instance.image.url }}" alt="Additional image" class="w-full h-full object-contain">
+                                    </div>
+                                    <div>
+                                        <label class="flex items-center">
+                                            {{ form.DELETE }}
+                                            <span class="ml-2 text-sm text-gray-700">Delete this image</span>
+                                        </label>
+                                        {{ form.id }}
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <div>
+                                    <label class="block text-sm text-gray-700 mb-1">
+                                        {% if form.instance.pk %}Replace Image{% else %}Add New Image{% endif %}
+                                    </label>
+                                    {{ form.image }}
+
+                                    <!-- Color variant field -->
+                                    <div class="mt-2">
+                                        <label class="block text-sm text-gray-700 mb-1">
+                                            Color Variant (optional)
+                                        </label>
+                                        {{ form.color }}
+                                        <p class="mt-1 text-xs text-gray-500">Associate with a color (e.g., Red, Blue)</p>
+                                    </div>
+                                </div>
+
+                                <!-- Preview container -->
+                                <div class="preview-container mt-3" style="display: none;">
+                                    <h4 class="text-xs font-medium text-gray-700 mb-1">Preview:</h4>
+                                    <div class="flex flex-wrap" id="preview-{{ form.prefix }}"></div>
+                                </div>
+                            </div>
+                            {% endfor %}
+
+                            <p class="mt-1 text-sm text-gray-500">Upload multiple images (JPG, PNG, max 5MB each)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 p-6 rounded-xl mb-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-cog mr-2 text-blue-500"></i> Product Settings
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5 mt-1">
+                                {{ form.available }}
+                            </div>
+
+
+
+
+                            <div class="ml-3">
+                                <label for="{{ form.available.id_for_label }}" class="font-medium text-gray-700">
+                                    Product Available
+                                </label>
+                                {% if form.available.help_text %}
+                                <p class="text-gray-500 text-sm mt-1">{{ form.available.help_text }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5 mt-1">
+                                {{ form.featured }}
+                            </div>
+                            <div class="ml-3">
+                                <label for="{{ form.featured.id_for_label }}" class="font-medium text-gray-700">
+                                    Featured Product
+                                </label>
+                                {% if form.featured.help_text %}
+                                <p class="text-gray-500 text-sm mt-1">{{ form.featured.help_text }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="bg-gray-50 p-6 rounded-xl mb-6">
+  <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+    <i class="fab fa-alipay mr-2 text-orange-500"></i> Dropshipping Settings
+  </h2>
+
+  <div class="flex items-start mb-6">
+    <div class="flex items-center h-5 mt-1">
+      {{ form.is_dropship }}
+    </div>
+    <div class="ml-3">
+      <label for="{{ form.is_dropship.id_for_label }}" class="font-medium text-gray-700">
+        This is a dropshipping product
+      </label>
+      <p class="text-gray-500 text-sm mt-1">
+        Product will be fulfilled directly from AliExpress
+      </p>
+    </div>
+  </div>
+
+  <div id="dropship-fields" class="space-y-4">
+    <div>
+      <label for="{{ form.aliexpress_url.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+        AliExpress Product URL *
+      </label>
+      {{ form.aliexpress_url }}
+      <p class="mt-1 text-sm text-gray-500">
+        Paste the full AliExpress product URL
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <label for="{{ form.shipping_time.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+          Estimated Shipping Time
+        </label>
+        {{ form.shipping_time }}
+      </div>
+
+      <div>
+        <label for="{{ form.commission_rate.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+          Commission Rate (%)
+        </label>
+        <div class="relative">
+          {{ form.commission_rate }}
+          <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <span class="text-gray-500">%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-blue-50 p-4 rounded-lg">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <i class="fas fa-info-circle text-blue-400 text-xl"></i>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-blue-800">Dropshipping Tips</h3>
+          <div class="mt-2 text-sm text-blue-700">
+            <ul class="list-disc pl-5 space-y-1">
+              <li>Use "ePacket" shipping for faster delivery</li>
+              <li>Set commission rate between 15-30%</li>
+              <li>Order samples to test quality first</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+                <div class="flex justify-between items-center pt-6 border-t border-gray-200">
+                    <a href="{% url 'store:product_dashboard' %}" class="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition flex items-center">
+                        <i class="fas fa-arrow-left mr-2"></i> Back to Dashboard
+                    </a>
+                    <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center">
+                        <i class="fas fa-save mr-2"></i>
+                        {% if form.instance.pk %}Update Product{% else %}Create Product{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Main image preview
+        const mainImageInput = document.getElementById('id_image');
+        if (mainImageInput) {
+            mainImageInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const previewContainer = document.createElement('div');
+                    previewContainer.className = 'mt-4';
+                    previewContainer.innerHTML = `
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">New Image Preview:</h3>
+                        <div class="w-40 h-40 border rounded-md overflow-hidden">
+                            <img src="${URL.createObjectURL(file)}" alt="Preview" class="w-full h-full object-contain">
+                        </div>
+                    `;
+
+                    const existingPreview = mainImageInput.parentElement.querySelector('.mt-4');
+                    if (existingPreview) {
+                        existingPreview.remove();
+                    }
+
+                    mainImageInput.parentElement.appendChild(previewContainer);
+                }
+            });
+        }
+
+        // Additional image previews
+        document.querySelectorAll('.image-form').forEach(formContainer => {
+            const imageInput = formContainer.querySelector('input[type="file"]');
+            const previewContainer = formContainer.querySelector('.preview-container');
+            const previewArea = formContainer.querySelector('.preview-container > div');
+
+            if (imageInput) {
+                imageInput.addEventListener('change', function(e) {
+                    previewArea.innerHTML = '';
+
+                    // Handle multiple files
+                    Array.from(e.target.files).forEach(file => {
+                        if (!file.type.match('image.*')) return;
+
+                        const previewContainer = document.createElement('div');
+                        previewContainer.className = 'image-preview-container';
+
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(file);
+                        img.className = 'image-preview';
+
+                        const overlay = document.createElement('div');
+                        overlay.className = 'preview-overlay';
+                        overlay.innerHTML = '<i class="fas fa-times"></i>';
+                        overlay.addEventListener('click', () => {
+                            previewContainer.remove();
+                            // Reset input value
+                            imageInput.value = '';
+                            formContainer.querySelector('.preview-container').style.display = 'none';
+                        });
+
+                        previewContainer.appendChild(img);
+                        previewContainer.appendChild(overlay);
+                        previewArea.appendChild(previewContainer);
+                    });
+
+                    if (e.target.files.length > 0) {
+                        previewContainer.style.display = 'block';
+                    }
+                });
+            }
+        });
+
+        // Form submission loading state
+        const form = document.getElementById('product-form');
+        form.addEventListener('submit', function() {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `
+                <i class="fas fa-spinner fa-spin mr-2"></i>
+                {% if form.instance.pk %}Updating...{% else %}Creating...{% endif %}
+            `;
+        });
+    });
+
+        document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Alpine.js component for real-time validation
+    document.getElementById('product-form').setAttribute('x-data', `{
+        productName: '${document.getElementById('id_name').value || ''}',
+        updateSlugPreview() {
+            // Generate slug preview as user types
+            if (!this.productName) return;
+
+            // Simple slug generation for preview
+            const slug = this.productName
+                .toLowerCase()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/[\s_-]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .substring(0, 50);
+
+            document.getElementById('id_slug_preview').value = slug;
+        }
+    }`);
+
+    // Real-time name validation
+    const nameInput = document.getElementById('id_name');
+    if (nameInput) {
+        const errorContainer = document.createElement('div');
+        errorContainer.className = 'text-red-500 text-sm mt-1';
+        nameInput.parentElement.appendChild(errorContainer);
+
+        nameInput.addEventListener('input', function() {
+            const value = this.value;
+            errorContainer.textContent = '';
+
+            // Length validation
+            if (value.length < 5 || value.length > 100) {
+                errorContainer.textContent = 'Name must be between 5 and 100 characters';
+                return;
+            }
+
+            // Character validation
+            const allowedChars = /^[\w\s\-\'",.()&!;:%+@#°*¢£¥€©®™]+$/;
+            if (!allowedChars.test(value)) {
+                // Find invalid characters
+                const invalidChars = [...value].filter(c => !allowedChars.test(c));
+                const uniqueInvalid = [...new Set(invalidChars)];
+                errorContainer.textContent = `Invalid characters: ${uniqueInvalid.join(', ')}`;
+            }
+        });
+    }
+
+    // Initialize slug preview
+    if (nameInput && nameInput.value) {
+        const event = new Event('input', { bubbles: true });
+        nameInput.dispatchEvent(event);
+    }
+});
+
+         // Add this code to toggle dropshipping fields
+    const dropshipCheckbox = document.getElementById('id_is_dropship');
+    const dropshipFields = document.getElementById('dropship-fields');
+
+    if (dropshipCheckbox && dropshipFields) {
+        // Set initial state
+        dropshipFields.style.display = dropshipCheckbox.checked ? 'block' : 'none';
+
+        // Toggle on change
+        dropshipCheckbox.addEventListener('change', function() {
+            dropshipFields.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+});
+    </script>
+</body>
+</html>

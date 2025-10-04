@@ -1,0 +1,67 @@
+# === Core Django ===
+Django==5.2.4
+djangorestframework==3.16.0
+django-countries==7.6.1
+django-crispy-forms==2.4
+django-easycart==0.4.0
+django-encrypted-model-fields==0.6.5
+django-environ==0.12.0
+django-extensions==4.1
+django-js-asset==3.1.2
+django-mptt==0.17.0
+django-paypal==2.1
+django-sslserver==0.22
+django-widget-tweaks==1.5.0
+whitenoise==6.9.0
+
+# === Task Queue / Async ===
+celery==5.5.3
+amqp==5.3.1
+billiard==4.2.1
+kombu==5.5.4
+vine==5.1.0
+
+# === Payments ===
+stripe==12.4.0
+paypalrestsdk==1.13.3
+
+# === Database ===
+psycopg2-binary==2.9.10
+sqlparse==0.5.3
+pytz==2022.1
+tzdata==2025.2
+
+# === Utilities ===
+requests==2.32.4
+urllib3==2.2.3
+idna==3.3
+charset-normalizer==3.4.2
+certifi==2020.6.20
+cryptography==45.0.5
+pyOpenSSL==25.1.0
+PyJWT==2.3.0
+python-dateutil==2.9.0.post0
+typing_extensions==4.14.1
+
+# === Data / Serialization ===
+protobuf==3.12.4
+attrs==25.3.0
+pydantic_core==2.33.2
+
+# === Images / Files ===
+pillow==11.3.0
+olefile==0.46
+reportlab==3.6.8
+PyYAML==6.0.2
+ruamel.yaml==0.18.14
+ruamel.yaml.clib==0.2.12
+
+# === Geo / IP ===
+geoip2==5.1.0
+maxminddb==2.7.0
+pycountry==24.6.1
+
+# === Optional (keep if used in your code) ===
+numpy==1.26.4
+pandas==2.3.1
+pyarrow==19.0.1

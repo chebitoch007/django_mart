@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASAI Store - My Account</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #64748b;
+            --light: #f8fafc;
+            --dark: #1e293b;
+            --light-bg: #f1f5f9;
+            --card-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+            --border-radius: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: var(--dark);
+            min-height: 100vh;
+            padding-top: 30px;
+        }
+
+        .account-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        /* Cards */
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            margin-bottom: 25px;
+            transition: var(--transition);
+            background: white;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .card-header {
+            background: linear-gradient(to right, var(--primary), var(--primary-dark));
+            color: white;
+            border-bottom: none;
+            padding: 20px 25px;
+            border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
+        }
+
+        .card-header h5 {
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-header h5 i {
+            background: rgba(255, 255, 255, 0.2);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        /* Profile section */
+        .profile-img-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .profile-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Stats card */
+        .stats-card {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border-radius: var(--border-radius);
+        }
+
+        .stats-header {
+            background: rgba(67, 97, 238, 0.1);
+            padding: 15px;
+            color: var(--primary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stats-body {
+            padding: 15px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Read-only fields */
+        .read-only-info {
+            background-color: #f8f9fa;
+            border: 1px solid #edf2f7;
+            padding: 12px 15px;
+            border-radius: 8px;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        /* Sidebar navigation */
+        .list-group-item {
+            border: none;
+            padding: 15px 20px;
+            font-weight: 500;
+            color: var(--dark);
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .list-group-item:hover,
+        .list-group-item.active {
+            background-color: rgba(67, 97, 238, 0.05);
+            color: var(--primary);
+            border-left-color: var(--primary);
+        }
+
+        .list-group-item i {
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Buttons */
+        .btn-outline-primary {
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            transition: var(--transition);
+        }
+
+        .btn-outline-primary:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Tables */
+        .table th {
+            font-weight: 600;
+            color: var(--secondary);
+            background-color: var(--light-bg);
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(67, 97, 238, 0.03);
+        }
+
+        /* Badges */
+        .badge {
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 50px;
+        }
+
+        /* Address card */
+        .address-card {
+            border: 2px solid #edf2f7;
+            border-radius: 10px;
+            padding: 20px;
+            position: relative;
+            transition: var(--transition);
+            height: 100%;
+        }
+
+        .address-card.default {
+            border-color: var(--primary);
+            background: rgba(67, 97, 238, 0.03);
+        }
+
+        .address-card.default .badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+        }
+
+        /* Payment card */
+        .payment-card {
+            border: 2px solid #edf2f7;
+            border-radius: 10px;
+            padding: 20px;
+            transition: var(--transition);
+            height: 100%;
+        }
+
+        .payment-card.default {
+            border-color: var(--primary);
+            background: rgba(67, 97, 238, 0.03);
+        }
+
+        .payment-card.default .badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .empty-state i {
+            font-size: 60px;
+            color: #cbd5e1;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h5 {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        /* Responsive */
+        @media (max-width: 991px) {
+            .sidebar-col {
+                margin-bottom: 30px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .card-body {
+                padding: 20px;
+            }
+
+            .stat-item {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .table-responsive {
+                overflow-x: auto;
+            }
+
+            #logout-button {
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 15px 20px;
+    font-weight: 500;
+    color: var(--dark);
+    transition: var(--transition);
+    border-left: 3px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+#logout-button:hover {
+    background-color: rgba(220, 53, 69, 0.05);
+    color: #dc3545;
+    border-left-color: #dc3545;
+}
+
+        }
+    </style>
+</head>
+<body>
+    <div class="account-container">
+        <!-- Messages Container -->
+        <div id="messages-container">
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-circle{% endif %} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="row">
+            <!-- Sidebar Column -->
+            <div class="col-lg-3 sidebar-col">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="profile-img-container">
+                            <img id="profile-image"
+                                 class="profile-img"
+                                 src="{% if user.profile.profile_image %}{{ user.profile.profile_image.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}"
+                                 alt="Profile">
+                        </div>
+                        <h5 class="card-title" id="user-name">{{ user.get_full_name }}</h5>
+                        <p class="text-muted small" id="member-since">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            Member since {{ user.date_joined|date:"F Y" }}
+                        </p>
+                        <div class="d-flex justify-content-center gap-2 mb-3">
+                            <span class="badge bg-primary" id="order-count-badge">
+                                <i class="fas fa-shopping-bag me-1"></i>
+                                <span id="order-count">{{ orders|length }}</span> orders
+                            </span>
+                        </div>
+
+                        <div class="list-group">
+                            <a href="{% url 'orders:order_list' %}" class="list-group-item list-group-item-action">
+                                <i class="fas fa-shopping-bag"></i> Orders
+                                <span class="badge bg-primary rounded-pill float-end" id="order-count-pill">{{ orders|length }}</span>
+                            </a>
+                            <a href="#addresses" class="list-group-item list-group-item-action">
+                                <i class="fas fa-map-marker-alt"></i> Address
+                            </a>
+                            <a href="#payments" class="list-group-item list-group-item-action">
+                                <i class="fas fa-credit-card"></i> Payment Method
+                            </a>
+                            <button type="button" class="list-group-item list-group-item-action text-danger"
+                                    data-bs-toggle="modal" data-bs-target="#logoutModal">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </button>
+
+                            <div class="list-group mt-4 border-top">
+                                <a href="{% url 'users:account_delete' %}"
+                                   class="list-group-item list-group-item-action text-danger"
+                                   id="delete-account-link">
+                                    <i class="fas fa-user-slash me-2"></i> Delete Account
+                                </a>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Card -->
+                <div class="card stats-card">
+                    <div class="stats-header">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Account Summary</span>
+                    </div>
+                    <div class="stats-body">
+                        <div class="stat-item">
+                            <span class="text-muted"><i class="fas fa-coins me-2"></i>Total Spent:</span>
+                            <span class="fw-bold" id="total-spent">KSh {{ total_spent|default:"0.00" }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="text-muted"><i class="fas fa-shopping-bag me-2"></i>Last Order:</span>
+                            <span class="fw-bold" id="last-order">
+                                {% if last_order %}{{ last_order.created|date:"M d, Y" }}{% else %}Never{% endif %}
+                            </span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="text-muted"><i class="fas fa-user-clock me-2"></i>Member Since:</span>
+                            <span class="fw-bold">{{ user.date_joined|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Column -->
+            <div class="col-lg-9">
+                <!-- Profile Section -->
+                <div id="profile" class="card">
+                    <div class="card-header">
+                        <h5 class="section-title">
+                            <i class="fas fa-user"></i> Profile Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label mb-2">First Name</label>
+                                <div class="read-only-info">
+                                    <i class="fas fa-user me-2 text-muted"></i>
+                                    {{ user.first_name }}
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label mb-2">Last Name</label>
+                                <div class="read-only-info">
+                                    <i class="fas fa-user me-2 text-muted"></i>
+                                    {{ user.last_name }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label mb-2">Email</label>
+                                <div class="read-only-info">
+                                    <i class="fas fa-envelope me-2 text-muted"></i>
+                                    {{ user.email }}
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label mb-2">Phone</label>
+                                <div class="read-only-info">
+                                    <i class="fas fa-phone me-2 text-muted"></i>
+                                    {{ user.profile.phone|default:"Not provided" }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label mb-2">Customer Since</label>
+                            <div class="read-only-info">
+                                <i class="fas fa-calendar me-2 text-muted"></i>
+                                {{ user.date_joined|date:"F d, Y" }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order History -->
+                <div id="orders" class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="section-title">
+                                <i class="fas fa-shopping-bag"></i> Recent Orders
+                            </h5>
+                            {% if orders %}
+                            <a href="{% url 'orders:order_list' %}" class="btn btn-outline-primary" id="view-all-orders">
+                                <i class="fas fa-list me-1"></i> View All
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% if orders %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Order #</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Items</th>
+                                        <th>Total</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-table-body">
+                                    {% for order in orders|slice:":5" %}
+                                    <tr>
+                                        <td>#{{ order.id }}</td>
+                                        <td>{{ order.created|date:"M d, Y" }}</td>
+                                        <td>
+                                            <span class="badge
+                                                {% if order.status == 'completed' %}bg-success
+                                                {% elif order.status == 'processing' %}bg-primary
+                                                {% elif order.status == 'shipped' %}bg-info
+                                                {% elif order.status == 'cancelled' %}bg-danger
+                                                {% else %}bg-warning{% endif %}">
+                                                {{ order.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>{{ order.items.count }}</td>
+                                        <td><strong>KSh {{ order.get_total_cost }}</strong></td>
+                                        <td>
+                                            <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye me-1"></i> Details
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="empty-state" id="no-orders-message">
+                            <i class="fas fa-box-open"></i>
+                            <h5>No orders yet</h5>
+                            <p class="text-muted mb-4">You haven't placed any orders with us yet</p>
+                            <a href="{% url 'store:product_list' %}" class="btn btn-primary" id="start-shopping">
+                                <i class="fas fa-shopping-cart me-2"></i> Start Shopping
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Address Display -->
+                <div id="addresses" class="card">
+                    <div class="card-header">
+                        <h5 class="section-title">
+                            <i class="fas fa-map-marker-alt"></i> Registered Address
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if registration_address %}
+                        <div class="address-card default">
+                            <span class="badge bg-primary">Default</span>
+                            <h6 class="card-title mb-3 d-flex align-items-center">
+                                <i class="fas fa-home me-2 text-primary"></i>
+                                Registration Address
+                            </h6>
+                            <p class="card-text mb-2">
+                                <i class="fas fa-user me-2 text-muted"></i>
+                                <strong>{{ registration_address.full_name }}</strong>
+                            </p>
+                            <p class="card-text mb-2">
+                                <i class="fas fa-location-dot me-2 text-muted"></i>
+                                {{ registration_address.street_address }}
+                            </p>
+                            <p class="card-text mb-2">
+                                <i class="fas fa-city me-2 text-muted"></i>
+                                {{ registration_address.city }}, {{ registration_address.state }} {{ registration_address.postal_code }}
+                            </p>
+                            <p class="card-text mt-3">
+                                <i class="fas fa-phone me-2 text-muted"></i>
+                                {{ registration_address.phone }}
+                            </p>
+                            <div class="mt-3 text-muted small">
+                                <i class="fas fa-info-circle me-1"></i>
+                                This address was provided during registration and cannot be modified
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="empty-state" id="no-addresses-message">
+                            <i class="fas fa-map-marked-alt"></i>
+                            <h5>No address registered</h5>
+                            <p class="text-muted mb-4">Contact support to update your address</p>
+                            <a href="{% url 'store:contact' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-headset me-2"></i> Contact Support
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Payment Methods -->
+                <div id="payments" class="card">
+                    <div class="card-header">
+                        <h5 class="section-title">
+                            <i class="fas fa-credit-card"></i> Payment Methods
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if payment_methods %}
+                        <div class="row" id="payments-container">
+                            {% for payment in payment_methods %}
+                            <div class="col-md-6 mb-4">
+                                <div class="payment-card {% if payment.is_default %}default{% endif %}">
+                                    {% if payment.is_default %}
+                                    <span class="badge bg-primary">Default</span>
+                                    {% endif %}
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            {% if payment.card_type == 'visa' %}
+                                            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg"
+                                                 alt="Visa" height="30" class="me-2">
+                                            {% elif payment.card_type == 'mastercard' %}
+                                            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/MasterCard_Logo.svg"
+                                                 alt="Mastercard" height="30" class="me-2">
+                                            {% else %}
+                                            <i class="fas fa-credit-card fa-2x text-secondary me-2"></i>
+                                            {% endif %}
+                                            <span class="fw-bold">**** **** **** {{ payment.last4 }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="text-muted">Cardholder:</span>
+                                        <span class="fw-medium">{{ payment.cardholder_name }}</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <span class="text-muted">Expires:</span>
+                                        <span class="fw-medium">{{ payment.expiry_month }}/{{ payment.expiry_year }}</span>
+                                    </div>
+                                    <div class="mt-3 text-muted small">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Pre-added payment method (cannot be modified)
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="empty-state" id="no-payments-message">
+                            <i class="fas fa-credit-card"></i>
+                            <h5>No payment methods available</h5>
+                            <p class="text-muted mb-4">Contact support to add payment methods</p>
+                            <a href="{% url 'store:contact' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-headset me-2"></i> Contact Support
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-sign-out-alt me-2"></i>Confirm Logout
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div class="mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"></path>
+                        <path d="M17 11h-5V7"></path>
+                        <path d="M21 11h-7"></path>
+                        <path d="m17 11 4 4-4 4"></path>
+                    </svg>
+                </div>
+                <h5 class="mb-3">Are you sure you want to log out?</h5>
+                <p class="text-muted">You'll need to sign back in to access your account</p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <form action="{% url 'users:logout' %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger px-4">
+                        <i class="fas fa-sign-out-alt me-2"></i>Yes, Logout
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Bootstrap & jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Smooth scrolling for sidebar navigation
+            document.querySelectorAll('.list-group-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    if (this.getAttribute('href').startsWith('#')) {
+                        e.preventDefault();
+                        const target = this.getAttribute('href');
+                        const targetElement = document.querySelector(target);
+
+                        if (targetElement) {
+                            targetElement.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
+                            });
+
+                            // Add active class
+                            document.querySelectorAll('.list-group-item').forEach(el => {
+                                el.classList.remove('active');
+                            });
+                            this.classList.add('active');
+                        }
+                    }
+                });
+            });
+
+            // Add subtle animations to cards
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px)';
+                });
+
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+
+<div class="modal fade" id="sessionTimeoutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-clock me-2"></i>Session About to Expire
+                </h5>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div class="mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#ffc107" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </div>
+                <h5 class="mb-3">Your session will expire soon!</h5>
+                <p class="text-muted mb-4" id="sessionCountdown">You'll be logged out in <span id="timeLeft">02:00</span> minutes</p>
+                <div class="progress mb-4" style="height: 8px;">
+                    <div id="sessionProgress" class="progress-bar bg-warning" role="progressbar" style="width: 100%"></div>
+                </div>
+                <p>Do you want to continue your session?</p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" class="btn btn-outline-danger px-4" id="logoutNowBtn">
+                    <i class="fas fa-sign-out-alt me-2"></i>Logout Now
+                </button>
+                <button type="button" class="btn btn-primary px-4" id="extendSessionBtn">
+                    <i class="fas fa-sync-alt me-2"></i>Continue Session
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Session timeout warning
+document.addEventListener('DOMContentLoaded', function() {
+    const SESSION_TIMEOUT = {{ request.session.get_expiry_age }}; // Session length in seconds
+    const WARNING_TIME = 120; // Show warning 2 minutes before expiration
+
+    let timeoutWarning;
+    let logoutTimer;
+    let sessionTimer;
+    let timeLeft = WARNING_TIME;
+
+    function startTimers() {
+        // Set warning timer
+        timeoutWarning = setTimeout(showTimeoutWarning, (SESSION_TIMEOUT - WARNING_TIME) * 1000);
+
+        // Set actual logout timer
+        logoutTimer = setTimeout(logoutUser, SESSION_TIMEOUT * 1000);
+
+        // Start session countdown
+        sessionTimer = setInterval(updateSessionTimer, 1000);
+    }
+
+    function showTimeoutWarning() {
+        const modal = new bootstrap.Modal(document.getElementById('sessionTimeoutModal'));
+        modal.show();
+
+        // Start countdown display
+        const countdown = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timeLeft').textContent =
+                `${Math.floor(timeLeft/60).toString().padStart(2, '0')}:${(timeLeft%60).toString().padStart(2, '0')}`;
+
+            // Update progress bar
+            const progress = (timeLeft / WARNING_TIME) * 100;
+            document.getElementById('sessionProgress').style.width = `${progress}%`;
+
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                logoutUser();
+            }
+        }, 1000);
+
+        // Handle extend session button
+        document.getElementById('extendSessionBtn').addEventListener('click', function() {
+            clearInterval(countdown);
+            modal.hide();
+            extendSession();
+        });
+
+        // Handle logout now button
+        document.getElementById('logoutNowBtn').addEventListener('click', function() {
+            clearInterval(countdown);
+            logoutUser();
+        });
+    }
+
+    function updateSessionTimer() {
+        // Could implement a visible timer on page if needed
+    }
+
+    function logoutUser() {
+        // Create a hidden form and submit it
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = "{% url 'users:logout' %}";
+
+        const csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = 'csrfmiddlewaretoken';
+        csrf.value = '{{ csrf_token }}';
+        form.appendChild(csrf);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function extendSession() {
+        // Reset timers
+        clearTimeout(timeoutWarning);
+        clearTimeout(logoutTimer);
+        clearInterval(sessionTimer);
+
+        // Ping server to extend session
+        fetch("{% url 'users:session_keepalive' %}", { method: 'HEAD' })
+            .then(() => {
+                timeLeft = WARNING_TIME;
+                startTimers();
+            });
+    }
+
+
+    // Initialize timers
+    startTimers();
+
+    // Reset timers on user activity
+    document.addEventListener('mousemove', resetTimers);
+    document.addEventListener('keypress', resetTimers);
+
+    function resetTimers() {
+        clearTimeout(timeoutWarning);
+        clearTimeout(logoutTimer);
+        clearInterval(sessionTimer);
+        startTimers();
+    }
+});
+
+
+</script>
+
+</body>
+</html>

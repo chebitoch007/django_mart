@@ -1,0 +1,81 @@
+<!-- Optimized Navbar -->
+<nav class="bg-dark shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <!-- Left Section -->
+            <div class="flex items-center">
+                <a href="{% url 'home' %}" class="orbitron text-2xl font-bold text-primary hover:text-primary-light transition-colors">
+                    <i class="fas fa-gamepad mr-2"></i>DjangoMart
+                </a>
+
+                <!-- Desktop Navigation -->
+                <div class="hidden md:ml-6 md:flex md:space-x-4">
+                    <a href="{% url 'store:product_list' %}" class="nav-link">
+                        <i class="fas fa-home mr-1"></i> Home
+                    </a>
+                    <div class="relative group">
+                        <button class="nav-link">
+                            <i class="fas fa-th-large mr-1"></i> Categories
+                            <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                        </button>
+                        <div class="nav-dropdown">
+                            {% for category in categories %}
+                            <a href="{% url 'store:product_list_by_category' category.slug %}" class="nav-dropdown-item">
+                                {{ category.name }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <!-- Mobile Menu -->
+<div class="md:hidden bg-dark shadow-lg" x-data="mobileMenu">
+    <!-- Mobile menu HTML from the previous answer -->
+</div>
+
+            <!-- Right Section -->
+            <div class="flex items-center space-x-4">
+                <!-- Cart -->
+                <a href="{% url 'cart:detail' %}" class="relative text-gray-300 hover:text-primary transition-colors">
+                    <i class="fas fa-shopping-cart text-xl"></i>
+                    <span class="cart-badge">
+                        {% with cart|length as cart_items %}
+                            {{ cart_items|default:"0" }}
+                        {% endwith %}
+                    </span>
+                </a>
+
+                <!-- User Account -->
+                {% if user.is_authenticated %}
+                <div class="relative group">
+                    <button class="text-gray-300 hover:text-primary transition-colors">
+                        <i class="fas fa-user-circle text-xl"></i>
+                    </button>
+                    <div class="nav-dropdown w-48">
+                        <a href="{% url 'profile' %}" class="nav-dropdown-item">
+                            <i class="fas fa-user mr-2"></i>Profile
+                        </a>
+                        <a href="{% url 'orders:order_history' %}" class="nav-dropdown-item">
+                            <i class="fas fa-receipt mr-2"></i>Orders
+                        </a>
+                        <div class="border-t border-gray-700 my-2"></div>
+                        <a href="{% url 'logout' %}" class="nav-dropdown-item text-red-400 hover:text-red-300">
+                            <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="flex space-x-3">
+                    <a href="{% url 'login' %}" class="nav-link">
+                        <i class="fas fa-sign-in-alt mr-1"></i> Login
+                    </a>
+                    <a href="{% url 'register' %}" class="nav-link">
+                        <i class="fas fa-user-plus mr-1"></i> Register
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</nav>
+
