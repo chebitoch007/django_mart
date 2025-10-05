@@ -158,17 +158,14 @@ class OrderSuccessView(TemplateView):
 
 
 
-
-
 class CheckoutView(TemplateView):
     template_name = 'orders/checkout.html'
 
     def get(self, request, *args, **kwargs):
         order = self.get_order_from_session_or_cart(request)
-
         if not order:
+            request.session.pop('order_id', None)
             return redirect('cart:cart_detail')
-
         return render(request, self.template_name, self.get_context_data(order=order))
 
     def get_order_from_session_or_cart(self, request):
@@ -177,7 +174,7 @@ class CheckoutView(TemplateView):
             try:
                 return Order.objects.get(id=order_id, user=request.user)
             except Order.DoesNotExist:
-                pass
+                request.session.pop('order_id', None)
 
         cart = get_cart(request)
         if cart.items.exists():
@@ -192,36 +189,39 @@ class CheckoutView(TemplateView):
 
     def get_context_data(self, order, **kwargs):
         context = super().get_context_data(**kwargs)
-        cart = get_cart(self.request)
+        request = self.request
+        cart = get_cart(request)
         base_currency = settings.DEFAULT_CURRENCY
-        context['order'] = order
-        context['cart'] = cart
 
-        # Get prioritized methods
-        prioritized_methods = get_prioritized_payment_methods(self.request)
-        context['prioritized_methods'] = prioritized_methods
+        context.update({
+            'order': order,
+            'cart': cart,
+            'paypal_loaded': True,
+        })
 
-        # Get or initialize selected payment method in session
-        selected_method = self.request.session.get(
+        # --- Payment Methods ---
+        prioritized_methods = get_prioritized_payment_methods(request)
+        selected_method = request.session.get(
             'selected_payment_method',
-            prioritized_methods[0] if prioritized_methods else 'mpesa'  # Changed default to mpesa
+            prioritized_methods[0] if prioritized_methods else 'mpesa'
         )
-        context['selected_method'] = selected_method
 
-        # Get or create payment
+        context.update({
+            'prioritized_methods': prioritized_methods,
+            'selected_method': selected_method,
+        })
+
+        # --- Payment ---
         payment, _ = Payment.objects.get_or_create(
             order=order,
-            defaults={
-                'amount': order.total,
-                'currency': order.currency,
-                'status': 'PENDING'
-            }
+            defaults={'amount': order.total, 'currency': order.currency, 'status': 'PENDING'}
         )
-
-
+        if payment.amount != order.total:
+            payment.amount = order.total
+            payment.save(update_fields=['amount'])
         context['payment'] = payment
 
-        # Prepare currency options
+        # --- Currency options ---
         currency_options = []
         for code, name in settings.CURRENCIES:
             if code == base_currency:
@@ -236,10 +236,9 @@ class CheckoutView(TemplateView):
                             target_currency=code
                         ).rate
                         rate = float(db_rate)
-                        cache.set(cache_key, rate, settings.CURRENCY_CACHE_TIMEOUT)
                     except CurrencyRate.DoesNotExist:
                         rate = get_exchange_rate(base_currency, code)
-                        cache.set(cache_key, rate, settings.CURRENCY_CACHE_TIMEOUT)
+                    cache.set(cache_key, rate, settings.CURRENCY_CACHE_TIMEOUT)
 
             currency_options.append({
                 'code': code,

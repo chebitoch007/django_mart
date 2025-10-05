@@ -1,11 +1,8 @@
- #payment/models.py
+from typing import Any  #payment/models.py
 from django.db import models
 from pydantic_core import ValidationError
-
 from orders.constants import CURRENCY_CHOICES
 from paypal.standard.ipn.models import PayPalIPN
-
-
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -69,6 +66,10 @@ class Payment(models.Model):
         ],
         blank=True
     )
+
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)  # <-- unpack correctly
+        self.raw_callback = None
 
     def __str__(self):
         return f"{self.provider} Payment - {self.status}"

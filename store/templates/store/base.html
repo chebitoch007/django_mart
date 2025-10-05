@@ -1,5 +1,6 @@
+{% load django_vite static %}
+
 <!DOCTYPE html>
-{% load static %}
 <html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8">
@@ -7,11 +8,8 @@
   <meta name="description" content="Premium e-commerce platform offering quality products with fast delivery">
   <title>ASAI - Premium Shopping Experience</title>
 
+  <!-- Favicon -->
   <link rel="shortcut icon" href="{% static 'store/images/favicon.ico' %}" type="image/x-icon">
-
-  <!-- Performance Preconnects -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
   <!-- Tailwind CSS -->
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
@@ -24,6 +22,10 @@
 
   <!-- HTMX -->
   <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+
+    <!-- Vite (for your modern JS and CSS modules) -->
+    {% vite_hmr_client %}
+    {% vite_asset 'main.js' %}
 
   {% block extra_head_scripts %}{% endblock %}
 
@@ -2038,7 +2040,7 @@
             <div class="nav-right">
                 {% if user.is_authenticated %}
                 <a href="{% url 'users:account' %}" class="nav-link-box premium-hover" aria-label="Account">
-                    <div class="nav-link-top">Hello, {{ user.first_name|default:user.username }}</div>
+                    <div class="nav-link-top">Hello {{ user.first_name|default:user.username }}</div>
                     <div class="nav-link-bottom">Account & Lists</div>
                 </a>
                 {% else %}

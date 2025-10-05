@@ -1,458 +1,225 @@
+from django.db import transaction
 from datetime import timedelta
-
 from django.urls import reverse
-
 from paypal.standard.forms import PayPalPaymentsForm
-
 import json
-
 from decimal import Decimal
-
 import requests
-
 from django.conf import settings
-
 from core.utils import get_exchange_rate, logger
-
 from django.shortcuts import get_object_or_404, render, redirect
-
 from django.http import JsonResponse
-
 from django.views.decorators.csrf import csrf_exempt
-
 from django.views.decorators.http import require_POST
-
 from django.utils import timezone
-
 from orders.models import Order
-
 from .models import Payment
-
 from .utils import initiate_mpesa_payment, create_paypal_order, is_currency_supported, capture_paypal_order, is_paypal_currency_supported
-
-from .webhooks import handle_mpesa_webhook, handle_paypal_webhook
-
-
+from .webhooks import handle_mpesa_webhook, handle_paypal_webhook, process_mpesa_webhook_data
 
 # PayPal supported currencies
-
 PAYPAL_SUPPORTED_CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY']
 
 
-
-
-
 def get_or_create_payment_safe(order, provider='PAYPAL', amount=None, currency=None):
-
     """SAFE method to get or create payment without duplicates"""
-
     try:
-
         # Try to get existing payment for this order and provider
-
         payments = Payment.objects.filter(order=order, provider=provider)
 
-
-
         if payments.exists():
-
             if payments.count() > 1:
-
                 # Handle duplicates - use most recent, mark others as failed
-
                 payment = payments.latest('created_at')
-
                 older_payments = payments.exclude(id=payment.id)
-
                 older_payments.update(
-
                     status='FAILED',
-
                     failure_type='DUPLICATE',
-
                     result_description='Multiple payments detected, using most recent'
-
                 )
-
                 logger.warning(f"Fixed duplicate payments for order {order.id}, using {payment.id}")
-
                 return payment, False
-
             else:
-
                 return payments.first(), False
-
         else:
-
             # Create new payment
-
             payment = Payment.objects.create(
-
                 order=order,
-
                 provider=provider,
-
                 amount=amount or order.total,
-
                 currency=currency or order.currency,
-
                 status='PENDING'
-
             )
-
             return payment, True
 
-
-
     except Exception as e:
-
         logger.error(f"Error in get_or_create_payment_safe: {str(e)}")
-
         # Fallback: create new payment
-
         payment = Payment.objects.create(
-
             order=order,
-
             provider=provider,
-
             amount=amount or order.total,
-
             currency=currency or order.currency,
-
             status='PENDING'
-
         )
-
         return payment, True
 
 
 
-
-
 @csrf_exempt
-
 @require_POST
-
 def create_paypal_payment(request):
-
     """FIXED: Create PayPal payment with duplicate prevention"""
-
     try:
-
         data = json.loads(request.body)
-
         order_id = data.get('order_id')
 
-
-
         if not order_id:
-
             return JsonResponse({
-
                 'success': False,
-
                 'error': 'Order ID is required'
-
             }, status=400)
-
-
 
         order = get_object_or_404(Order, id=order_id)
 
-
-
         # Validate order status
-
         if order.status != 'PENDING':
-
             return JsonResponse({
-
                 'success': False,
-
                 'error': f'Order already {order.status.lower()}'
-
             }, status=400)
-
-
 
         currency = data.get('currency', 'USD')
 
-
-
         # Validate currency
-
         if not is_paypal_currency_supported(currency):
-
             return JsonResponse({
-
                 'success': False,
-
                 'error': f'Currency {currency} not supported by PayPal'
-
             }, status=400)
-
-
 
         # ✅ FIXED: Use safe payment creation method
-
         payment, created = get_or_create_payment_safe(
-
             order,
-
             'PAYPAL',
-
             order.total,
-
             currency
-
         )
-
-
 
         if not created and payment.status != 'PENDING':
-
             return JsonResponse({
-
                 'success': False,
-
                 'error': f'Payment already {payment.status.lower()}'
-
             }, status=400)
-
-
 
         # Create PayPal order
-
         result = create_paypal_order(
-
             float(order.total),
-
             currency,
-
             order_id,
-
             request
-
         )
 
-
-
         if 'id' in result:
-
             payment.status = 'PROCESSING'
-
             payment.transaction_id = result['id']
-
             payment.raw_response = result
-
             payment.save()
 
-
-
             # Find approval URL
-
             approval_url = None
-
             for link in result.get('links', []):
-
                 if link.get('rel') == 'approve':
-
                     approval_url = link.get('href')
-
                     break
 
-
-
             return JsonResponse({
-
                 'success': True,
-
                 'order_id': result['id'],
-
                 'approval_url': approval_url,
-
                 'status': result.get('status'),
-
                 'message': 'PayPal order created successfully'
-
             })
-
         else:
-
             error_msg = result.get('error', 'PayPal order creation failed')
-
             logger.error(f"PayPal order creation failed: {error_msg}")
-
-
-
             return JsonResponse({
-
                 'success': False,
-
                 'error': error_msg,
-
                 'details': result.get('details')
-
             }, status=400)
 
-
-
     except json.JSONDecodeError:
-
         return JsonResponse({
-
             'success': False,
-
             'error': 'Invalid JSON data'
-
         }, status=400)
-
     except Exception as e:
-
         logger.error(f'PayPal payment creation failed: {str(e)}')
-
         return JsonResponse({
-
             'success': False,
-
             'error': 'Payment creation failed',
-
             'details': str(e)
-
         }, status=500)
-
 
 
 
 
 @csrf_exempt
-
 def mpesa_status(request):
-
-    """FIXED: Enhanced M-Pesa status polling with webhook acceptance"""
-
+    """Enhanced M-Pesa payment status polling with webhook awareness and safety."""
     checkout_request_id = request.GET.get('checkout_request_id')
 
-
-
     if not checkout_request_id:
-
-        return JsonResponse({
-
-            'status': 'error',
-
-            'message': 'checkout_request_id is required'
-
-        }, status=400)
-
-
+        return JsonResponse({'status': 'error', 'message': 'checkout_request_id is required'}, status=400)
 
     try:
-
-        payment = Payment.objects.get(
-
-            checkout_request_id=checkout_request_id,
-
-            provider='MPESA'
-
-        )
-
-
-
-        # ✅ FIX: Only timeout if we haven't received a webhook
+        payment = Payment.objects.get(checkout_request_id=checkout_request_id, provider='MPESA')
 
         if payment.status == 'PROCESSING':
-
             processing_time = timezone.now() - payment.created_at
+            timeout_threshold = timedelta(minutes=20)
 
-            timeout_threshold = timedelta(minutes=20)  # Increased to 20 minutes
-
-
-
-            # Auto-timeout after 20 minutes ONLY if no webhook received
-
-            if processing_time > timeout_threshold and not payment.raw_callback:
-
-                payment.status = 'FAILED'
-
-                payment.failure_type = 'TIMEOUT'
-
-                payment.result_description = 'Payment timeout after 20 minutes - no callback received'
-
-                payment.save()
-
-                logger.info(f"Payment {payment.id} timed out after 20 minutes (no webhook)")
-
-            elif processing_time > timeout_threshold and payment.raw_callback:
-
-                # Webhook received but status not updated - process the webhook data
-
-                logger.info(f"Webhook received but status not updated for payment {payment.id}")
-
-                # The status will be updated by the next webhook processing
-
-
+            with transaction.atomic():
+                payment = Payment.objects.select_for_update().get(id=payment.id)
+                if processing_time > timeout_threshold:
+                    if not payment.raw_callback:
+                        payment.status = 'FAILED'
+                        payment.failure_type = 'TIMEOUT'
+                        payment.result_description = 'Payment timeout after 20 minutes - no callback received'
+                        payment.save(update_fields=['status', 'failure_type', 'result_description'])
+                        logger.info(f"Payment {payment.id} timed out after 20 minutes (no webhook)")
+                    elif payment.raw_callback and payment.status == 'PROCESSING':
+                        try:
+                            data = json.loads(payment.raw_callback)
+                            process_mpesa_webhook_data(payment, data)
+                            logger.info(f"Webhook data reprocessed for payment {payment.id}")
+                        except Exception as e:
+                            logger.warning(f"Failed to reprocess webhook for {payment.id}: {e}")
 
         response_data = {
-
             'status': payment.status.lower(),
-
             'failure_type': payment.failure_type,
-
-            'message': payment.result_description or f"Payment {payment.status.lower()}",
-
+            'message': payment.result_description or f"Payment {payment.status.title()}",
             'result_code': payment.result_code,
-
             'result_description': payment.result_description,
-
             'amount': str(payment.amount),
-
             'order_id': payment.order.id,
-
             'transaction_id': payment.transaction_id,
-
-            'can_retry': payment.failure_type in ['TEMPORARY', 'USER_CANCELLED', 'TIMEOUT'] and
-
-                         (payment.failure_type != 'TEMPORARY' or payment.retry_count < 3),
-
+            'can_retry': payment.failure_type in ['TEMPORARY', 'USER_CANCELLED', 'TIMEOUT']
+                          and (payment.failure_type != 'TEMPORARY' or payment.retry_count < 3),
             'retry_count': payment.retry_count,
-
-            'webhook_received': bool(payment.raw_callback)  # Add this for debugging
-
+            'webhook_received': bool(payment.raw_callback),
         }
-
-
 
         return JsonResponse(response_data)
 
-
-
     except Payment.DoesNotExist:
-
         logger.error(f"No payment found for checkout_request_id: {checkout_request_id}")
-
-        return JsonResponse({
-
-            'status': 'not_found',
-
-            'message': 'No payment found for this checkout_request_id'
-
-        }, status=404)
-
+        return JsonResponse({'status': 'not_found', 'message': 'No payment found for this checkout_request_id'}, status=404)
     except Exception as e:
-
         logger.error(f"Error checking payment status: {str(e)}")
-
-        return JsonResponse({
-
-            'status': 'error',
-
-            'message': 'Error checking payment status'
-
-        }, status=500)
-
-
+        return JsonResponse({'status': 'error', 'message': 'Error checking payment status'}, status=500)
 
 
 
@@ -1179,106 +946,55 @@ def clear_cart_after_payment(order):
 @require_POST
 
 def execute_paypal_payment(request, order_id):
-
     """FIXED: Execute PayPal payment with cart clearing"""
-
     try:
-
         order = get_object_or_404(Order, id=order_id)
-
         payment = get_object_or_404(Payment, order=order, provider='PAYPAL')
 
-
-
         data = json.loads(request.body)
-
         paypal_order_id = data.get('order_id')
 
-
-
         if not paypal_order_id:
-
             return JsonResponse({
-
                 'success': False,
-
                 'error': 'PayPal order ID required'
-
             }, status=400)
-
-
 
         # Capture payment
-
         result = capture_paypal_order(paypal_order_id)
 
-
-
         if result.get('status') == 'COMPLETED':
-
             payment.status = 'COMPLETED'
-
             payment.transaction_id = result.get('id')
-
             payment.raw_response = result
-
             payment.save()
 
-
-
             order.status = 'PAID'
-
             order.payment_method = 'PAYPAL'
-
             order.save()
 
-
-
             # ✅ CLEAR CART AFTER SUCCESSFUL PAYMENT
-
             clear_cart_after_payment(order)
 
-
-
             return JsonResponse({
-
                 'success': True,
-
                 'message': 'Payment completed successfully',
-
                 'transaction_id': result.get('id')
-
             })
-
         else:
-
             error_msg = result.get('message', 'Payment capture failed')
-
             return JsonResponse({
-
                 'success': False,
-
                 'error': error_msg,
-
                 'details': result.get('details')
-
             }, status=400)
 
-
-
     except Exception as e:
-
         logger.error(f'PayPal payment execution failed: {str(e)}')
-
         return JsonResponse({
-
             'success': False,
-
             'error': 'Payment execution failed'
-
         }, status=500)
-
-
 
 
 
@@ -1463,157 +1179,79 @@ def get_or_create_payment(order, provider='PAYPAL', amount=None, currency=None):
 # Update the paypal_checkout function
 
 def paypal_checkout(request, order_id):
-
     """New PayPal checkout using django-paypal"""
-
     order = get_object_or_404(Order, id=order_id)
 
-
-
     # What you want the button to do.
-
     paypal_dict = {
-
         "business": settings.PAYPAL_RECEIVER_EMAIL,
-
         "amount": str(order.total),
-
         "item_name": f"Order #{order.id}",
-
         "invoice": f"order-{order.id}-{order.created.strftime('%Y%m%d%H%M%S')}",
-
         "notify_url": request.build_absolute_uri(reverse('paypal-ipn')),
-
         "return_url": request.build_absolute_uri(
-
             reverse('orders:success', kwargs={'order_id': order.id})
-
         ),
-
         "cancel_return": request.build_absolute_uri(
-
             reverse('payment:paypal_cancel', kwargs={'order_id': order.id})
-
         ),
-
         "custom": json.dumps({
-
             "order_id": order.id,
-
             "user_id": request.user.id if request.user.is_authenticated else None
-
         }),
-
         "currency_code": order.currency,
-
     }
-
 
 
     # Create the instance.
-
     form = PayPalPaymentsForm(initial=paypal_dict)
 
-
-
     # FIXED: Use safe payment creation method
-
     payment, created = get_or_create_payment(
-
         order,
-
         provider='PAYPAL',
-
         amount=order.total,
-
         currency=order.currency
-
     )
-
-
-
     context = {
-
         "order": order,
-
         "form": form,
-
         "paypal_amount": order.total,
-
         "paypal_currency": order.currency,
-
     }
-
     return render(request, "orders/checkout.html", context)
 
 
-
-
-
 def paypal_success(request, order_id):
-
     """Handle successful PayPal return"""
-
     order = get_object_or_404(Order, id=order_id)
-
-
-
     # Check if payment was completed via IPN
-
     try:
-
         payment = Payment.objects.get(order=order, provider='PAYPAL')
-
         if payment.status == 'COMPLETED':
-
             return redirect('orders:success', pk=order.id)
-
     except Payment.DoesNotExist:
-
         pass
 
-
-
     # Payment might still be processing
-
     return render(request, 'payment/payment_pending.html', {
-
         'order': order,
-
         'payment': payment
-
     })
 
 
-
-
-
 def paypal_cancel(request, order_id):
-
     """Handle cancelled PayPal payment"""
-
     order = get_object_or_404(Order, id=order_id)
 
-
-
     # Update payment status if exists
-
     payment = Payment.objects.filter(order=order, provider='PAYPAL').first()
-
     if payment and payment.status == 'PENDING':
-
         payment.status = 'FAILED'
-
         payment.failure_type = 'USER_CANCELLED'
-
         payment.save()
 
-
-
     return render(request, 'payment/expired.html', {
-
         'order': order,
-
         'payment': payment
-
     })

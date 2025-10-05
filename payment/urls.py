@@ -21,4 +21,6 @@ urlpatterns = [
 
     # ✅ ADD MISSING URL FOR PAYPAL CHECKOUT
     path('paypal/checkout/<int:order_id>/', views.paypal_checkout, name='paypal_checkout'),
+    path('paypal/return/<int:order_id>/', views.paypal_payment_return, name='paypal_return'),
+    path('paypal/cancel/<int:order_id>/', views.paypal_payment_cancel, name='paypal_cancel'),
 ]

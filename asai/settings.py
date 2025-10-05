@@ -19,8 +19,11 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 # ================== Core Production Settings ==================
 SECRET_KEY = env('DJANGO_SECRET_KEY')
 DEBUG = env.bool('DJANGO_DEBUG', default=False)
-ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+CSRF_TRUSTED_ORIGINS = env.list(
+    "CSRF_TRUSTED_ORIGINS",
+    default=["http://localhost:8000"]
+)
 
 handler404 = 'store.views.custom_404'
 handler500 = 'store.views.custom_500'
@@ -88,6 +91,7 @@ INSTALLED_APPS = [
     'easycart',
     'widget_tweaks',
     'db_cleaner',
+    'django_vite',
 ]
 
 MIDDLEWARE = [
@@ -158,14 +162,29 @@ USE_I18N = True
 USE_TZ = True
 
 # ================== Static & Media Files ==================
-STATICFILES_DIRS = [BASE_DIR / 'store/static',BASE_DIR / 'static',]
-
-
-
+STATICFILES_DIRS = [BASE_DIR / 'store/static', BASE_DIR / 'static']
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-#STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# ================== Vite Configuration ==================
+VITE_APP_DIR = BASE_DIR / 'frontend'  # Correct path to your Vite app
+VITE_MANIFEST_PATH = BASE_DIR / "static" / "frontend" / ".vite" / "manifest.json"
+
+# Optional for hot-reload dev server (during npm run dev)
+VITE_DEV_SERVER = {
+    "host": "localhost",
+    "port": 5173,
+}
+
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": DEBUG, # Enables HMR during development
+        "manifest_path": BASE_DIR / "static" / "frontend" / ".vite" / "manifest.json",
+        "static_url_prefix": "frontend/",
+    }
+}
+
 
 # Media files (Cloudflare R2)
 if env('USE_CLOUDFLARE_R2', default=False):
@@ -230,19 +249,18 @@ MPESA_SHORTCODE = env('MPESA_SHORTCODE')
 MPESA_PASSKEY = env('MPESA_PASSKEY')
 MPESA_CALLBACK_URL = env('MPESA_CALLBACK_URL')
 
-
 # PayPal Configuration
-PAYPAL_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID")
-PAYPAL_SECRET = os.getenv("PAYPAL_SECRET")
-PAYPAL_WEBHOOK_ID = os.getenv("PAYPAL_WEBHOOK_ID")
-PAYPAL_RECEIVER_EMAIL = os.getenv("PAYPAL_RECEIVER_EMAIL")
+PAYPAL_CLIENT_ID = env('PAYPAL_CLIENT_ID')
+PAYPAL_SECRET = env('PAYPAL_SECRET')
+PAYPAL_WEBHOOK_ID = env('PAYPAL_WEBHOOK_ID')
+PAYPAL_RECEIVER_EMAIL = env('PAYPAL_RECEIVER_EMAIL')
 
-PAYPAL_TEST = os.getenv("PAYPAL_TEST", "True") == "True"
+PAYPAL_TEST = env.bool("PAYPAL_TEST", default=True)
 PAYPAL_API_URL = (
     "https://api-m.sandbox.paypal.com" if PAYPAL_TEST else "https://api-m.paypal.com"
 )
 
-TRUSTED_IPS = [ip.strip() for ip in os.getenv("TRUSTED_IPS", "127.0.0.1").split(",")]
+TRUSTED_IPS = [ip.strip() for ip in env("TRUSTED_IPS", default="127.0.0.1").split(",")]
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 
 # Currency Settings
@@ -390,16 +408,20 @@ PCI_COMPLIANCE = {
     'AUDIT_LOG_RETENTION': 365,  # Days to keep audit logs
 }
 
-EXCHANGERATE_API_KEY = env('EXCHANGERATE_API_KEY', default=None)
-
-
+EXCHANGERATE_API_KEY = env("EXCHANGERATE_API_KEY", default="")
 
 # Media files (use S3)
-DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-AWS_ACCESS_KEY_ID = os.getenv('AWS_KEY')
-AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET')
-AWS_STORAGE_BUCKET_NAME = "your-bucket"
-AWS_S3_REGION_NAME = "eu-central-1"  # Change to your region
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+AWS_ACCESS_KEY_ID = env('AWS_KEY', default="")
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET', default="")
+AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', default="")
+AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default="eu-central-1")
+
+# Optional (for Cloudflare R2)
+AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL", default=None)
+AWS_S3_CUSTOM_DOMAIN = env("AWS_S3_CUSTOM_DOMAIN", default=None)
+
 
 # Cache configuration
 if DEBUG:
@@ -426,3 +448,5 @@ else:
     # Currency caching settings
 CURRENCY_CACHE_TIMEOUT = 60 * 60 * 4  # 4 hours
 CURRENCY_CACHE_TIMEOUT_ERROR = 60 * 5  # 5 minutes for errors
+
+BASE_URL='https://08ccbfff3198.ngrok-free.app'

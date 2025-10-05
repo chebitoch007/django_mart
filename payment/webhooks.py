@@ -14,7 +14,6 @@ from django.views.decorators.http import require_http_methods
 from .utils import paypal_client
 
 
-
 def clear_user_cart(user):
     """Clear the user's cart after successful payment"""
     try:
@@ -70,7 +69,8 @@ def clear_cart_after_payment(order):
 @csrf_exempt
 @require_http_methods(["POST", "GET"])
 def handle_mpesa_webhook(request):
-    """FIXED: M-Pesa webhook with cart clearing and duplicate prevention"""
+    """Handles M-Pesa webhook callbacks with cart clearing, duplicate prevention, and atomic updates."""
+
     if request.method == "GET":
         return JsonResponse({'status': 'ok', 'message': 'M-Pesa webhook is active'})
 
@@ -88,7 +88,6 @@ def handle_mpesa_webhook(request):
         if not checkout_request_id:
             return JsonResponse({'error': 'Missing CheckoutRequestID'}, status=400)
 
-        # Use transaction to prevent race conditions
         with transaction.atomic():
             payments = Payment.objects.filter(
                 checkout_request_id=checkout_request_id
@@ -98,86 +97,29 @@ def handle_mpesa_webhook(request):
                 logger.error(f"No Payment found with CheckoutRequestID={checkout_request_id}")
                 return JsonResponse({'error': 'Payment not found'}, status=404)
 
+            payment = payments.first()
             if payments.count() > 1:
-                logger.warning(f"Multiple payments found for {checkout_request_id}, using most recent")
-                # Mark duplicates as failed
-                payment = payments.first()
+                logger.warning(f"Multiple payments found for {checkout_request_id}, keeping most recent")
                 payments.exclude(id=payment.id).update(
                     status='FAILED',
                     failure_type='DUPLICATE',
                     result_description='Multiple payments detected, using most recent'
                 )
-            else:
-                payment = payments.first()
 
-            logger.info(f"Processing payment {payment.id}, current status: {payment.status}")
+            logger.info(f"Processing webhook for payment {payment.id}")
 
-            # Store callback data
-            payment.raw_callback = data
+            # Store raw callback and update
+            payment.raw_callback = json.dumps(data)
             payment.result_code = result_code
             payment.result_description = stk_callback.get('ResultDesc', '')
 
-            # Handle result codes
-            if result_code == 0:
-                # SUCCESS - even if previously failed due to timeout
-                payment.status = 'COMPLETED'
-                payment.failure_type = ''
-
-                # Extract transaction details
-                callback_metadata = stk_callback.get('CallbackMetadata', {})
-                items = callback_metadata.get('Item', [])
-
-                for item in items:
-                    name = item.get('Name')
-                    value = item.get('Value')
-                    if name == 'MpesaReceiptNumber':
-                        payment.transaction_id = value
-                    elif name == 'PhoneNumber':
-                        phone_str = str(value)
-                        if phone_str.startswith('0'):
-                            payment.phone_number = '254' + phone_str[1:]
-                        elif not phone_str.startswith('254'):
-                            payment.phone_number = '254' + phone_str
-                        else:
-                            payment.phone_number = phone_str
-                    elif name == 'Amount':
-                        payment.amount = value
-
-                payment.save()
-                logger.info(f"Payment {payment.id} marked as COMPLETED")
-
-                # Update order status
-                try:
-                    order = payment.order
-                    order.status = 'PAID'
-                    order.save()
-                    logger.info(f"Order {order.id} marked as PAID")
-
-                    # ✅ CLEAR CART AFTER SUCCESSFUL PAYMENT
-                    clear_cart_after_payment(order)
-
-                except Exception as e:
-                    logger.error(f"Error updating order status: {str(e)}")
-
-            elif result_code == 1032:  # User cancelled
-                payment.status = 'FAILED'
-                payment.failure_type = 'USER_CANCELLED'
-                payment.save()
-
-            elif result_code in [1, 2, 3, 4, 5, 8, 1031]:  # Temporary failures
-                payment.status = 'FAILED'
-                payment.failure_type = 'TEMPORARY'
-                payment.save()
-
-            else:  # Permanent failures
-                payment.status = 'FAILED'
-                payment.failure_type = 'PERMANENT'
-                payment.save()
+            # Process using helper function
+            process_mpesa_webhook_data(payment, data)
 
         return JsonResponse({'status': 'success'})
 
-    except json.JSONDecodeError as e:
-        logger.error(f"JSON decode error: {str(e)}")
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON body in M-Pesa webhook")
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
         logger.exception("Error processing M-Pesa webhook")
@@ -477,4 +419,64 @@ def send_payment_confirmation(order, payment):
         logger.info(f"Payment confirmation would be sent for order {order.id}")
         pass
     except Exception as e:
-        logger.error(f"Failed to send payment confirmation: {str(e)}")     
+        logger.error(f"Failed to send payment confirmation: {str(e)}")
+
+def process_mpesa_webhook_data(payment, data):
+    """Processes a stored M-Pesa webhook payload and updates payment/order state accordingly."""
+    try:
+        stk_callback = data.get('Body', {}).get('stkCallback', {})
+        result_code = stk_callback.get('ResultCode')
+        callback_metadata = stk_callback.get('CallbackMetadata', {}) or {}
+        items = callback_metadata.get('Item', [])
+
+        if result_code == 0:  # ✅ SUCCESS
+            payment.status = 'COMPLETED'
+            payment.failure_type = ''
+            for item in items:
+                name = item.get('Name')
+                value = item.get('Value')
+                if name == 'MpesaReceiptNumber':
+                    payment.transaction_id = value
+                elif name == 'PhoneNumber':
+                    phone = str(value)
+                    if phone.startswith('0'):
+                        phone = '254' + phone[1:]
+                    elif not phone.startswith('254'):
+                        phone = '254' + phone
+                    payment.phone_number = phone
+                elif name == 'Amount':
+                    payment.amount = value
+
+            payment.save(update_fields=[
+                'status', 'failure_type', 'transaction_id', 'phone_number', 'amount',
+                'result_code', 'result_description', 'raw_callback'
+            ])
+
+            # Update order
+            try:
+                order = payment.order
+                order.status = 'PAID'
+                order.save(update_fields=['status'])
+                logger.info(f"Order {order.id} marked as PAID after M-Pesa success")
+                clear_cart_after_payment(order)
+            except Exception as e:
+                logger.error(f"Error updating order after M-Pesa success: {e}")
+
+        elif result_code == 1032:  # ❌ User cancelled
+            payment.status = 'FAILED'
+            payment.failure_type = 'USER_CANCELLED'
+            payment.save(update_fields=['status', 'failure_type'])
+
+        elif result_code in [1, 2, 3, 4, 5, 8, 1031]:  # ⚠️ Temporary failures
+            payment.status = 'FAILED'
+            payment.failure_type = 'TEMPORARY'
+            payment.save(update_fields=['status', 'failure_type'])
+
+        else:  # 🛑 Permanent or unknown failure
+            payment.status = 'FAILED'
+            payment.failure_type = 'PERMANENT'
+            payment.save(update_fields=['status', 'failure_type'])
+
+    except Exception as e:
+        logger.exception(f"Error processing stored M-Pesa webhook for payment {payment.id}: {e}")
+
