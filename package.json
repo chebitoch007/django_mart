@@ -1,0 +1,14 @@
+{
+  "name": "django-mart",
+  "version": "1.0.0",
+  "scripts": {
+    "build:payments": "tsc && node build-payments.js",
+    "build:payments:watch": "tsc --watch",
+    "build:frontend": "cd frontend && npm run build",
+    "build:all": "npm run build:payments && npm run build:frontend",
+    "dev": "npm run build:payments && python manage.py runserver"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
