@@ -1,7 +1,7 @@
 from typing import Any  #payment/models.py
 from django.db import models
 from pydantic_core import ValidationError
-from orders.constants import CURRENCY_CHOICES
+from orders.constants import CURRENCY_CHOICES, ORDER_STATUS_CHOICES
 from paypal.standard.ipn.models import PayPalIPN
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -22,12 +22,6 @@ class PayPalPayment(models.Model):
 
 
 class Payment(models.Model):
-    ORDER_STATUS = (
-        ('PENDING', 'Pending'),
-        ('COMPLETED', 'Completed'),
-        ('FAILED', 'Failed'),
-        ('PROCESSING', 'Processing'),
-    )
 
     PROVIDER_CHOICES = (
         ('MPESA', 'M-Pesa'),
@@ -40,7 +34,7 @@ class Payment(models.Model):
         choices=PROVIDER_CHOICES,
         default='M-Pesa'
     )
-    status = models.CharField(max_length=20, choices=ORDER_STATUS, default='PENDING')
+    status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='PENDING',db_index=True )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     transaction_id = models.CharField(max_length=255, blank=True)
     phone_number = models.CharField(max_length=15, blank=True)  # For MPesa
@@ -101,5 +95,5 @@ class Payment(models.Model):
 def clear_cart_on_payment_success(sender, instance, **kwargs):
     """Clear cart when payment is marked as completed"""
     if instance.status == 'COMPLETED' and instance.order:
-        from payment.utils import clear_cart_after_payment
+        from payment.cart_utils import clear_cart_after_payment
         clear_cart_after_payment(instance.order)

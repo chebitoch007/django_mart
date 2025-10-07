@@ -1,28 +1,8 @@
-// static/js/payments.js
-import { initializeMpesa } from './mpesa.js';
-import { initializePayPal, cleanupPayPal } from './paypal.js';
-import {
-    validatePhoneNumber,
-    formatCurrency,
-    saveFormState,
-    restoreFormState,
-    updateServerPaymentMethod
-} from './utils.js';
-import {
-    showPaymentStatus,
-    showPaymentError,
-    setSubmitButtonState,
-    startProcessingAnimation,
-    stopProcessingAnimation,
-    updatePaymentMethodUI,
-    updateSubmitButton,
-    showCurrencyTooltip,
-    hideCurrencyTooltip,
-    showInputError,
-    clearInputError
-} from './ui.js';
-
-class PaymentSystem {
+import { initializeMpesa } from './payment-methods/mpesa.js';
+import { initializePayPal, cleanupPayPal } from './payment-methods/paypal.js';
+import { validatePhoneNumber, formatCurrency, saveFormState, restoreFormState, updateServerPaymentMethod } from './utils/utils.js';
+import { showPaymentError, updatePaymentMethodUI, updateSubmitButton, showCurrencyTooltip, hideCurrencyTooltip, showInputError, clearInputError } from './ui/ui.js';
+export class PaymentSystem {
     constructor(config) {
         this.config = config;
         this.state = {
@@ -34,20 +14,18 @@ class PaymentSystem {
             paypalProcessing: false,
             processingStage: 0
         };
-
         this.elements = {};
         this.init();
     }
-
     init() {
         this.cacheElements();
         this.bindEvents();
         this.restoreState();
         this.initializePaymentMethod(this.state.currentMethod);
     }
-
     cacheElements() {
         this.elements = {
+            formAmount: document.getElementById('formAmount'),
             paymentForm: document.getElementById('paymentForm'),
             processingModal: document.getElementById('processingModal'),
             modalTitle: document.getElementById('modalTitle'),
@@ -75,7 +53,6 @@ class PaymentSystem {
             summaryContent: document.getElementById('summaryContent')
         };
     }
-
     bindEvents() {
         // Payment method tabs
         this.elements.paymentTabs.forEach(tab => {
@@ -85,43 +62,35 @@ class PaymentSystem {
                 }
             });
         });
-
         // Currency selector
         this.elements.currencySelector.addEventListener('change', (e) => {
             this.handleCurrencyChange(e.target);
         });
-
         // Phone input validation
         this.elements.phoneInput.addEventListener('input', (e) => {
             this.handlePhoneInput(e.target.value);
         });
-
         // Terms agreement
         this.elements.termsCheckbox.addEventListener('change', () => {
             this.handleTermsChange();
         });
-
         // Form submission
         this.elements.paymentForm.addEventListener('submit', (e) => {
             this.handleFormSubmit(e);
         });
-
         // Mobile summary toggle
         this.elements.summaryToggle.addEventListener('click', () => {
             this.toggleSummary();
         });
-
         // Window resize for responsive behavior
         window.addEventListener('resize', () => {
             this.handleResize();
         });
     }
-
     restoreState() {
         const savedState = restoreFormState();
         this.state.currentMethod = savedState.method || 'mpesa';
         this.state.currentCurrency = savedState.currency || this.config.defaultCurrency;
-
         if (savedState.phone) {
             this.elements.phoneInput.value = savedState.phone;
         }
@@ -129,29 +98,30 @@ class PaymentSystem {
             this.elements.termsCheckbox.checked = true;
         }
     }
-
     switchPaymentMethod(method) {
         this.state.currentMethod = method;
-
         // Update UI
         updatePaymentMethodUI(method, this.elements.paymentTabs, this.elements.selectedMethodName);
         updateSubmitButton(method, this.elements.submitText, this.elements.submitIcon);
         this.elements.selectedMethodInput.value = method;
-
         // Handle section transitions
         this.togglePaymentSections(method);
-
         // Handle method-specific initialization
         if (method === 'paypal') {
             showCurrencyTooltip(method, this.state.currentCurrency, this.elements.currencyTooltip, this.elements.tooltipText);
+            console.log("Switching to PayPal... Terms checked?", this.elements.termsCheckbox.checked);
             if (this.elements.termsCheckbox.checked) {
+                console.log("✅ Initializing PayPal...");
                 setTimeout(() => initializePayPal(this), 400);
             }
-        } else {
+            else {
+                console.warn("⚠️ PayPal not initialized because terms are unchecked.");
+            }
+        }
+        else {
             hideCurrencyTooltip(this.elements.currencyTooltip);
             cleanupPayPal();
         }
-
         // Update server and save state
         updateServerPaymentMethod(method, this.config.csrfToken);
         saveFormState({
@@ -161,7 +131,6 @@ class PaymentSystem {
             terms: this.elements.termsCheckbox.checked
         });
     }
-
     togglePaymentSections(method) {
         if (method === 'paypal') {
             this.elements.mobileMoneySection.classList.remove('active');
@@ -170,7 +139,8 @@ class PaymentSystem {
                 this.elements.paypalSection.style.display = 'block';
                 setTimeout(() => this.elements.paypalSection.classList.add('active'), 50);
             }, 300);
-        } else {
+        }
+        else {
             this.elements.paypalSection.classList.remove('active');
             setTimeout(() => {
                 this.elements.paypalSection.style.display = 'none';
@@ -179,33 +149,27 @@ class PaymentSystem {
             }, 300);
         }
     }
-
     handleCurrencyChange(selector) {
         const selectedOption = selector.options[selector.selectedIndex];
         const currency = selectedOption.value;
-        const rate = parseFloat(selectedOption.dataset.rate);
-
+        const rate = parseFloat(selectedOption.dataset.rate || '1');
         this.state.currentCurrency = currency;
         this.state.currentRate = rate;
-
         this.elements.formCurrency.value = currency;
-        this.elements.formConversionRate.value = rate;
-
+        this.elements.formConversionRate.value = rate.toString();
         // Update amounts in UI
         this.updateAmounts(rate, currency);
-
         // Handle PayPal currency changes
         if (this.state.currentMethod === 'paypal') {
             this.state.paypalInitialized = false;
             showCurrencyTooltip('paypal', currency, this.elements.currencyTooltip, this.elements.tooltipText);
-
             if (!this.isPaypalCurrencySupported(currency) && currency !== 'USD') {
                 setTimeout(() => this.switchPaymentMethod('mpesa'), 1000);
-            } else {
+            }
+            else {
                 setTimeout(() => initializePayPal(this), 500);
             }
         }
-
         saveFormState({
             method: this.state.currentMethod,
             currency: currency,
@@ -213,36 +177,38 @@ class PaymentSystem {
             terms: this.elements.termsCheckbox.checked
         });
     }
-
     updateAmounts(rate, currency) {
         const symbol = this.config.currencySymbols[currency] || currency;
         const baseTotal = parseFloat(this.config.cartTotalPrice);
         this.state.currentConvertedAmount = baseTotal * rate;
-
         // Update order items
         document.querySelectorAll('.order-item').forEach(item => {
-            const basePrice = parseFloat(item.dataset.price);
-            item.querySelector('.item-amount').textContent =
-                formatCurrency(basePrice * rate, currency);
+            const basePrice = parseFloat(item.dataset.price || '0');
+            const amountElement = item.querySelector('.item-amount');
+            if (amountElement) {
+                amountElement.textContent = formatCurrency(basePrice * rate, currency);
+            }
         });
-
         // Update summary
-        document.querySelector('.subtotal-amount').textContent =
-            formatCurrency(this.state.currentConvertedAmount, currency);
-        document.querySelector('.total-amount').textContent =
-            formatCurrency(this.state.currentConvertedAmount, currency);
-
+        const subtotalElement = document.querySelector('.subtotal-amount');
+        const totalElement = document.querySelector('.total-amount');
+        if (subtotalElement) {
+            subtotalElement.textContent = formatCurrency(this.state.currentConvertedAmount, currency);
+        }
+        if (totalElement) {
+            totalElement.textContent = formatCurrency(this.state.currentConvertedAmount, currency);
+        }
         // Update form values
         this.elements.formAmount.value = this.state.currentConvertedAmount.toFixed(2);
-        document.getElementById('amount').value =
-            `${currency} ${formatCurrency(this.state.currentConvertedAmount, currency)}`;
-
+        const amountInput = document.getElementById('amount');
+        if (amountInput) {
+            amountInput.value = `${currency} ${formatCurrency(this.state.currentConvertedAmount, currency)}`;
+        }
         // Update currency symbols
         document.querySelectorAll('.currency-symbol').forEach(el => {
             el.textContent = symbol;
         });
     }
-
     handlePhoneInput(value) {
         if (value && validatePhoneNumber(value)) {
             clearInputError(this.elements.phoneInput, this.elements.phoneError);
@@ -254,7 +220,6 @@ class PaymentSystem {
             terms: this.elements.termsCheckbox.checked
         });
     }
-
     handleTermsChange() {
         saveFormState({
             method: this.state.currentMethod,
@@ -262,148 +227,144 @@ class PaymentSystem {
             phone: this.elements.phoneInput.value,
             terms: this.elements.termsCheckbox.checked
         });
-
         if (this.state.currentMethod === 'paypal') {
             if (this.elements.termsCheckbox.checked) {
                 setTimeout(() => initializePayPal(this), 300);
             }
         }
     }
-
     async handleFormSubmit(e) {
         e.preventDefault();
-
         // Hide previous errors
         this.elements.paymentErrors.style.display = 'none';
-
         // Validate form
         if (!this.validateForm()) {
             return;
         }
-
         const method = this.state.currentMethod;
-
         // For PayPal, show message to use the PayPal button
         if (method === 'paypal') {
-            document.getElementById('paypal-button-container').scrollIntoView({
-                behavior: 'smooth',
-                block: 'center'
-            });
-            return false;
+            const paypalContainer = document.getElementById('paypal-button-container');
+            if (paypalContainer) {
+                paypalContainer.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+            return;
         }
-
         // Handle M-Pesa
         if (method === 'mpesa') {
             await initializeMpesa(this);
         }
     }
-
     validateForm() {
         let isValid = true;
-
         if (this.state.currentMethod === 'mpesa') {
             const phoneValue = this.elements.phoneInput.value.trim();
             if (!validatePhoneNumber(phoneValue)) {
-                showInputError(
-                    this.elements.phoneInput,
-                    this.elements.phoneError,
-                    'Please enter a valid phone number (e.g. 712345678)'
-                );
+                showInputError(this.elements.phoneInput, this.elements.phoneError, 'Please enter a valid phone number (e.g. 712345678)');
                 isValid = false;
-            } else {
+            }
+            else {
                 clearInputError(this.elements.phoneInput, this.elements.phoneError);
             }
         }
-
         if (!this.elements.termsCheckbox.checked) {
             showPaymentError('You must agree to the terms and conditions', this.elements.paymentErrors);
             isValid = false;
         }
-
         return isValid;
     }
-
     toggleSummary() {
         const isCollapsed = this.elements.summaryContent.classList.contains('collapsed');
-
         if (isCollapsed) {
             this.elements.summaryContent.classList.remove('collapsed');
             this.elements.summaryToggle.classList.remove('collapsed');
-            this.elements.summaryToggle.querySelector('span').textContent = 'Hide Details';
-            this.elements.summaryToggle.querySelector('i').style.transform = 'rotate(180deg)';
-        } else {
+            const span = this.elements.summaryToggle.querySelector('span');
+            if (span)
+                span.textContent = 'Hide Details';
+            const icon = this.elements.summaryToggle.querySelector('i');
+            if (icon)
+                icon.style.transform = 'rotate(180deg)';
+        }
+        else {
             this.elements.summaryContent.classList.add('collapsed');
             this.elements.summaryToggle.classList.add('collapsed');
-            this.elements.summaryToggle.querySelector('span').textContent = 'Show Details';
-            this.elements.summaryToggle.querySelector('i').style.transform = 'rotate(0deg)';
+            const span = this.elements.summaryToggle.querySelector('span');
+            if (span)
+                span.textContent = 'Show Details';
+            const icon = this.elements.summaryToggle.querySelector('i');
+            if (icon)
+                icon.style.transform = 'rotate(0deg)';
         }
     }
-
     handleResize() {
         if (window.innerWidth <= 991 && !this.elements.summaryContent.classList.contains('collapsed')) {
             if (!this.elements.summaryToggle.classList.contains('initialized')) {
                 this.elements.summaryContent.classList.add('collapsed');
                 this.elements.summaryToggle.classList.add('collapsed');
-                this.elements.summaryToggle.querySelector('span').textContent = 'Show Details';
+                const span = this.elements.summaryToggle.querySelector('span');
+                if (span)
+                    span.textContent = 'Show Details';
                 this.elements.summaryToggle.classList.add('initialized');
             }
-        } else if (window.innerWidth > 991) {
+        }
+        else if (window.innerWidth > 991) {
             this.elements.summaryContent.classList.remove('collapsed');
             this.elements.summaryToggle.classList.remove('collapsed');
         }
     }
-
     isPaypalCurrencySupported(currency) {
         const paypalSupportedCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY'];
         return paypalSupportedCurrencies.includes(currency);
     }
-
     initializePaymentMethod(method) {
         updatePaymentMethodUI(method, this.elements.paymentTabs, this.elements.selectedMethodName);
         this.switchPaymentMethod(method);
-
         // Initialize mobile summary
         if (window.innerWidth <= 991) {
             this.elements.summaryContent.classList.add('collapsed');
             this.elements.summaryToggle.classList.add('collapsed');
-            this.elements.summaryToggle.querySelector('span').textContent = 'Show Details';
+            const span = this.elements.summaryToggle.querySelector('span');
+            if (span)
+                span.textContent = 'Show Details';
         }
     }
-
     // Public methods for other modules to access state
     getState() {
         return { ...this.state };
     }
-
     setState(newState) {
         this.state = { ...this.state, ...newState };
     }
-
     getElements() {
         return { ...this.elements };
     }
-
     getConfig() {
         return { ...this.config };
     }
 }
-
-// Export for use in other modules
-export { PaymentSystem };
-
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function () {
+    // require that template injected config exists
+    if (typeof window.paymentConfig === 'undefined') {
+        console.error('paymentConfig missing. Make sure checkout template injects it.');
+        return;
+    }
+    const cfg = window.paymentConfig;
     const config = {
-        cartTotalPrice: "{{ cart.total_price }}",
-        defaultCurrency: '{{ default_currency|default:"USD" }}',
-        csrfToken: "{{ csrf_token }}",
+        cartTotalPrice: cfg.cartTotalPrice,
+        defaultCurrency: cfg.defaultCurrency,
+        csrfToken: cfg.csrfToken,
         currencySymbols: {
             'USD': '$', 'EUR': '€', 'GBP': '£',
             'KES': 'KSh', 'UGX': 'USh', 'TZS': 'TSh'
         },
-        orderId: "{{ order.id }}",
-        paypalClientId: "{{ PAYPAL_CLIENT_ID }}"
+        orderId: cfg.orderId,
+        paypalClientId: cfg.paypalClientId,
+        urls: cfg.urls
     };
-
     window.paymentSystem = new PaymentSystem(config);
 });
+//# sourceMappingURL=payments.js.map

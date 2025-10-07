@@ -449,4 +449,4 @@ else:
 CURRENCY_CACHE_TIMEOUT = 60 * 60 * 4  # 4 hours
 CURRENCY_CACHE_TIMEOUT_ERROR = 60 * 5  # 5 minutes for errors
 
-BASE_URL='https://08ccbfff3198.ngrok-free.app'
+BASE_URL='https://1a0b711fbccf.ngrok-free.app'

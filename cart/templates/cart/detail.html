@@ -721,22 +721,27 @@
                     </form>
 
                     <br>
+
                     <!-- Payment Methods -->
-                    <div class="payment-methods">
-                        <div class="payment-method">
-                            <img src="{% static 'images/mpesa-logo.png' %}" alt="mpesa" class="method-logo">
+                    <div class="payment-methods flex items-center justify-center gap-4 mt-4 text-3xl">
+                        <!-- M-Pesa -->
+                        <div class="payment-method text-green-600" title="M-Pesa">
+                            <i class="fas fa-mobile-alt"></i>
                         </div>
-                        <div class="payment-method">
-                            <img src="{% static 'images/airtel-money-logo.png' %}" alt="airtel-money" class="method-logo">
+
+                        <!-- Visa -->
+                        <div class="payment-method text-blue-600" title="Visa">
+                            <i class="fab fa-cc-visa"></i>
                         </div>
-                        <div class="payment-method">
-                            <img src="{% static 'images/visa-logo.png' %}" alt="visa" class="method-logo">
+
+                        <!-- MasterCard -->
+                        <div class="payment-method text-red-500" title="MasterCard">
+                            <i class="fab fa-cc-mastercard"></i>
                         </div>
-                        <div class="payment-method">
-                            <img src="{% static 'images/mastercard-logo.png' %}" alt="mastercard" class="method-logo">
-                        </div>
-                        <div class="payment-method">
-                            <img src="{% static 'images/PayPal-logo.png' %}" alt="PayPal" class="method-logo">
+
+                        <!-- PayPal -->
+                        <div class="payment-method text-blue-700 text-3xl" title="PayPal">
+                            <i class="fab fa-paypal"></i>
                         </div>
                     </div>
                 </div>

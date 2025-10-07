@@ -4,13 +4,31 @@
 
 
 {% block extra_head_scripts %}
+
+<script>
+  // Passed safely from Django template into client JS
+  window.paymentConfig = {
+    urls: {
+      initiatePayment: "{% url 'payment:initiate_payment' %}",        // POST JSON -> create STK push
+      processPayment: "{% url 'payment:process_payment' order.id %}",// POST form/json -> finalize and capture
+      mpesaStatus: "{% url 'payment:mpesa_status' %}",               // GET ?checkout_request_id=...
+      orderSuccess: "{% url 'orders:success' order.id %}"
+    },
+    cartTotalPrice: "{{ cart.total_price }}",
+    defaultCurrency: "{{ default_currency|default:'USD' }}",
+    csrfToken: "{{ csrf_token }}",
+    orderId: "{{ order.id }}",
+    paypalClientId: "{{ PAYPAL_CLIENT_ID }}"
+  };
+</script>
+
   {% if not paypal_loaded %}
     <script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&currency=USD&commit=false&components=buttons" async></script>
   {% endif %}
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
-
-<!-- Remove the entire inline script section from the original file -->
+<!-- Replace your old script references with this -->
+<script type="module" src="{% static 'js/payments.js' %}"></script>
 
 {% endblock %}
 
@@ -858,8 +876,8 @@
                 <!-- Payment Forms -->
                 <form id="paymentForm" method="post" action="{% url 'payment:process_payment' order.id %}" novalidate>
                     {% csrf_token %}
-                    <input type="hidden" name="checkout_request_id" id="checkoutRequestId">
-                    <input type="hidden" name="order_id" value="{{ order.id }}">
+                    <input type="hidden" id="checkoutRequestId" name="checkout_request_id" value="">
+                    <input type="hidden" name="order_id" value="{{ order.id }}" id="orderId">
                     <input type="hidden" name="amount" id="formAmount" value="{{ order.total_price }}">
                     <input type="hidden" name="payment_method" id="selectedMethod" value="mpesa">
                     <input type="hidden" name="currency" id="formCurrency" value="{{ default_currency }}">
@@ -949,25 +967,36 @@
                     </div>
                 </form>
 
+<!-- PayPal Payment Section -->
+<div id="paypalSection" class="payment-form-section" style="display: none;">
+  <h4 class="mb-3">Pay with PayPal</h4>
 
-                <!-- PayPal Section (Moved outside the form) -->
-                <div class="payment-form-section" id="paypalSection" style="display: none;">
-                    <div id="paypal-button-container-wrapper">
-                        <div id="paypal-button-container"></div>
-                    </div>
-                    <div id="paypal-fallback" class="payment-status error" style="display: none;">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        PayPal payment is currently unavailable. Please try another payment method.
-                    </div>
-                    <div id="paypal-status" class="payment-status info" style="display: none;">
-                        <i class="fas fa-info-circle"></i>
-                        <span></span>
-                    </div>
-                </div>
+  <!-- Tooltip shown when switching currencies -->
+  <div id="currencyTooltip" class="alert alert-info d-none">
+    <span id="tooltipText"></span>
+  </div>
 
-                <!-- PayPal Hidden Fields (Moved outside the form) -->
-                <input type="hidden" name="paypal_order_id" id="paypalOrderId">
-                <input type="hidden" name="paypal_payer_id" id="paypalPayerId">
+  <!-- PayPal button container -->
+  <div id="paypal-button-container" class="mb-3"></div>
+
+  <!-- Status area -->
+<div id="paypal-status" class="alert text-center d-none" role="alert">
+  <div class="spinner-border text-primary me-2" role="status" style="display:none;"></div>
+  <span class="status-message"></span>
+</div>
+
+
+  <!-- Fallback if PayPal SDK not loaded -->
+  <div id="paypal-fallback" class="alert alert-warning text-center" style="display:none;">
+    Unable to load PayPal. Please refresh the page or choose another payment method.
+  </div>
+
+  <!-- Hidden fields for form submission -->
+  <input type="hidden" id="paypalOrderId" name="paypal_order_id" value="">
+  <input type="hidden" id="paypalPayerId" name="paypal_payer_id" value="">
+</div>
+
+
 
             </div>
         </div>
@@ -1029,4 +1058,85 @@
         <p class="modal-text" id="modalText">Please wait while we complete your transaction</p>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const tabs = document.querySelectorAll(".payment-tab");
+  const methodName = document.getElementById("selectedMethodName");
+  const methodInput = document.getElementById("selectedMethod");
+  const submitButton = document.getElementById("paymentSubmitButton");
+  const submitText = document.getElementById("submitText");
+  const mobileSection = document.getElementById("mobileMoneySection");
+  const paypalSection = document.getElementById("paypalSection");
+
+    const paymentForm = document.getElementById('paymentForm');
+    const processingModal = document.getElementById('processingModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalText = document.getElementById('modalText');
+    const paymentStatus = document.getElementById('paymentStatus');
+    const paymentErrors = document.getElementById('paymentErrors');
+    const selectedMethodInput = document.getElementById('selectedMethod');
+    const currencySelector = document.getElementById('currencySelector');
+    const currencyTooltip = document.getElementById('currencyTooltip');
+    const tooltipText = document.getElementById('tooltipText');
+    const methodConfirmation = document.getElementById('methodConfirmation');
+    const submitIcon = document.getElementById('submitIcon');
+    const formCurrency = document.getElementById('formCurrency');
+    const formConversionRate = document.getElementById('formConversionRate');
+    const phoneInput = document.getElementById('phoneNumber');
+    const phoneError = document.getElementById('phoneError');
+    const termsCheckbox = document.getElementById('termsAgreement');
+    const paypalButtonContainer = document.getElementById('paypal-button-container');
+    const summaryToggle = document.getElementById('summaryToggle');
+    const summaryContent = document.getElementById('summaryContent');
+
+
+
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      // deactivate all tabs
+      tabs.forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+
+      const selected = tab.dataset.method;
+      methodName.textContent = selected === "paypal" ? "PayPal" : "M-Pesa";
+      methodInput.value = selected;
+      submitText.textContent = selected === "paypal" ? "Pay with PayPal" : "Pay with M-Pesa";
+
+      // toggle visible form section
+      if (selected === "paypal") {
+        mobileSection.classList.remove("active");
+        mobileSection.style.display = "none";
+
+        paypalSection.style.display = "block";
+        paypalSection.classList.add("active");
+      } else {
+        paypalSection.classList.remove("active");
+        paypalSection.style.display = "none";
+
+        mobileSection.style.display = "block";
+        mobileSection.classList.add("active");
+      }
+    });
+  });
+});
+
+if (window.paypal) {
+  paypal.Buttons({
+    createOrder: function(data, actions) {
+      return actions.order.create({
+        purchase_units: [{ amount: { value: "{{ order.total_price|floatformat:2 }}" } }]
+      });
+    },
+    onApprove: function(data, actions) {
+      return actions.order.capture().then(function(details) {
+        window.location.href = "{% url 'orders:success' order.id %}";
+      });
+    }
+  }).render("#paypal-button-container");
+}
+
+</script>
+
+
 {% endblock %}

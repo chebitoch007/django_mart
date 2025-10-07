@@ -249,7 +249,11 @@
         <div class="card-header">
             <h2 class="card-title">Order Summary</h2>
             <span class="status-badge {% if order.status == 'PAID' %}status-paid{% else %}status-pending{% endif %}">
-                {% if order.status == 'PAID' %}Paid{% else %}Pending Payment{% endif %}
+
+                {% if order.status == 'PAID' %}Paid
+
+                {% else %}Pending Payment{% endif %}
+
             </span>
         </div>
 

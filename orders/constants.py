@@ -1,15 +1,15 @@
-
 PAYMENT_METHODS = (
-    ('CASH', 'Cash on Delivery'),
-    ('MOBILE_MONEY', 'Mobile Money'),
     ('MPESA', 'M-Pesa'),
-    ('AIRTEL', 'Airtel Money'),
+    ('PAYPAL', 'PayPal'),
 )
 
 ORDER_STATUS_CHOICES = (
     ('PENDING', 'Pending Payment'),
+    ('PROCESSING', 'Processing'),
     ('PAID', 'Paid'),
+    ('COMPLETED', 'Completed'),
     ('FULFILLED', 'Fulfilled'),
+    ('FAILED', 'Failed'),
     ('CANCELLED', 'Cancelled'),
 )
 

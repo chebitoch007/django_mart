@@ -154,8 +154,13 @@ def order_history(request):
 
 
 class OrderSuccessView(TemplateView):
-    template_name = 'orders/success.html'
+    template_name = "orders/success.html"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        order_id = self.kwargs.get("order_id")
+        context["order"] = get_object_or_404(Order, id=order_id)
+        return context
 
 
 class CheckoutView(TemplateView):

@@ -1,14 +1,13 @@
-from django.db import models
+from celery.utils.time import timezone
 from django.conf import settings
+from django.db import models
 from django.core.validators import MinValueValidator
-from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.db import transaction
-
 from store.aliexpress import fulfill_order
 from store.models import Product
 from django.db.models import Sum, F
-from .constants import ORDER_STATUS_CHOICES, PAYMENT_METHODS, CURRENCY_CHOICES
+from .constants import ORDER_STATUS_CHOICES, CURRENCY_CHOICES, PAYMENT_METHODS
 
 
 class OrderQuerySet(models.QuerySet):

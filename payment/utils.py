@@ -1,3 +1,5 @@
+#payment/utils.py
+
 from django.core.cache import cache
 from django.utils import timezone
 from decimal import Decimal, ROUND_HALF_UP
@@ -6,51 +8,9 @@ from datetime import datetime
 import base64
 import requests
 from django.conf import settings
-from core.utils import logger
-from cart.models import Cart
 import logging
 
 logger = logging.getLogger(__name__)
-
-
-def clear_cart_after_payment(order):
-    """Clear the user's cart after successful payment with enhanced safety"""
-    try:
-        user = order.user
-
-        if user and user.is_authenticated:
-            # Clear user's cart
-            try:
-
-                cart = Cart.objects.get(user=user)
-                item_count = cart.items.count()
-                cart.clear()
-                logger.info(f"Cleared cart for user {user.id}: {item_count} items removed")
-                return True
-            except Cart.DoesNotExist:
-                logger.info(f"No cart found for user {user.id}")
-                return True
-            except Cart.MultipleObjectsReturned:
-                # Handle multiple carts
-                carts = Cart.objects.filter(user=user).order_by('-created_at')
-                main_cart = carts.first()
-                item_count = main_cart.items.count()
-                main_cart.clear()
-
-                # Delete duplicate carts
-                carts.exclude(id=main_cart.id).delete()
-                logger.info(f"Cleared main cart and removed duplicates for user {user.id}")
-                return True
-        else:
-            # For guest users, we need to clear session cart
-            # This would require access to the request object
-            logger.info("Guest user cart clearing requires session handling")
-            return False
-
-    except Exception as e:
-        logger.error(f"Error clearing cart after payment: {str(e)}")
-        return False
-
 
 
 class PayPalClient:
@@ -355,7 +315,7 @@ def initiate_mpesa_payment(amount, phone_number, order_id):
             "PartyA": phone_number,
             "PartyB": settings.MPESA_SHORTCODE,
             "PhoneNumber": phone_number,
-            "CallBackURL": settings.MPESA_CALLBACK_URL or "https://08ccbfff3198.ngrok-free.app/payment/webhook/mpesa/",
+            "CallBackURL": settings.MPESA_CALLBACK_URL or "https://1a0b711fbccf.ngrok-free.app/payment/webhook/mpesa/",
             "AccountReference": f"ORDER_{order_id}",
             "TransactionDesc": "ASAI Payment"
         }
