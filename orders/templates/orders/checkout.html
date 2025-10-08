@@ -4,14 +4,12 @@
 
 
 {% block extra_head_scripts %}
-
 <script>
-  // Passed safely from Django template into client JS
   window.paymentConfig = {
     urls: {
-      initiatePayment: "{% url 'payment:initiate_payment' %}",        // POST JSON -> create STK push
-      processPayment: "{% url 'payment:process_payment' order.id %}",// POST form/json -> finalize and capture
-      mpesaStatus: "{% url 'payment:mpesa_status' %}",               // GET ?checkout_request_id=...
+      initiatePayment: "{% url 'payment:initiate_payment' %}",
+      processPayment: "{% url 'payment:process_payment' order.id %}",
+      mpesaStatus: "{% url 'payment:mpesa_status' %}",
       orderSuccess: "{% url 'orders:success' order.id %}"
     },
     cartTotalPrice: "{{ cart.total_price }}",
@@ -22,14 +20,13 @@
   };
 </script>
 
-  {% if not paypal_loaded %}
-    <script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&currency=USD&commit=false&components=buttons" async></script>
-  {% endif %}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+{% if not paypal_loaded %}
+  <script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&currency=USD&commit=false&components=buttons" async></script>
+{% endif %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
-<!-- Replace your old script references with this -->
-<script type="module" src="{% static 'js/payments.js' %}"></script>
-
+<!-- Use the non-module version for now to avoid import issues -->
+<script src="{% static 'js/payments-simple.js' %}"></script>
 {% endblock %}
 
 {% block content %}

@@ -339,22 +339,23 @@ def payment_webhook(request, provider):
     return JsonResponse({'error': 'Invalid provider'}, status=400)
 
 
+@csrf_exempt
 @require_POST
 def process_payment(request, order_id):
     """
     Process/finalize payment. Accepts either application/json or form data.
-    Robust logging to debug missing fields.
+    Handles both M-Pesa and PayPal. Includes robust logging and fallback handling.
     """
-
     logger.info('[process_payment] Initiating payment processing for order %s', order_id)
-    # log raw body
+
+    # --- Raw body logging ---
     try:
         raw = request.body.decode('utf-8')
     except Exception:
         raw = '<unreadable>'
     logger.debug('[process_payment] raw POST data: %s', raw)
 
-    # parse JSON fallback
+    # --- Parse incoming data ---
     data = {}
     if request.content_type and 'application/json' in request.content_type:
         try:
@@ -367,25 +368,70 @@ def process_payment(request, order_id):
 
     logger.debug('[process_payment] parsed fields: %s', data)
 
+    # --- Fetch order ---
     order = get_object_or_404(Order, id=order_id)
-
-    payment_method = data.get('payment_method') or data.get('method')  # tolerate different names
+    payment_method = data.get('payment_method') or data.get('method')
     logger.info('[process_payment] Payment method: %s', payment_method)
 
-    # ----- MPESA -----
+    # ------------------------------------------------------------------
+    #                            M-PESA
+    # ------------------------------------------------------------------
     if payment_method == 'mpesa':
-        checkout_request_id = data.get('checkout_request_id') or data.get('checkoutRequestId') or data.get('checkoutId')
-        phone_number = data.get('phone_number') or data.get('phone') or data.get('msisdn')
+        checkout_request_id = (
+            data.get('checkout_request_id')
+            or data.get('checkoutRequestId')
+            or data.get('checkoutId')
+        )
+        phone_number = (
+            data.get('phone_number')
+            or data.get('phone')
+            or data.get('msisdn')
+        )
         amount = data.get('amount')
         currency = data.get('currency', 'KES')
 
         logger.debug('[process_payment] M-Pesa data => checkout_request_id=%s, phone=%s, amount=%s, currency=%s',
                      checkout_request_id, phone_number, amount, currency)
 
+        # --- Fallback: initiate or reuse existing payment ---
         if not checkout_request_id:
-            logger.error('[process_payment] Missing checkout_request_id in POST data')
-            return JsonResponse({'status': 'error', 'message': 'Missing checkout request ID', 'debug': 'No checkout_request_id in POST data'}, status=400)
+            logger.info('[process_payment] No checkout_request_id provided, checking existing payments')
+            existing = Payment.objects.filter(order=order, provider='MPESA', status__in=['PENDING', 'PROCESSING'])
+            if existing.exists():
+                payment = existing.latest('created_at')
+                checkout_request_id = payment.checkout_request_id
+                logger.info('[process_payment] Found existing checkout_request_id=%s', checkout_request_id)
+            else:
+                if not phone_number or not amount:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Phone number and amount required to initiate payment',
+                        'debug': 'No checkout_request_id and missing phone/amount'
+                    }, status=400)
+                try:
+                    amount_dec = Decimal(str(amount))
+                    result = initiate_mpesa_payment(amount_dec, phone_number, order_id)
+                    if result.get('ResponseCode') == '0':
+                        checkout_request_id = result.get('CheckoutRequestID')
+                        payment = Payment.objects.create(
+                            order=order,
+                            provider='MPESA',
+                            status='PROCESSING',
+                            amount=amount_dec,
+                            currency=currency,
+                            phone_number=phone_number,
+                            checkout_request_id=checkout_request_id,
+                            raw_response=result
+                        )
+                        logger.info('[process_payment] Created new payment with checkout_request_id=%s', checkout_request_id)
+                    else:
+                        error_msg = result.get('errorMessage', 'M-Pesa initiation failed')
+                        return JsonResponse({'status': 'error', 'message': error_msg}, status=400)
+                except Exception as e:
+                    logger.error('[process_payment] Failed to initiate M-Pesa: %s', str(e))
+                    return JsonResponse({'status': 'error', 'message': 'Failed to initiate payment'}, status=400)
 
+        # --- Retrieve or create placeholder payment ---
         try:
             payment = Payment.objects.get(checkout_request_id=checkout_request_id, provider='MPESA')
             logger.info('[process_payment] Found payment record id=%s status=%s', payment.id, payment.status)
@@ -393,57 +439,95 @@ def process_payment(request, order_id):
                 order.status = 'PAID'
                 order.payment_method = 'MPESA'
                 order.save()
-                # clear cart function
                 clear_cart_after_payment(order)
-                return JsonResponse({'success': True, 'status': 'success', 'message': 'M-Pesa payment already completed', 'redirect_url': f'/orders/success/{order.id}/'})
+                return JsonResponse({
+                    'success': True,
+                    'status': 'success',
+                    'message': 'M-Pesa payment already completed',
+                    'redirect_url': f'/orders/success/{order.id}/'
+                })
             else:
-                # return status for client poll
-                return JsonResponse({'status': payment.status.lower(), 'failure_type': payment.failure_type, 'result_description': payment.result_description})
+                return JsonResponse({
+                    'status': payment.status.lower(),
+                    'failure_type': payment.failure_type,
+                    'result_description': payment.result_description,
+                    'checkout_request_id': checkout_request_id
+                })
         except Payment.DoesNotExist:
-            # create placeholder pending payment record for webhook to update
-            Payment.objects.create(order=order, provider='MPESA', checkout_request_id=checkout_request_id,
-                                   phone_number=phone_number, amount=amount or 0, currency=currency, status='PENDING')
+            Payment.objects.create(
+                order=order,
+                provider='MPESA',
+                checkout_request_id=checkout_request_id,
+                phone_number=phone_number,
+                amount=amount or 0,
+                currency=currency,
+                status='PENDING'
+            )
             logger.info('[process_payment] Created placeholder payment for checkout_request_id=%s', checkout_request_id)
-            return JsonResponse({'status': 'pending', 'message': 'Awaiting M-Pesa confirmation'})
+            return JsonResponse({
+                'status': 'pending',
+                'message': 'Awaiting M-Pesa confirmation',
+                'checkout_request_id': checkout_request_id
+            })
 
-    # ----- PAYPAL -----
+    # ------------------------------------------------------------------
+    #                            PAYPAL
+    # ------------------------------------------------------------------
     elif payment_method == 'paypal':
-        paypal_order_id = data.get('paypal_order_id') or data.get('order_id') or data.get('paypalOrderId')
-        paypal_payer_id = data.get('paypal_payer_id') or data.get('payer_id')
+        paypal_order_id = (
+            data.get('paypal_order_id')
+            or data.get('order_id')
+            or data.get('paypalOrderId')
+        )
+        paypal_payer_id = (
+            data.get('paypal_payer_id')
+            or data.get('payer_id')
+        )
 
         logger.debug('[process_payment] PayPal data => order=%s payer=%s', paypal_order_id, paypal_payer_id)
 
         if not paypal_order_id:
             logger.error('[process_payment] Missing PayPal order ID')
-            return JsonResponse({'status': 'error', 'message': 'Missing PayPal order ID', 'debug': 'No paypal_order_id in POST data'}, status=400)
+            return JsonResponse({'status': 'error', 'message': 'Missing PayPal order ID'}, status=400)
 
-        # Capture the PayPal order via utils
+        # Capture PayPal order
         result = capture_paypal_order(paypal_order_id)
         logger.info('[process_payment] PayPal capture result: %s', result)
 
-        if result.get('status') == 'COMPLETED' or (result.get('status') and result.get('status').upper() == 'COMPLETED'):
-            # create or update payment record
-            payment, _ = Payment.objects.get_or_create(order=order, provider='PAYPAL', defaults={'amount': order.total, 'currency': 'USD', 'status': 'COMPLETED'})
+        if result.get('status', '').upper() == 'COMPLETED':
+            payment, _ = Payment.objects.get_or_create(
+                order=order,
+                provider='PAYPAL',
+                defaults={'amount': order.total, 'currency': 'USD', 'status': 'COMPLETED'}
+            )
             payment.status = 'COMPLETED'
             payment.transaction_id = result.get('id')
             payment.raw_response = result
             payment.save()
+
             order.status = 'PAID'
             order.payment_method = 'PAYPAL'
             order.save()
-
             clear_cart_after_payment(order)
 
-            return JsonResponse({'success': True, 'status': 'success', 'message': 'PayPal payment completed', 'transaction_id': result.get('id'), 'redirect_url': f'/orders/success/{order.id}/'})
+            return JsonResponse({
+                'success': True,
+                'status': 'success',
+                'message': 'PayPal payment completed',
+                'transaction_id': result.get('id'),
+                'redirect_url': f'/orders/success/{order.id}/'
+            })
         else:
             err = result.get('error') or result.get('message') or 'PayPal capture failed'
             logger.error('[process_payment] PayPal capture failed: %s', err)
             return JsonResponse({'status': 'error', 'message': err, 'details': result.get('details')}, status=400)
 
+    # ------------------------------------------------------------------
+    #                        INVALID METHOD
+    # ------------------------------------------------------------------
     else:
         logger.error('[process_payment] Invalid payment method: %s', payment_method)
         return JsonResponse({'status': 'error', 'message': 'Invalid payment method'}, status=400)
-
 
 
 

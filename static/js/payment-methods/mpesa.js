@@ -1,3 +1,4 @@
+//mpesa.ts
 import { validatePhoneNumber } from '../utils/utils';
 import { setSubmitButtonState, startProcessingAnimation, stopProcessingAnimation, showPaymentError, showPaymentStatus } from '../ui/ui';
 export async function initializeMpesa(paymentSystem) {
@@ -132,7 +133,7 @@ function finalizeMpesaPayment(checkoutRequestId, paymentSystem) {
     const elements = paymentSystem.getElements();
     const config = paymentSystem.getConfig();
     const state = paymentSystem.getState();
-    // Ensure checkoutRequestId is never undefined
+    // ✅ Fallbacks for missing checkoutRequestId
     const finalCheckoutRequestId = checkoutRequestId ||
         state.lastCheckoutRequestId ||
         document.getElementById('checkoutRequestId')?.value ||
@@ -144,28 +145,30 @@ function finalizeMpesaPayment(checkoutRequestId, paymentSystem) {
         showPaymentError('Missing M-Pesa transaction reference. Please retry.', elements.paymentErrors);
         return;
     }
-    // Prepare data
-    const url = config.urls.processPayment;
-    const body = new URLSearchParams();
-    body.append('order_id', config.orderId);
-    body.append('payment_method', 'mpesa');
-    body.append('checkout_request_id', finalCheckoutRequestId);
-    body.append('phone_number', elements.phoneInput.value.trim());
-    body.append('amount', elements.formAmount?.value || state.currentConvertedAmount.toString() || '');
-    body.append('currency', state.currentCurrency || config.defaultCurrency);
-    body.append('conversion_rate', elements.formConversionRate?.value || '1');
-    fetch(url, {
+    // ✅ Prepare request body
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', config.csrfToken);
+    formData.append('order_id', config.orderId);
+    formData.append('payment_method', 'mpesa');
+    formData.append('checkout_request_id', finalCheckoutRequestId);
+    formData.append('phone_number', elements.phoneInput.value.trim());
+    formData.append('amount', state.currentConvertedAmount.toString());
+    formData.append('currency', state.currentCurrency);
+    formData.append('conversion_rate', state.currentRate.toString());
+    // ✅ Send request
+    fetch(config.urls.processPayment, {
         method: 'POST',
         headers: {
             'X-CSRFToken': config.csrfToken,
-            'X-Requested-With': 'XMLHttpRequest',
-            'Content-Type': 'application/x-www-form-urlencoded'
+            'X-Requested-With': 'XMLHttpRequest'
         },
-        body: body.toString()
+        body: formData
     })
-        .then(resp => resp.json())
-        .then((data) => {
+        .then(async (resp) => {
+        const data = await resp.json();
         console.info('[MPESA] finalize response:', data);
+        if (!resp.ok)
+            throw new Error(data.error_message || data.message || 'Failed to verify M-Pesa payment');
         if (data.success || data.status === 'success') {
             elements.modalTitle.textContent = 'Payment Successful!';
             elements.modalText.textContent = 'Redirecting to your order confirmation...';
@@ -181,10 +184,10 @@ function finalizeMpesaPayment(checkoutRequestId, paymentSystem) {
         }
     })
         .catch((err) => {
-        console.error('[MPESA] finalize error', err);
+        console.error('[MPESA] finalize error:', err);
         stopProcessingAnimation(elements.processingModal);
         setSubmitButtonState(false, elements.paymentSubmitButton);
-        showPaymentError('Error finalizing payment', elements.paymentErrors);
+        showPaymentError(err.message || 'Error finalizing payment', elements.paymentErrors);
     });
 }
 //# sourceMappingURL=mpesa.js.map

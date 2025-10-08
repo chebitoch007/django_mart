@@ -1,3 +1,5 @@
+//mpesa.ts
+
 import { validatePhoneNumber } from '../utils/utils';
 import {
   setSubmitButtonState,
@@ -155,7 +157,7 @@ function finalizeMpesaPayment(checkoutRequestId: string, paymentSystem: PaymentS
   const config = paymentSystem.getConfig();
   const state = paymentSystem.getState();
 
-  // Ensure checkoutRequestId is never undefined
+  // ✅ Fallbacks for missing checkoutRequestId
   const finalCheckoutRequestId =
     checkoutRequestId ||
     state.lastCheckoutRequestId ||
@@ -171,46 +173,49 @@ function finalizeMpesaPayment(checkoutRequestId: string, paymentSystem: PaymentS
     return;
   }
 
-  // Prepare data
-  const url = config.urls.processPayment;
-  const body = new URLSearchParams();
-  body.append('order_id', config.orderId);
-  body.append('payment_method', 'mpesa');
-  body.append('checkout_request_id', finalCheckoutRequestId);
-  body.append('phone_number', elements.phoneInput.value.trim());
-  body.append('amount', elements.formAmount?.value || state.currentConvertedAmount.toString() || '');
-  body.append('currency', state.currentCurrency || config.defaultCurrency);
-  body.append('conversion_rate', elements.formConversionRate?.value || '1');
+  // ✅ Prepare request body
+  const formData = new FormData();
+  formData.append('csrfmiddlewaretoken', config.csrfToken);
+  formData.append('order_id', config.orderId);
+  formData.append('payment_method', 'mpesa');
+  formData.append('checkout_request_id', finalCheckoutRequestId);
+  formData.append('phone_number', elements.phoneInput.value.trim());
+  formData.append('amount', state.currentConvertedAmount.toString());
+  formData.append('currency', state.currentCurrency);
+  formData.append('conversion_rate', state.currentRate.toString());
 
-  fetch(url, {
+  // ✅ Send request
+  fetch(config.urls.processPayment, {
     method: 'POST',
     headers: {
       'X-CSRFToken': config.csrfToken,
-      'X-Requested-With': 'XMLHttpRequest',
-      'Content-Type': 'application/x-www-form-urlencoded'
+      'X-Requested-With': 'XMLHttpRequest'
     },
-    body: body.toString()
+    body: formData
   })
-  .then(resp => resp.json())
-  .then((data: PaymentResponse) => {
-    console.info('[MPESA] finalize response:', data);
-    if (data.success || data.status === 'success') {
-      elements.modalTitle.textContent = 'Payment Successful!';
-      elements.modalText.textContent = 'Redirecting to your order confirmation...';
-      setTimeout(() => {
+    .then(async (resp) => {
+      const data: PaymentResponse = await resp.json();
+      console.info('[MPESA] finalize response:', data);
+
+      if (!resp.ok) throw new Error(data.error_message || data.message || 'Failed to verify M-Pesa payment');
+
+      if (data.success || data.status === 'success') {
+        elements.modalTitle.textContent = 'Payment Successful!';
+        elements.modalText.textContent = 'Redirecting to your order confirmation...';
+        setTimeout(() => {
+          stopProcessingAnimation(elements.processingModal);
+          window.location.href = data.redirect_url || config.urls.orderSuccess;
+        }, 1500);
+      } else {
         stopProcessingAnimation(elements.processingModal);
-        window.location.href = data.redirect_url || config.urls.orderSuccess;
-      }, 1500);
-    } else {
+        setSubmitButtonState(false, elements.paymentSubmitButton);
+        showPaymentError(data.message || data.error_message || 'Payment verification failed', elements.paymentErrors);
+      }
+    })
+    .catch((err: any) => {
+      console.error('[MPESA] finalize error:', err);
       stopProcessingAnimation(elements.processingModal);
       setSubmitButtonState(false, elements.paymentSubmitButton);
-      showPaymentError(data.message || data.error_message || 'Payment verification failed', elements.paymentErrors);
-    }
-  })
-  .catch((err: Error) => {
-    console.error('[MPESA] finalize error', err);
-    stopProcessingAnimation(elements.processingModal);
-    setSubmitButtonState(false, elements.paymentSubmitButton);
-    showPaymentError('Error finalizing payment', elements.paymentErrors);
-  });
+      showPaymentError(err.message || 'Error finalizing payment', elements.paymentErrors);
+    });
 }

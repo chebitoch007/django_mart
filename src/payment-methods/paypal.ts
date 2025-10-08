@@ -1,3 +1,4 @@
+// paypal.ts
 import { formatCurrency, isPaypalCurrencySupported } from '../utils/utils';
 import {
   startProcessingAnimation,
@@ -20,16 +21,14 @@ export function initializePayPal(paymentSystem: PaymentSystem): void {
 
   const paypalButtonContainer = document.getElementById('paypal-button-container');
 
-  // Clean up existing buttons
+  // Clean up existing buttons if any
   if (paypalButtons) {
     try {
       paypalButtons.close();
     } catch (e) {
       console.warn('Error closing PayPal buttons:', e);
     }
-    if (paypalButtonContainer) {
-      paypalButtonContainer.innerHTML = '';
-    }
+    if (paypalButtonContainer) paypalButtonContainer.innerHTML = '';
   }
 
   if (state.paypalInitialized) return;
@@ -48,11 +47,13 @@ export function initializePayPal(paymentSystem: PaymentSystem): void {
     // Handle currency conversion for unsupported currencies
     if (!isPaypalCurrencySupported(state.currentCurrency) && state.currentCurrency !== 'USD') {
       paypalCurrency = 'USD';
-      const usdOption = Array.from(elements.currencySelector.options).find((opt: HTMLOptionElement) => opt.value === 'USD');
+      const usdOption = Array.from(elements.currencySelector.options).find(
+        (opt: HTMLOptionElement) => opt.value === 'USD'
+      );
       if (usdOption) {
         const usdRate = parseFloat(usdOption.dataset.rate || '1');
         const baseAmount = parseFloat(config.cartTotalPrice);
-        paypalAmount = state.currentConvertedAmount / usdRate;
+        paypalAmount = baseAmount * usdRate;
 
         showPayPalStatus(
           `Your ${state.currentCurrency} ${formatCurrency(state.currentConvertedAmount, state.currentCurrency)} payment will be processed as USD ${formatCurrency(paypalAmount, 'USD')}.`,
@@ -61,44 +62,70 @@ export function initializePayPal(paymentSystem: PaymentSystem): void {
       }
     }
 
+    // ✅ Updated PayPal button configuration
     paypalButtons = window.paypal!.Buttons({
-      onInit: function(data: any, actions: any) {
+      onInit: function (data: any, actions: any) {
         actions.disable();
-
         const enableCheck = () => {
-          if (elements.termsCheckbox && elements.termsCheckbox.checked) {
-            actions.enable();
-          } else {
-            actions.disable();
-          }
+          if (elements.termsCheckbox && elements.termsCheckbox.checked) actions.enable();
+          else actions.disable();
         };
-
         elements.termsCheckbox?.addEventListener('change', enableCheck);
       },
 
-      onClick: function(data: any, actions: any) {
+      onClick: function (data: any, actions: any) {
         if (!elements.termsCheckbox.checked) {
           showPayPalError('You must agree to the terms and conditions');
           return actions.reject();
         }
       },
 
-      createOrder: function(data: any, actions: any) {
+      // ✅ New dynamic createOrder logic
+      createOrder: function (data: any, actions: any) {
+        const state = paymentSystem.getState();
+        const config = paymentSystem.getConfig();
+
+        let paypalCurrency = state.currentCurrency;
+        let paypalAmount = state.currentConvertedAmount;
+
+        // Handle unsupported currencies again (USD fallback)
+        if (!isPaypalCurrencySupported(state.currentCurrency) && state.currentCurrency !== 'USD') {
+          paypalCurrency = 'USD';
+          const usdOption = Array.from(elements.currencySelector.options).find(
+            (opt: HTMLOptionElement) => opt.value === 'USD'
+          );
+          if (usdOption) {
+            const usdRate = parseFloat(usdOption.dataset.rate || '1');
+            const baseAmount = parseFloat(config.cartTotalPrice);
+            paypalAmount = baseAmount * usdRate;
+          }
+        }
+
+        console.log('Creating PayPal order:', {
+          amount: paypalAmount,
+          currency: paypalCurrency,
+          orderId: config.orderId
+        });
+
         return actions.order.create({
-          purchase_units: [{
-            amount: {
-              value: paypalAmount.toFixed(2),
-              currency_code: paypalCurrency
+          purchase_units: [
+            {
+              amount: {
+                value: paypalAmount.toFixed(2),
+                currency_code: paypalCurrency
+              },
+              description: `Order #${config.orderId}`,
+              custom_id: config.orderId
             }
-          }]
+          ]
         });
       },
 
-      onApprove: function(data: any, actions: any) {
+      onApprove: function (data: any, actions: any) {
         paymentSystem.setState({ paypalProcessing: true });
         startProcessingAnimation('paypal', elements.processingModal, elements.modalTitle, elements.modalText);
 
-        return actions.order.capture().then(function(details: any) {
+        return actions.order.capture().then(function (details: any) {
           const orderIdInput = document.getElementById('paypalOrderId') as HTMLInputElement;
           const payerIdInput = document.getElementById('paypalPayerId') as HTMLInputElement;
 
@@ -114,15 +141,18 @@ export function initializePayPal(paymentSystem: PaymentSystem): void {
           formData.append('amount', paypalAmount.toFixed(2));
           formData.append('currency', paypalCurrency);
 
+          // Include conversion rate if applicable
           if (!isPaypalCurrencySupported(state.currentCurrency) && state.currentCurrency !== 'USD') {
-            const usdOption = Array.from(elements.currencySelector.options).find((opt: HTMLOptionElement) => opt.value === 'USD');
+            const usdOption = Array.from(elements.currencySelector.options).find(
+              (opt: HTMLOptionElement) => opt.value === 'USD'
+            );
             formData.append('conversion_rate', parseFloat(usdOption?.dataset.rate || '1').toString());
           } else {
             formData.append('conversion_rate', '1');
           }
 
           submitPaymentForm(formData, paymentSystem);
-        }).catch(function(err: Error) {
+        }).catch(function (err: Error) {
           console.error('PayPal capture error:', err);
           stopProcessingAnimation(elements.processingModal);
           showPaymentError('Failed to complete PayPal payment. Please try again.', elements.paymentErrors);
@@ -130,18 +160,19 @@ export function initializePayPal(paymentSystem: PaymentSystem): void {
         });
       },
 
-      onError: function(err: any) {
+      onError: function (err: any) {
         console.error('PayPal error:', err);
         showPayPalError('PayPal payment failed. Please try another method.');
         paymentSystem.setState({ paypalProcessing: false });
       },
 
-      onCancel: function(data: any) {
+      onCancel: function (data: any) {
         paymentSystem.setState({ paypalProcessing: false });
         showPayPalStatus('Payment canceled', 'info');
       }
     });
 
+    // Render buttons
     if (paypalButtons && paypalButtons.isEligible()) {
       paypalButtons.render('#paypal-button-container').then(() => {
         console.log('PayPal buttons rendered successfully');
@@ -178,6 +209,7 @@ export function cleanupPayPal(): void {
   }
 }
 
+// --- Helper functions ---
 function submitPaymentForm(formData: FormData, paymentSystem: PaymentSystem): void {
   const elements = paymentSystem.getElements();
   const config = paymentSystem.getConfig();
@@ -190,8 +222,8 @@ function submitPaymentForm(formData: FormData, paymentSystem: PaymentSystem): vo
       'X-Requested-With': 'XMLHttpRequest'
     }
   })
-  .then(handlePaymentResponse)
-  .catch(handlePaymentError);
+    .then(handlePaymentResponse)
+    .catch(handlePaymentError);
 
   function handlePaymentResponse(response: Response): Promise<void> {
     if (!response.ok) return Promise.reject(response);
@@ -228,15 +260,9 @@ function submitPaymentForm(formData: FormData, paymentSystem: PaymentSystem): vo
   }
 }
 
-// Helper functions that need to be defined or imported
 function setSubmitButtonState(loading: boolean, button: HTMLButtonElement): void {
-  if (loading) {
-    button.classList.add('loading');
-    button.disabled = true;
-  } else {
-    button.classList.remove('loading');
-    button.disabled = false;
-  }
+  button.classList.toggle('loading', loading);
+  button.disabled = loading;
 }
 
 function showPaymentError(message: string, container: HTMLElement): void {

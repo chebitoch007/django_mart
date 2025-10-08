@@ -102,12 +102,11 @@ paypal_client = PayPalClient()
 
 
 def create_paypal_order(amount, currency, order_id, request=None):
-    """Create a PayPal order with enhanced error handling and validation"""
+    """Create a PayPal order with enhanced error handling, validation, and fraud detection."""
     try:
-        # Validate inputs
+        # --- Input Validation ---
         if not isinstance(amount, (Decimal, float, int)):
             raise ValueError("Amount must be numeric")
-
         if amount <= 0:
             raise ValueError("Amount must be positive")
 
@@ -116,11 +115,18 @@ def create_paypal_order(amount, currency, order_id, request=None):
             Decimal('0.01'), rounding=ROUND_HALF_UP
         )
 
-        # Get user IP for fraud detection
-        user_ip = request.META.get('HTTP_X_FORWARDED_FOR') if request else None
-        if not user_ip and request:
-            user_ip = request.META.get('REMOTE_ADDR')
+        # --- Currency Validation ---
+        if not is_paypal_currency_supported(currency):
+            logger.warning(f"Unsupported currency {currency}, defaulting to USD.")
+            currency = 'USD'
+            # Optionally: convert to USD here if you have exchange logic
 
+        # --- Fraud Detection: Get User IP ---
+        user_ip = None
+        if request:
+            user_ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0] or request.META.get('REMOTE_ADDR')
+
+        # --- PayPal Order Payload ---
         payload = {
             "intent": "CAPTURE",
             "purchase_units": [{
@@ -148,7 +154,7 @@ def create_paypal_order(amount, currency, order_id, request=None):
                 }]
             }],
             "application_context": {
-                "brand_name": settings.PAYPAL_BRAND_NAME or "ASAI Store",
+                "brand_name": getattr(settings, "PAYPAL_BRAND_NAME", "ASAI Store"),
                 "locale": "en-US",
                 "landing_page": "BILLING",
                 "shipping_preference": "NO_SHIPPING",
@@ -157,29 +163,26 @@ def create_paypal_order(amount, currency, order_id, request=None):
                 "cancel_url": f"{settings.BASE_URL}/payment/paypal/cancel/{order_id}/"
             }
         }
-        # Add fraud detection headers if IP available
+
+        # --- Add optional fraud detection data ---
         if user_ip:
-            payload['application_context']['payer'] = {
-                'ip_address': user_ip.split(',')[0]  # First IP in chain
-            }
+            payload['application_context']['payer'] = {'ip_address': user_ip}
 
         logger.info(f"Creating PayPal order for {amount_decimal} {currency}, order: {order_id}")
 
-        result = paypal_client._make_request(
-            'POST',
-            '/v2/checkout/orders',
-            payload
-        )
+        # --- Make PayPal API Request ---
+        result = paypal_client._make_request('POST', '/v2/checkout/orders', payload)
 
-        logger.info(f"PayPal order created: {result.get('id')}")
+        logger.info(f"PayPal order created successfully: {result.get('id')}")
         return result
 
     except ValueError as e:
-        logger.error(f"PayPal order validation error: {str(e)}")
+        logger.error(f"PayPal order validation error: {e}")
         return {'error': 'Invalid payment parameters', 'details': str(e)}
     except Exception as e:
-        logger.error(f"PayPal order creation failed: {str(e)}")
+        logger.exception(f"PayPal order creation failed: {e}")
         return {'error': 'Failed to create payment order', 'details': str(e)}
+
 
 
 def capture_paypal_order(order_id):
@@ -306,6 +309,17 @@ def initiate_mpesa_payment(amount, phone_number, order_id):
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         password_str = f"{settings.MPESA_SHORTCODE}{settings.MPESA_PASSKEY}{timestamp}"
         password = base64.b64encode(password_str.encode("utf-8")).decode("utf-8")
+
+
+        # ✅ FIXED: Use the correct callback URL with trailing slash
+        callback_url = f"{settings.BASE_URL}/payment/mpesa/callback/"
+        if settings.MPESA_CALLBACK_URL:
+            callback_url = settings.MPESA_CALLBACK_URL
+            # Ensure it has trailing slash
+            if not callback_url.endswith('/'):
+                callback_url += '/'
+
+
         payload = {
             "BusinessShortCode": settings.MPESA_SHORTCODE,
             "Password": password,
@@ -315,7 +329,7 @@ def initiate_mpesa_payment(amount, phone_number, order_id):
             "PartyA": phone_number,
             "PartyB": settings.MPESA_SHORTCODE,
             "PhoneNumber": phone_number,
-            "CallBackURL": settings.MPESA_CALLBACK_URL or "https://1a0b711fbccf.ngrok-free.app/payment/webhook/mpesa/",
+            "CallBackURL": callback_url,  # ✅ FIXED: Now has trailing slash
             "AccountReference": f"ORDER_{order_id}",
             "TransactionDesc": "ASAI Payment"
         }
