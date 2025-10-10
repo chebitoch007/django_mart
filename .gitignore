@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *.so
 
+*.sqlite3
+*.db
+
+
 # === C Extensions ===
 *.pyd
 
@@ -50,3 +54,8 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# TypeScript build output
+*.js.map
+static/js/users/
+users/static/js/
