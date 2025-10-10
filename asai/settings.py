@@ -105,8 +105,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.cache.UpdateCacheMiddleware',
     'django.middleware.cache.FetchFromCacheMiddleware',
-    'django.middleware.locale.LocaleMiddleware'
-
+    'django.middleware.locale.LocaleMiddleware',
 ]
 
 
@@ -137,6 +136,7 @@ TEMPLATES = [
     },
 ]
 
+
 #Session engine
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
@@ -162,7 +162,11 @@ USE_I18N = True
 USE_TZ = True
 
 # ================== Static & Media Files ==================
-STATICFILES_DIRS = [BASE_DIR / 'store/static', BASE_DIR / 'static']
+STATICFILES_DIRS = [
+    BASE_DIR / 'store/static',
+    BASE_DIR / 'static',
+    BASE_DIR / 'users_src',  # For source maps in development
+]
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -312,6 +316,7 @@ ORDER_EXPIRY_DAYS = env.int('ORDER_EXPIRY_DAYS', default=3)
 
 # Email configuration
 EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+
 if EMAIL_BACKEND == 'django.core.mail.backends.smtp.EmailBackend':
     EMAIL_HOST = env('EMAIL_HOST')
     EMAIL_PORT = env.int('EMAIL_PORT', default=587)

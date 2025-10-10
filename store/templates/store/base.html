@@ -3,9 +3,12 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Premium e-commerce platform offering quality products with fast delivery">
+    <meta charset="UTF-8">
+  <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
   <title>ASAI - Premium Shopping Experience</title>
 
   <!-- Favicon -->
@@ -472,94 +475,145 @@
         border-color: rgba(255, 255, 255, 0.2);
     }
 
-    /* ===== ENHANCED SEARCH BAR ===== */
+/* ===== ENHANCED SEARCH BAR (RESPONSIVE) ===== */
+.search-container {
+    flex-grow: 1;
+    max-width: 100%;
+    margin-right: 1rem;
+    position: relative;
+}
+
+.search-bar {
+    display: flex;
+    width: 100%;
+    height: 48px;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+    position: relative;
+    z-index: 100;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.search-bar.focused {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2), 0 4px 16px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+.search-bar input {
+    flex-grow: 1;
+    min-width: 0;
+    height: 100%;
+    border: none;
+    padding: 0 16px;
+    font-size: 24px;
+    outline: none;
+    background: transparent;
+    color: var(--color-dark);
+}
+
+.search-bar input::placeholder {
+    color: #9ca3af;
+}
+
+.search-indicator {
+    position: absolute;
+    right: 70px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-primary);
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.search-indicator.htmx-request {
+    opacity: 1;
+}
+
+.search-bar button {
+    height: 100%;
+    width: 60px;
+    background: var(--color-accent);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+    transition: var(--transition-default);
+    border-radius: 0 6px 6px 0;
+}
+
+.search-bar button:hover {
+    background: var(--color-accent-dark);
+    transform: scale(1.05);
+}
+
+.search-bar button:focus {
+    outline: 2px solid rgba(249, 115, 22, 0.5);
+    outline-offset: 2px;
+}
+
+/* ===== RESPONSIVENESS ===== */
+@media (max-width: 1024px) {
     .search-container {
-        flex-grow: 1;
-        max-width: 900px;
-        margin-right: 1rem;
-        position: relative;
+        margin-right: 0.5rem;
     }
-
-    .search-bar {
-        display: flex;
-        height: 50px;
-        border: 2px solid transparent;
-        border-radius: 8px;
-        overflow: visible;
-        background: white;
-        position: relative;
-        z-index: 100;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .search-bar.focused {
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2), 0 4px 16px rgba(0, 0, 0, 0.15);
-        transform: translateY(-1px);
-    }
-
     .search-bar input {
-        flex-grow: 1;
-        height: 100%;
-        border: none;
-        padding: 0 20px 0 16px;
-        text-align: left;
-        font-size: 16px;
-        outline: none;
-        background: transparent;
-        color: var(--color-dark);
+        font-size: 15px;
+        padding: 0 14px;
     }
-
-    .search-bar input::placeholder {
-        color: #9ca3af;
-    }
-
-    .search-bar input:focus {
-        outline: none;
-    }
-
-    /* Enhanced Search Indicator */
-    .search-indicator {
-        position: absolute;
-        right: 70px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--color-primary);
-        z-index: 10;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    .search-indicator.htmx-request {
-        opacity: 1;
-    }
-
     .search-bar button {
-        height: 100%;
-        width: 60px;
-        background: var(--color-accent);
-        border: none;
-        cursor: pointer;
-        z-index: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 16px;
-        transition: var(--transition-default);
-        border-radius: 0 6px 6px 0;
+        width: 55px;
     }
+}
 
-    .search-bar button:hover {
-        background: var(--color-accent-dark);
-        transform: scale(1.05);
+@media (max-width: 768px) {
+    .search-container {
+        width: 100%;
+        margin: 0.5rem 0;
     }
+    .search-bar {
+        height: 50px;
+    }
+    .search-bar input {
+        font-size: 14px;
+        padding: 0 12px;
+    }
+    .search-bar button {
+        width: 50px;
+        font-size: 14px;
+    }
+    .search-indicator {
+        right: 60px;
+    }
+}
 
-    .search-bar button:focus {
-        outline: 2px solid rgba(249, 115, 22, 0.5);
-        outline-offset: 2px;
+@media (max-width: 480px) {
+    .search-container {
+        margin: 0;
     }
+    .search-bar {
+        height: 50px;
+        border-radius: 6px;
+    }
+    .search-bar input {
+        padding: 0 10px;
+        font-size: 13px;
+    }
+    .search-bar button {
+        width: 45px;
+        font-size: 13px;
+    }
+    .search-indicator {
+        display: none; /* Hide loader on very small screens */
+    }
+}
 
     /* Enhanced Category Dropdown */
     .category-selector {
@@ -2040,7 +2094,7 @@
             <div class="nav-right">
                 {% if user.is_authenticated %}
                 <a href="{% url 'users:account' %}" class="nav-link-box premium-hover" aria-label="Account">
-                    <div class="nav-link-top">Hello {{ user.first_name|default:user.username }}</div>
+                    <div class="nav-link-top">Hello, {{ user.first_name|default:user.username }}</div>
                     <div class="nav-link-bottom">Account & Lists</div>
                 </a>
                 {% else %}

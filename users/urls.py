@@ -21,6 +21,7 @@ from django.views.generic.base import RedirectView
 app_name = 'users'
 
 urlpatterns = [
+    # Redirect /accounts/ to /accounts/account/ for clarity
     path('', RedirectView.as_view(url=reverse_lazy('users:account')), name='account_root'),
 
     path('account/', AccountView.as_view(), name='account'),
@@ -50,32 +51,38 @@ urlpatterns = [
     # Profile image update
     path('profile/image/', views.update_profile_image, name='update_profile_image'),
 
-    # Password management
+
+    # Password management - FIXED: Use absolute paths that match /accounts/ base
     path('password-reset/',
          auth_views.PasswordResetView.as_view(
              template_name='users/password_reset.html',
              email_template_name='users/password_reset_email.html',
              subject_template_name='users/password_reset_subject.txt',
-             success_url='/users/password-reset/done/'
+             success_url='/accounts/password-reset/done/'  # Changed to /accounts/password-reset/done/ from users:password_reset_done
          ),
          name='password_reset'),
+
+
     path('password-reset/done/',
          auth_views.PasswordResetDoneView.as_view(
              template_name='users/password_reset_done.html'
          ),
          name='password_reset_done'),
+
+
     path('password-reset-confirm/<uidb64>/<token>/',
          auth_views.PasswordResetConfirmView.as_view(
              template_name='users/password_reset_confirm.html',
-             success_url='/users/password-reset-complete/'
+             success_url='/accounts/password-reset-complete/'  # Changed to /accounts/
          ),
          name='password_reset_confirm'),
+
+
     path('password-reset-complete/',
          auth_views.PasswordResetCompleteView.as_view(
              template_name='users/password_reset_complete.html'
          ),
          name='password_reset_complete'),
-
 
     # Legal pages
     path('legal/terms/', TermsView.as_view(), name='terms'),
@@ -83,5 +90,4 @@ urlpatterns = [
     path('legal/return-policy/', ReturnPolicyView.as_view(), name='return_policy'),
     path('account/delete/', AccountDeleteView.as_view(), name='account_delete'),
     path('session-keepalive/', session_keepalive, name='session_keepalive'),
-
 ]

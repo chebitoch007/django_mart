@@ -1,0 +1,4 @@
+# users_src/.gitignore
+*.js
+*.js.map
+node_modules/

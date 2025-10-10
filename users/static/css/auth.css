@@ -1,174 +1,96 @@
-.auth-container {
-    max-width: 600px;
-    margin: 2rem auto;
-    padding: 2rem;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-.auth-title {
-    color: #2c3e50;
-    margin-bottom: 1.5rem;
-}
-
-.form-group {
-    margin-bottom: 1.5rem;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-}
-
-input[type="password"] {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
-}
-
-.password-requirements {
-    margin-top: 0.5rem;
-    padding: 0.5rem;
-    background: #f8f9fa;
-    border-radius: 4px;
-}
-
-.requirement {
-    margin: 0.25rem 0;
-    color: #6c757d;
-}
-
-.requirement.valid {
-    color: #28a745;
-}
-
-.error-list {
-    color: #dc3545;
-    margin-top: 0.5rem;
-    font-size: 0.9rem;
-}
-
-.form-actions {
-    margin-top: 2rem;
+.auth-body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    min-height: 100vh;
     display: flex;
-    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.card-hover {
+    transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .btn-primary {
-    background: #3498db;
-    color: white;
-    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5a5fef 0%, #7c3aed 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+}
+
+.form-input:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.success-alert {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border-left: 4px solid #22c55e;
+}
+
+.error-alert {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border-left: 4px solid #ef4444;
+}
+
+.info-alert {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-left: 4px solid #3b82f6;
+}
+
+.animate-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+/* Account specific styles */
+.account-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+.account-card {
     border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.password-input-group {
-    position: relative;
-}
-
-.toggle-password {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #666;
-    cursor: pointer;
-}
-
-.password-strength-meter {
-    margin-top: 0.5rem;
-    height: 4px;
-    background: #eee;
-    border-radius: 2px;
+    border-radius: 12px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+    margin-bottom: 25px;
+    transition: all 0.3s ease;
+    background: white;
     overflow: hidden;
 }
 
-.strength-bar {
-    height: 100%;
-    width: 0;
-    transition: width 0.3s ease, background-color 0.3s ease;
+.account-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
 }
 
-.strength-text {
-    display: block;
-    margin-top: 0.25rem;
-    font-size: 0.8rem;
-    text-align: right;
-}
-
-/* Strength colors */
-.strength-0 { background: #dc3545; width: 25%; }
-.strength-1 { background: #ffc107; width: 50%; }
-.strength-2 { background: #28a745; width: 100%; }
-
-.server-errors {
-    color: #dc3545;
-    padding: 0.75rem;
-    margin-bottom: 1rem;
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    border-radius: 4px;
-}
-
-/* Loading state */
-.btn-primary:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-.spinner-border {
-    margin-left: 0.5rem;
-}
-
-.password-toggle {
-    transition: all 0.3s ease;
-}
-.password-toggle:hover {
-    background-color: #f8f9fa;
-}
-.invalid-feedback {
-    display: block;
-    margin-top: 0.5rem;
-}
-.form-text {
-    font-size: 0.875rem;
-}
-
-.password-toggle {
-    min-width: 45px;
-    transition: background-color 0.2s ease;
-}
-.password-toggle:hover {
-    background-color: rgba(0,0,0,0.05);
-}
-
-.profile-picture {
-    transition: transform 0.3s ease;
-}
-
-.profile-picture:hover {
-    transform: scale(1.05);
-}
-
-.order-item {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.text-primary {
-    color: #0e76a8;
-}
-
-.bg-primary {
-    background-color: #0e76a8;
-}
-
-.bg-primary-dark {
-    background-color: #0b5a7d;
+.account-card-header {
+    background: linear-gradient(to right, #4361ee, #3a56d4);
+    color: white;
+    border-bottom: none;
+    padding: 20px 25px;
+    border-radius: 12px 12px 0 0 !important;
 }
