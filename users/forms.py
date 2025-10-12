@@ -1,6 +1,7 @@
 # users/forms.py
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
+from django.contrib.auth.forms import PasswordChangeForm as AuthPasswordChangeForm
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
@@ -384,6 +385,26 @@ class PasswordUpdateForm(PasswordChangeForm):
                 'autocomplete': 'new-password',
                 'aria-label': field.label
             })
+
+
+class PasswordChangeForm(AuthPasswordChangeForm):
+    def clean_new_password1(self):
+        password = self.cleaned_data.get('new_password1')
+        # Your custom validation
+        errors = []
+        if len(password) < 10:
+            errors.append("Password must be at least 10 characters long")
+        if not re.search(r'[A-Z]', password):
+            errors.append("Password must contain at least one uppercase letter")
+        if not re.search(r'[a-z]', password):
+            errors.append("Password must contain at least one lowercase letter")
+        if not re.search(r'[0-9]', password):
+            errors.append("Password must contain at least one digit")
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            errors.append("Password must contain at least one special character")
+        if errors:
+            raise ValidationError(errors)
+        return password
 
 
 class TwoFactorSetupForm(forms.Form):

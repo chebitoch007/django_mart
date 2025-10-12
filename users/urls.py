@@ -1,7 +1,9 @@
-from .views import session_keepalive
+#users/urls.py
+from .views import session_keepalive, CustomPasswordResetView
 from django.contrib.auth import views as auth_views
 from . import views
 from .views import (
+    resend_password_reset_email,
     CustomPasswordChangeView,
     TermsView,
     PrivacyView,
@@ -51,16 +53,15 @@ urlpatterns = [
     # Profile image update
     path('profile/image/', views.update_profile_image, name='update_profile_image'),
 
-
-    # Password management - FIXED: Use absolute paths that match /accounts/ base
-    path('password-reset/',
-         auth_views.PasswordResetView.as_view(
-             template_name='users/password_reset.html',
-             email_template_name='users/password_reset_email.html',
-             subject_template_name='users/password_reset_subject.txt',
-             success_url='/accounts/password-reset/done/'  # Changed to /accounts/password-reset/done/ from users:password_reset_done
+    # Password management
+    path('password-change/', CustomPasswordChangeView.as_view(), name='password_change'),
+    path('password-change/done/',
+         auth_views.PasswordChangeDoneView.as_view(
+             template_name='users/password_change_done.html'
          ),
-         name='password_reset'),
+         name='password_change_done'),
+
+    path('password-reset/', CustomPasswordResetView.as_view(), name='password_reset'),
 
 
     path('password-reset/done/',
@@ -84,10 +85,15 @@ urlpatterns = [
          ),
          name='password_reset_complete'),
 
+    path('password-reset/resend/',
+         resend_password_reset_email,
+         name='password_reset_resend'),
+
     # Legal pages
     path('legal/terms/', TermsView.as_view(), name='terms'),
     path('legal/privacy/', PrivacyView.as_view(), name='privacy'),
     path('legal/return-policy/', ReturnPolicyView.as_view(), name='return_policy'),
     path('account/delete/', AccountDeleteView.as_view(), name='account_delete'),
     path('session-keepalive/', session_keepalive, name='session_keepalive'),
+
 ]

@@ -1,4 +1,8 @@
 # users/views.py
+from django.contrib.auth import views as auth_views
+from django.contrib.auth.views import PasswordResetView as AuthPasswordResetView
+from django.contrib.auth.forms import PasswordResetForm
+import json
 from django.db import IntegrityError
 from django.http import HttpResponse
 from django.views.decorators.http import require_GET
@@ -235,6 +239,89 @@ class CustomPasswordChangeView(PasswordChangeView):
         return super().form_valid(form)
 
 
+class CustomPasswordResetView(AuthPasswordResetView):
+    template_name = 'users/password_reset.html'
+    email_template_name = 'users/password_reset_email.html'
+    subject_template_name = 'users/password_reset_subject.txt'
+    success_url = '/accounts/password-reset/done/'
+
+    def form_valid(self, form):
+        # Store the email in session before sending
+        email = form.cleaned_data['email']
+        self.request.session['password_reset_email'] = email
+        print(f"Storing email in session: {email}")
+        return super().form_valid(form)
+
+
+@csrf_exempt
+def resend_password_reset_email(request):
+    if request.method == 'POST':
+        try:
+            # Try to get email from request body first
+            email = None
+            if request.body:
+                try:
+                    data = json.loads(request.body)
+                    email = data.get('email')
+                except json.JSONDecodeError:
+                    pass
+
+            # If no email in request, try session
+            if not email:
+                email = request.session.get('password_reset_email')
+                print(f"Using email from session: {email}")
+
+            if email:
+                form = PasswordResetForm({'email': email})
+                if form.is_valid():
+                    # Use the same options as the original password reset
+                    opts = {
+                        'use_https': request.is_secure(),
+                        'token_generator': auth_views.PasswordResetView.token_generator,
+                        'from_email': None,
+                        'email_template_name': 'users/password_reset_email.html',
+                        'subject_template_name': 'users/password_reset_subject.txt',
+                        'request': request,
+                        'html_email_template_name': None,
+                        'extra_email_context': None,
+                    }
+                    form.save(**opts)
+
+                    # Store the email in session for future resend requests
+                    request.session['password_reset_email'] = email
+                    print(f"Password reset email resent to: {email}")
+
+                    return JsonResponse({
+                        'success': True,
+                        'message': 'Password reset email has been resent successfully.'
+                    })
+                else:
+                    print(f"Form invalid for email: {email}")
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Invalid email address.'
+                    })
+            else:
+                print("No email found in request or session")
+                return JsonResponse({
+                    'success': False,
+                    'message': 'No email address found. Please request a new password reset.'
+                })
+
+        except Exception as e:
+            print(f"Error in resend_password_reset_email: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'message': 'An error occurred. Please try again.'
+            })
+
+    return JsonResponse({
+        'success': False,
+        'message': 'Invalid request method.'
+    })
+
+
+
 @method_decorator(login_required, name='dispatch')
 class AddressCreateView(CreateView):
     model = Address
@@ -371,3 +458,5 @@ def session_keepalive(request):
         request.session.modified = True
         return HttpResponse(status=204)
     return HttpResponse(status=400)
+
+

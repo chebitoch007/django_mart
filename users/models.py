@@ -1,15 +1,14 @@
 # users/models.py
+from django.utils import timezone
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.conf import settings
 from django.urls import reverse
-from django.utils import timezone
 from django.core.validators import RegexValidator, FileExtensionValidator
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.hashers import make_password
-from PIL import Image
-from django_countries.fields import CountryField
 import uuid
 import re
 import logging
@@ -20,6 +19,7 @@ logger = logging.getLogger(__name__)
 class CustomUserManager(BaseUserManager):
     """Custom manager with security methods"""
     use_in_migrations = True
+
 
     def _create_user(self, email, password, **extra_fields):
         if not email:
@@ -56,18 +56,34 @@ class CustomUserManager(BaseUserManager):
 
         return self._create_user(email, password, **extra_fields)
 
-    def _validate_password(self, password):
-        """Enforce strong password policy"""
+
+    def _validate_password(self, password, user=None):
+        """Use Django’s built-in validators + custom policy."""
+        errors = []
         if len(password) < 10:
-            raise ValidationError("Password must be at least 10 characters long")
+            errors.append("Password must be at least 10 characters long")
         if not re.search(r'[A-Z]', password):
-            raise ValidationError("Password must contain at least one uppercase letter")
+            errors.append("Password must contain at least one uppercase letter")
         if not re.search(r'[a-z]', password):
-            raise ValidationError("Password must contain at least one lowercase letter")
+            errors.append("Password must contain at least one lowercase letter")
         if not re.search(r'[0-9]', password):
-            raise ValidationError("Password must contain at least one digit")
-        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-            raise ValidationError("Password must contain at least one special character")
+            errors.append("Password must contain at least one digit")
+        if not re.search(r'[!@#$%^&*(),.?\":{}|<>]', password):
+            errors.append("Password must contain at least one special character")
+
+        # Use Django’s built-in password validators
+        try:
+            validate_password(password, user=user)
+        except ValidationError as e:
+            errors.extend(e.messages)
+
+        if errors:
+            raise ValidationError(errors)
+
+    def password_expired(self):
+        expiry_period = timezone.timedelta(days=90)
+        return timezone.now() - self.last_password_update > expiry_period
+
 
     def get_by_natural_key(self, username):
         # Handle both email and username
@@ -75,6 +91,8 @@ class CustomUserManager(BaseUserManager):
             models.Q(**{self.model.USERNAME_FIELD: username}) |
             models.Q(email__iexact=username)
         )
+
+
 
 
 class CustomUser(AbstractUser):
@@ -145,6 +163,19 @@ class CustomUser(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+
+    two_factor_secret = models.CharField(max_length=64, blank=True, null=True)
+    two_factor_method = models.CharField(
+        max_length=10,
+        choices=[('sms', 'SMS'), ('email', 'Email'), ('app', 'Authenticator App')],
+        blank=True,
+        null=True
+    )
+
+    last_login_device = models.CharField(max_length=255, null=True, blank=True)
+
+    is_active = models.BooleanField(default=True)
+
     class Meta:
         verbose_name = "User Account"
         verbose_name_plural = "User Accounts"
@@ -161,6 +192,12 @@ class CustomUser(AbstractUser):
     def __str__(self):
         return self.get_full_name() or self.email
 
+    def full_contact(self):
+        return f"{self.get_full_name()} ({self.email})"
+
+    def short_name(self):
+        return self.first_name or self.email.split('@')[0]
+
     def get_absolute_url(self):
         return reverse('users:account', kwargs={'pk': self.pk})
 
@@ -172,6 +209,16 @@ class CustomUser(AbstractUser):
         self.account_locked_until = timezone.now() + timezone.timedelta(minutes=30)
         self.save(update_fields=['account_locked_until'])
         logger.warning(f"Account locked for user {self.email}")
+
+    def is_account_locked(self):
+        if self.account_locked_until and timezone.now() < self.account_locked_until:
+            return True
+        elif self.account_locked_until and timezone.now() >= self.account_locked_until:
+            # Unlock automatically
+            self.account_locked_until = None
+            self.failed_login_attempts = 0
+            self.save(update_fields=['account_locked_until', 'failed_login_attempts'])
+        return False
 
     def reset_login_attempts(self):
         """Reset failed login attempts counter"""

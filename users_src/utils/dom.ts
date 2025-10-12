@@ -30,9 +30,11 @@ export function debounce<T extends (...args: any[]) => any>(
     func: T,
     wait: number
 ): (...args: Parameters<T>) => void {
-    let timeout: BrowserTimeout;
+    let timeout: BrowserTimeout | null = null;
     return (...args: Parameters<T>) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(null, args), wait);
+        if (timeout !== null) {
+            clearTimeout(timeout);
+        }
+        timeout = window.setTimeout(() => func.apply(null, args), wait) as unknown as BrowserTimeout;
     };
 }

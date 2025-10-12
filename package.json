@@ -4,11 +4,13 @@
   "scripts": {
     "build:payments": "tsc && node build-payments.js",
     "build:payments:watch": "tsc --watch",
-    "build:users": "cd users_src && tsc",
+    "build:users": "cd users_src && node build.js",
     "build:users:watch": "cd users_src && tsc --watch",
     "build:frontend": "cd frontend && npm run build",
     "build:all": "npm run build:payments && npm run build:users && npm run build:frontend",
-    "clean:users": "rm -f users/static/js/*.js users/static/js/*.map",
+    "clean:users": "rm -rf users/static/js/*",
+    "clean:all": "rm -rf static/js/* users/static/js/* staticfiles/js/*",
+    "clean:build": "npm run clean:all && npm run build:all",
     "dev": "npm run clean:users && npm run build:payments && npm run build:users && python manage.py runserver"
   },
   "devDependencies": {

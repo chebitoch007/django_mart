@@ -20,7 +20,6 @@ declare global {
 // Form field interfaces
 interface FormField extends HTMLInputElement {
     value: string;
-    // Remove checked property since it's already in HTMLInputElement
 }
 
 interface PasswordRequirements {

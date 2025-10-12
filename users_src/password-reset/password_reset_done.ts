@@ -3,12 +3,19 @@ interface CountdownElements {
     resendButton: HTMLElement | null;
 }
 
+interface ResendResponse {
+    success: boolean;
+    message: string;
+}
+
 function initializePasswordResetDone(): void {
+    console.log('Initializing password reset done page...');
     initializeCountdownTimer();
     initializeProgressIndicator();
     initializeInteractiveElements();
     initializeEmailAnimation();
     initializeSuccessAnimation();
+    initializeAutoResend();
 }
 
 function initializeCountdownTimer(): void {
@@ -17,41 +24,47 @@ function initializeCountdownTimer(): void {
         resendButton: document.getElementById('resend-button')
     };
 
-    if (!elements.countdownElement) return;
+    if (!elements.countdownElement) {
+        console.log('Countdown timer element not found');
+        return;
+    }
 
-    let timeLeft = 600;
+    let timeLeft = 600; // 10 minutes
     const timerInterval = setInterval(() => {
         timeLeft--;
 
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            if (elements.countdownElement) {
-                elements.countdownElement.innerHTML = `
-                    <div class="countdown-text">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>
-                        Link expired - request a new one
-                    </div>
-                `;
-            }
+            elements.countdownElement!.innerHTML = `
+                <div class="countdown-text">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    Link expired - request a new one
+                </div>
+            `;
             return;
         }
 
-        const minutes = Math.floor(timeLeft / 60);
+        const hours = Math.floor(timeLeft / 3600);
+        const minutes = Math.floor((timeLeft % 3600) / 60);
         const seconds = timeLeft % 60;
 
-        if (elements.countdownElement) {
-            elements.countdownElement.innerHTML = `
-                <div class="countdown-text">
-                    <i class="fas fa-clock mr-2"></i>
-                    Reset link expires in
-                </div>
-                <div class="countdown-time">
-                    ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}
-                </div>
-            `;
-        }
+        // ✅ Format as HH:MM:SS
+        const hoursStr = hours.toString().padStart(2, '0');
+        const minutesStr = minutes.toString().padStart(2, '0');
+        const secondsStr = seconds.toString().padStart(2, '0');
+
+        elements.countdownElement!.innerHTML = `
+            <div class="countdown-text">
+                <i class="fas fa-clock mr-2"></i>
+                Reset link expires in
+            </div>
+            <div class="countdown-time">
+                ${hoursStr}:${minutesStr}:${secondsStr}
+            </div>
+        `;
     }, 1000);
 }
+
 
 function initializeProgressIndicator(): void {
     const progressSteps = document.querySelectorAll('.progress-step');
@@ -230,24 +243,51 @@ function addEmailParticleAnimation(): void {
 }
 
 function initializeAutoResend(): void {
+    console.log('Initializing auto resend...');
+
     const resendButton = document.getElementById('resend-button') as HTMLButtonElement;
-    if (!resendButton) return;
+    const resendText = document.getElementById('resend-text');
+    const countdownElement = document.getElementById('countdown');
+    const messageElement = document.getElementById('resend-message');
+
+    if (!resendButton || !resendText || !countdownElement) {
+        console.error('Required elements for resend not found:', {
+            resendButton: !!resendButton,
+            resendText: !!resendText,
+            countdownElement: !!countdownElement
+        });
+        return;
+    }
+
+    console.log('All resend elements found');
+
+    // Create message element if it doesn't exist
+    let messageContainer = messageElement;
+    if (!messageContainer) {
+        messageContainer = document.createElement('div');
+        messageContainer.id = 'resend-message';
+        messageContainer.className = 'mt-2 text-center hidden';
+        resendButton.parentNode?.insertBefore(messageContainer, resendButton.nextSibling);
+    }
 
     let canResend = false;
     let resendTimer = 60;
 
     const updateResendButton = (): void => {
         if (canResend) {
-            resendButton.innerHTML = '<i class="fas fa-redo mr-2"></i>Resend Email';
+            resendText.innerHTML = '<i class="fas fa-redo mr-2"></i>Resend Email';
             resendButton.classList.remove('opacity-50', 'cursor-not-allowed');
-            resendButton.classList.add('cursor-pointer');
+            resendButton.classList.add('cursor-pointer', 'hover:bg-gray-100');
+            resendButton.disabled = false;
         } else {
-            resendButton.innerHTML = `<i class="fas fa-clock mr-2"></i>Resend available in ${resendTimer}s`;
+            resendText.innerHTML = `<i class="fas fa-clock mr-2"></i>Resend available in <span id="countdown">${resendTimer}</span>s`;
             resendButton.classList.add('opacity-50', 'cursor-not-allowed');
-            resendButton.classList.remove('cursor-pointer');
+            resendButton.classList.remove('cursor-pointer', 'hover:bg-gray-100');
+            resendButton.disabled = true;
         }
     };
 
+    // Initial countdown
     const countdown = setInterval(() => {
         resendTimer--;
         updateResendButton();
@@ -259,34 +299,118 @@ function initializeAutoResend(): void {
         }
     }, 1000);
 
-    resendButton.addEventListener('click', function(e: Event): void {
+    resendButton.addEventListener('click', async function(e: Event): Promise<void> {
+        e.preventDefault();
+
         if (!canResend) {
-            e.preventDefault();
+            console.log('Resend not available yet');
             return;
         }
 
-        console.log('Resending password reset email...');
+        console.log('Resend button clicked');
 
+        // Disable button and show loading state
         canResend = false;
-        resendTimer = 60;
-        updateResendButton();
+        resendButton.disabled = true;
+        resendButton.classList.add('opacity-50', 'cursor-not-allowed');
+        resendText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
 
-        const newCountdown = setInterval(() => {
-            resendTimer--;
-            updateResendButton();
+        try {
+            const csrfToken = getCsrfToken();
+            console.log('CSRF Token:', csrfToken ? 'Found' : 'Not found');
 
-            if (resendTimer <= 0) {
-                clearInterval(newCountdown);
+            const response = await fetch(resendButton.dataset.resendUrl || '', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({}),
+            });
+
+            const data: ResendResponse = await response.json();
+            console.log('Resend response:', data);
+
+            if (data.success) {
+                showMessage(messageContainer!, data.message, 'success');
+
+                // Reset countdown
+                resendTimer = 60;
+                updateResendButton();
+
+                // Restart countdown
+                const newCountdown = setInterval(() => {
+                    resendTimer--;
+                    updateResendButton();
+
+                    if (resendTimer <= 0) {
+                        clearInterval(newCountdown);
+                        canResend = true;
+                        resendButton.disabled = false;
+                        updateResendButton();
+                    }
+                }, 1000);
+
+            } else {
+                showMessage(messageContainer!, data.message, 'error');
                 canResend = true;
+                resendButton.disabled = false;
                 updateResendButton();
             }
-        }, 1000);
+
+        } catch (error) {
+            console.error('Resend error:', error);
+            showMessage(messageContainer!, 'Network error. Please try again.', 'error');
+            canResend = true;
+            resendButton.disabled = false;
+            updateResendButton();
+        }
     });
+
+    // Initial update
+    updateResendButton();
 }
 
+function showMessage(element: HTMLElement, message: string, type: 'success' | 'error'): void {
+    element.textContent = message;
+    element.className = 'mt-2 text-center p-2 rounded';
+
+    if (type === 'success') {
+        element.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
+    } else {
+        element.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
+    }
+
+    element.classList.remove('hidden');
+
+    // Auto-hide message after 5 seconds
+    setTimeout(() => {
+        element.classList.add('hidden');
+    }, 5000);
+}
+
+function getCsrfToken(): string {
+    const name = 'csrftoken';
+    let cookieValue = '';
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Initialize when DOM is loaded
 addEmailParticleAnimation();
 
 document.addEventListener('DOMContentLoaded', function(): void {
+    console.log('DOM loaded, initializing password reset done...');
     initializePasswordResetDone();
 });
 

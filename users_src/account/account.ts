@@ -1,4 +1,7 @@
-import { BrowserTimeout } from '../types/dom';
+// account.ts
+interface BrowserTimeout {
+    (callback: (...args: any[]) => void, ms: number): number;
+}
 
 interface SessionData {
     sessionTimeout: string | null;
@@ -7,127 +10,158 @@ interface SessionData {
     csrfToken: string | null;
 }
 
-document.addEventListener('DOMContentLoaded', function(): void {
-    initializeSmoothScrolling();
-    initializeCardAnimations();
-    initializeSessionTimeout();
-});
+class AccountPage {
+    private timeoutWarning: number | null = null;
+    private logoutTimer: number | null = null;
+    private sessionTimer: number | null = null;
+    private timeLeft: number = 120;
 
-function initializeSmoothScrolling(): void {
-    document.querySelectorAll('.list-group-item').forEach(item => {
-        item.addEventListener('click', function(this: HTMLElement, e: Event): void {
-            const href = this.getAttribute('href');
-            if (href && href.startsWith('#')) {
-                e.preventDefault();
-                const targetElement = document.querySelector(href);
-
-                if (targetElement) {
-                    targetElement.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-
-                    document.querySelectorAll('.list-group-item').forEach(el => {
-                        el.classList.remove('active');
-                    });
-                    this.classList.add('active');
-                }
-            }
-        });
-    });
-}
-
-function initializeCardAnimations(): void {
-    const cards = document.querySelectorAll('.card');
-    cards.forEach(card => {
-        card.addEventListener('mouseenter', function(this: HTMLElement): void {
-            this.style.transform = 'translateY(-5px)';
-        });
-
-        card.addEventListener('mouseleave', function(this: HTMLElement): void {
-            this.style.transform = 'translateY(0)';
-        });
-    });
-}
-
-function initializeSessionTimeout(): void {
-    const sessionTimeoutModal = document.getElementById('sessionTimeoutModal');
-    if (!sessionTimeoutModal) return;
-
-    const sessionData: SessionData = {
-        sessionTimeout: document.body.getAttribute('data-session-timeout'),
-        logoutUrl: document.body.getAttribute('data-logout-url'),
-        keepaliveUrl: document.body.getAttribute('data-keepalive-url'),
-        csrfToken: document.body.getAttribute('data-csrf-token')
-    };
-
-    if (!sessionData.sessionTimeout || !sessionData.logoutUrl) return;
-
-    const SESSION_TIMEOUT = parseInt(sessionData.sessionTimeout);
-    const WARNING_TIME = 120;
-
-    let timeoutWarning: BrowserTimeout;
-    let logoutTimer: BrowserTimeout;
-    let sessionTimer: BrowserTimeout;
-    let timeLeft = WARNING_TIME;
-
-    function startTimers(): void {
-        timeoutWarning = setTimeout(showTimeoutWarning, (SESSION_TIMEOUT - WARNING_TIME) * 1000);
-        logoutTimer = setTimeout(logoutUser, SESSION_TIMEOUT * 1000);
-        sessionTimer = setInterval(updateSessionTimer, 1000) as unknown as BrowserTimeout;
+    constructor() {
+        this.initialize();
     }
 
-    function showTimeoutWarning(): void {
+    private initialize(): void {
+        this.initializeSmoothScrolling();
+        this.initializeCardAnimations();
+        this.initializeProfileImageErrorHandling();
+        this.initializeSessionTimeout();
+    }
+
+    private initializeSmoothScrolling(): void {
+        const navItems = document.querySelectorAll('.account-nav-item');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', (e: Event) => {
+                e.preventDefault();
+                const targetId = (e.currentTarget as HTMLElement).getAttribute('href');
+
+                if (targetId && targetId.startsWith('#')) {
+                    const targetElement = document.querySelector(targetId);
+
+                    if (targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                }
+            });
+        });
+    }
+
+    private initializeCardAnimations(): void {
+        const cards = document.querySelectorAll('.card-hover');
+
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                (card as HTMLElement).style.transform = 'translateY(-5px)';
+            });
+
+            card.addEventListener('mouseleave', () => {
+                (card as HTMLElement).style.transform = 'translateY(0)';
+            });
+        });
+    }
+
+    private initializeProfileImageErrorHandling(): void {
+        const profileImage = document.getElementById('profile-image') as HTMLImageElement;
+
+        if (profileImage) {
+            profileImage.addEventListener('error', () => {
+                const defaultImage = profileImage.getAttribute('data-default-src');
+                if (defaultImage) {
+                    profileImage.src = defaultImage;
+                }
+            });
+        }
+    }
+
+    private initializeSessionTimeout(): void {
+        const sessionTimeoutModal = document.getElementById('sessionTimeoutModal');
+        if (!sessionTimeoutModal) return;
+
+        const sessionData: SessionData = {
+            sessionTimeout: document.body.getAttribute('data-session-timeout'),
+            logoutUrl: document.body.getAttribute('data-logout-url'),
+            keepaliveUrl: document.body.getAttribute('data-keepalive-url'),
+            csrfToken: document.body.getAttribute('data-csrf-token')
+        };
+
+        if (!sessionData.sessionTimeout || !sessionData.logoutUrl) return;
+
+        const SESSION_TIMEOUT = parseInt(sessionData.sessionTimeout);
+        const WARNING_TIME = 120;
+
+        this.startTimers(SESSION_TIMEOUT, WARNING_TIME, sessionData);
+
+        // Reset timers on user activity
+        document.addEventListener('mousemove', () => this.resetTimers(SESSION_TIMEOUT, WARNING_TIME, sessionData));
+        document.addEventListener('keypress', () => this.resetTimers(SESSION_TIMEOUT, WARNING_TIME, sessionData));
+    }
+
+    private startTimers(sessionTimeout: number, warningTime: number, sessionData: SessionData): void {
+        this.timeoutWarning = window.setTimeout(() => {
+            this.showTimeoutWarning(warningTime, sessionData);
+        }, (sessionTimeout - warningTime) * 1000);
+
+        this.logoutTimer = window.setTimeout(() => {
+            this.logoutUser(sessionData);
+        }, sessionTimeout * 1000);
+    }
+
+    private showTimeoutWarning(warningTime: number, sessionData: SessionData): void {
         const modalElement = document.getElementById('sessionTimeoutModal');
         if (!modalElement) return;
 
+        // Using Bootstrap modal - you might need to adjust this based on your modal implementation
         const modal = new (window as any).bootstrap.Modal(modalElement);
         modal.show();
 
+        this.timeLeft = warningTime;
+
         const countdown = setInterval(() => {
-            timeLeft--;
+            this.timeLeft--;
             const timeLeftElement = document.getElementById('timeLeft');
+
             if (timeLeftElement) {
-                const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-                const seconds = (timeLeft % 60).toString().padStart(2, '0');
+                const minutes = Math.floor(this.timeLeft / 60).toString().padStart(2, '0');
+                const seconds = (this.timeLeft % 60).toString().padStart(2, '0');
+
                 timeLeftElement.textContent = `${minutes}:${seconds}`;
             }
 
-            const progress = (timeLeft / WARNING_TIME) * 100;
+            const progress = (this.timeLeft / warningTime) * 100;
             const sessionProgress = document.getElementById('sessionProgress');
+
             if (sessionProgress) {
                 sessionProgress.style.width = `${progress}%`;
             }
 
-            if (timeLeft <= 0) {
+            if (this.timeLeft <= 0) {
                 clearInterval(countdown);
-                logoutUser();
+                this.logoutUser(sessionData);
             }
         }, 1000);
 
         const extendSessionBtn = document.getElementById('extendSessionBtn');
         if (extendSessionBtn) {
-            extendSessionBtn.addEventListener('click', function(): void {
+            extendSessionBtn.addEventListener('click', () => {
                 clearInterval(countdown);
                 modal.hide();
-                extendSession();
+                this.extendSession(sessionData);
             });
         }
 
         const logoutNowBtn = document.getElementById('logoutNowBtn');
         if (logoutNowBtn) {
-            logoutNowBtn.addEventListener('click', function(): void {
+            logoutNowBtn.addEventListener('click', () => {
                 clearInterval(countdown);
-                logoutUser();
+                this.logoutUser(sessionData);
             });
         }
     }
 
-    function updateSessionTimer(): void {
-        // Could implement a visible timer on page if needed
-    }
-
-    function logoutUser(): void {
+    private logoutUser(sessionData: SessionData): void {
         if (!sessionData.logoutUrl || !sessionData.csrfToken) return;
 
         const form = document.createElement('form');
@@ -144,45 +178,40 @@ function initializeSessionTimeout(): void {
         form.submit();
     }
 
-    function extendSession(): void {
-        clearTimeout(timeoutWarning);
-        clearTimeout(logoutTimer);
-        clearInterval(sessionTimer as unknown as number);
+    private extendSession(sessionData: SessionData): void {
+        if (this.timeoutWarning) clearTimeout(this.timeoutWarning);
+        if (this.logoutTimer) clearTimeout(this.logoutTimer);
+        if (this.sessionTimer) clearInterval(this.sessionTimer);
 
         if (sessionData.keepaliveUrl) {
             fetch(sessionData.keepaliveUrl, { method: 'HEAD' })
                 .then(() => {
-                    timeLeft = WARNING_TIME;
-                    startTimers();
+                    this.timeLeft = 120;
+                    // Restart timers - you might want to get fresh timeout values
+                    const SESSION_TIMEOUT = parseInt(sessionData.sessionTimeout || '1800');
+                    this.startTimers(SESSION_TIMEOUT, 120, sessionData);
                 })
                 .catch(() => {
-                    timeLeft = WARNING_TIME;
-                    startTimers();
+                    this.timeLeft = 120;
+                    const SESSION_TIMEOUT = parseInt(sessionData.sessionTimeout || '1800');
+                    this.startTimers(SESSION_TIMEOUT, 120, sessionData);
                 });
         } else {
-            timeLeft = WARNING_TIME;
-            startTimers();
+            this.timeLeft = 120;
+            const SESSION_TIMEOUT = parseInt(sessionData.sessionTimeout || '1800');
+            this.startTimers(SESSION_TIMEOUT, 120, sessionData);
         }
     }
 
-    startTimers();
-
-    document.addEventListener('mousemove', resetTimers);
-    document.addEventListener('keypress', resetTimers);
-
-    function resetTimers(): void {
-        clearTimeout(timeoutWarning);
-        clearTimeout(logoutTimer);
-        clearInterval(sessionTimer as unknown as number);
-        startTimers();
+    private resetTimers(sessionTimeout: number, warningTime: number, sessionData: SessionData): void {
+        if (this.timeoutWarning) clearTimeout(this.timeoutWarning);
+        if (this.logoutTimer) clearTimeout(this.logoutTimer);
+        if (this.sessionTimer) clearInterval(this.sessionTimer);
+        this.startTimers(sessionTimeout, warningTime, sessionData);
     }
 }
 
-document.addEventListener('DOMContentLoaded', function(): void {
-    const profileImage = document.getElementById('profile-image') as HTMLImageElement;
-    if (profileImage) {
-        profileImage.addEventListener('error', function(): void {
-            this.src = '/static/images/default-profile.png';
-        });
-    }
+// Initialize the account page when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    new AccountPage();
 });

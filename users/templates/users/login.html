@@ -1,97 +1,182 @@
+
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASAI Store - Login</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <title>Sign In - ASAI</title>
+    <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Poppins', sans-serif; }
-    </style>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
 </head>
-<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
-    <div class="w-full max-w-md bg-white rounded-xl shadow-lg overflow-hidden">
-        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-6 px-4 text-center">
-            <div class="flex items-center justify-center gap-2 mb-3">
-                <i class="fas fa-shopping-bag text-2xl"></i>
-                <span class="text-2xl font-bold tracking-tight">ASAI STORE</span>
+<body class="auth-body">
+<div class="min-h-screen w-full flex items-center justify-center py-8 px-4">
+    <div class="max-w-md w-full">
+        <!-- Header Section -->
+        <div class="text-center mb-8">
+            <div class="mx-auto h-20 w-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-lg animate-float">
+                <i class="fas fa-user-circle text-indigo-600 text-3xl"></i>
             </div>
-            <h1 class="text-xl font-semibold">Sign in to your account</h1>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
+            <p class="text-gray-600">Sign in to access your ASAI account</p>
         </div>
 
-        <div class="p-6">
-            {% if messages %}
-                {% for message in messages %}
-                <div class="alert flex items-start mb-4 p-3 rounded-lg
-                    {% if message.tags == 'success' %}bg-green-50 text-green-700 border border-green-200
-                    {% elif message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
-                    {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
-                    <i class="fas
-                        {% if message.tags == 'success' %}fa-check-circle
-                        {% elif message.tags == 'error' %}fa-exclamation-circle
-                        {% else %}fa-info-circle{% endif %} mt-1 mr-2"></i>
-                    <span>{{ message }}</span>
-                </div>
-                {% endfor %}
-            {% endif %}
-            <form id="login-form" method="post" action="{% url 'users:login' %}" class="space-y-4">
-                {% csrf_token %}
+        <!-- Main Card -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover">
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
+                <h3 class="text-white font-semibold text-lg flex items-center">
+                    <i class="fas fa-sign-in-alt mr-2"></i>
+                    Account Sign In
+                </h3>
+            </div>
 
-                <div>
-                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="text" name="username" id="username" class="form-control block w-full p-2 pl-10 text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Enter your email" required>
-                    <div id="username-error" class="text-sm text-red-600 mt-1"></div>
-                </div>
-
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <div class="relative">
-                        <input type="password" name="password" id="password" class="form-control block w-full p-2 pl-10 text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Enter your password" required>
-                        <button type="button" id="toggle-password" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                            <i class="fas fa-eye-slash"></i>
-                        </button>
+            <div class="p-6">
+                <!-- Messages -->
+                {% if messages %}
+                <div class="mb-6 space-y-4">
+                    {% for message in messages %}
+                    <div class="rounded-xl p-4 {% if message.tags == 'success' %}success-alert{% elif message.tags == 'error' %}error-alert{% else %}info-alert{% endif %}">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas {% if message.tags == 'success' %}fa-check-circle text-green-500{% elif message.tags == 'error' %}fa-exclamation-circle text-red-500{% else %}fa-info-circle text-blue-500{% endif %} text-lg"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h4 class="font-semibold {% if message.tags == 'success' %}text-green-800{% elif message.tags == 'error' %}text-red-800{% else %}text-blue-800{% endif %}">
+                                    {% if message.tags == 'success' %}Success!{% elif message.tags == 'error' %}Action
+                                    Required{% else %}Notice{% endif %}
+                                </h4>
+                                <p class="mt-1 text-sm {% if message.tags == 'success' %}text-green-700{% elif message.tags == 'error' %}text-red-700{% else %}text-blue-700{% endif %}">
+                                    {{ message }}
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                    <div id="password-error" class="text-sm text-red-600 mt-1"></div>
+                    {% endfor %}
                 </div>
+                {% endif %}
 
-                <div class="flex items-center justify-between">
-                    <label class="flex items-center">
-                        <input type="checkbox" name="remember_me" class="form-checkbox h-4 w-4 text-blue-600">
-                        <span class="ml-2 text-sm text-gray-700">Remember me</span>
-                    </label>
+                <!-- Form -->
+                <form method="post" action="{% url 'users:login' %}" class="space-y-6">
+                    {% csrf_token %}
 
-                    <div class="text-right mt-2">
-                        <a href="{% url 'users:password_reset' %}" class="text-sm text-blue-600 hover:text-blue-500">
-                            Forgot your password?
+                    <!-- Email Field -->
+                    <div class="space-y-2">
+                        <label for="username" class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-envelope mr-2 text-gray-500"></i>
+                            Email Address
+                        </label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <input type="text" name="username" id="username"
+                                   class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 form-input"
+                                   placeholder="Enter your email address"
+                                   required
+                                   autocomplete="email">
+                        </div>
+                        <div id="username-error" class="mt-1 text-sm text-red-600 flex items-center hidden">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            <span id="error-message"></span>
+                        </div>
+                    </div>
+
+                    <!-- Password Field -->
+                    <div class="space-y-2">
+                        <label for="password" class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-lock mr-2 text-gray-500"></i>
+                            Password
+                        </label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <input type="password" name="password" id="password"
+                                   class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 form-input"
+                                   placeholder="Enter your password"
+                                   required
+                                   autocomplete="current-password">
+                            <button type="button"
+                                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 password-toggle">
+                                <i class="far fa-eye"></i>
+                            </button>
+                        </div>
+                        <div id="password-error" class="mt-1 text-sm text-red-600 flex items-center hidden">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            <span id="password-error-message"></span>
+                        </div>
+                    </div>
+
+                    <!-- Options -->
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center">
+                            <input type="checkbox" name="remember_me"
+                                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <span class="ml-2 text-sm text-gray-700">Remember me</span>
+                        </label>
+
+                        <a href="{% url 'users:password_reset' %}"
+                           class="text-sm text-indigo-600 hover:text-indigo-500 font-medium">
+                            Forgot password?
                         </a>
                     </div>
 
+                    <!-- Submit Button -->
+                    <button type="submit"
+                            class="w-full btn-primary text-white font-medium py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-md">
+                        <i class="fas fa-sign-in-alt mr-2"></i> Sign In
+                    </button>
+                </form>
+
+                <!-- Registration Link -->
+                <div class="text-center mt-6 text-sm text-gray-600">
+                    Don't have an account?
+                    <a href="{% url 'users:register' %}" class="font-medium text-indigo-600 hover:text-indigo-500">
+                        Create one now
+                    </a>
                 </div>
-
-                <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white py-3 px-4 rounded-lg font-semibold shadow-md transition duration-300 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-                    <i class="fas fa-sign-in-alt mr-2"></i> Sign In
-                </button>
-            </form>
-
-            <div class="text-center mt-4 text-sm text-gray-600">
-                Don't have an account? <a href="{% url 'users:register' %}" class="font-medium text-blue-600 hover:text-blue-500">Register now</a>
             </div>
         </div>
+
+        <!-- Help Card -->
+        <div class="bg-white rounded-2xl shadow-lg mt-6 overflow-hidden card-hover">
+            <div class="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-4">
+                <h3 class="text-white font-semibold text-lg flex items-center">
+                    <i class="fas fa-question-circle mr-2"></i>
+                    Need Help?
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 gap-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                            <i class="fas fa-key text-blue-500"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-1">Forgot Password?</h4>
+                            <p class="text-gray-600 text-sm">Use our password reset tool to regain access</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                            <i class="fas fa-user-plus text-green-500"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-1">New to ASAI?</h4>
+                            <p class="text-gray-600 text-sm">Create an account to start shopping</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8 text-gray-500 text-sm">
+            <p>&copy; 2025 ASAI. All rights reserved. <span class="text-indigo-500">🔒 Secure Login</span></p>
+        </div>
     </div>
+</div>
 
-    <script>
-        // Toggle password visibility
-        document.getElementById('toggle-password').addEventListener('click', function() {
-            const passwordField = document.getElementById('password');
-            const isPassword = passwordField.type === 'password';
+<script src="{% static 'js/auth/login.js' %}"></script>
+<script src="{% static 'js/utils/password-toggle.js' %}"></script>
 
-            passwordField.type = isPassword ? 'text' : 'password';
-            this.innerHTML = isPassword ?
-                '<i class="fas fa-eye"></i>' :
-                '<i class="fas fa-eye-slash"></i>';
-        });
-    </script>
 </body>
 </html>

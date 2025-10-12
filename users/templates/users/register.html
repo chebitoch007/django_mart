@@ -1,244 +1,291 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASAI Store - Register</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <title>Create Account - ASAI</title>
+    <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.google.com/recaptcha/api.js?render={{ RECAPTCHA_SITE_KEY }}"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Poppins', sans-serif; }
-    </style>
-    {% load widget_tweaks %}
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
 </head>
-<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
-    <div class="w-full max-w-md bg-white rounded-xl shadow-lg overflow-hidden">
-        <!-- Header -->
-        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-6 px-4 text-center">
-            <div class="flex items-center justify-center gap-2 mb-3">
-                <i class="fas fa-shopping-bag text-2xl"></i>
-                <span class="text-2xl font-bold tracking-tight">ASAI STORE</span>
+<body class="auth-body">
+<div class="min-h-screen w-full flex items-center justify-center py-8 px-4">
+    <div class="max-w-md w-full">
+        <!-- Header Section -->
+        <div class="text-center mb-8">
+            <div class="mx-auto h-20 w-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-lg animate-float">
+                <i class="fas fa-user-plus text-indigo-600 text-3xl"></i>
             </div>
-            <h1 class="text-xl font-semibold">Create Your Account</h1>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Join ASAI</h1>
+            <p class="text-gray-600">Create your account to start shopping</p>
         </div>
 
-        <!-- Form Container -->
-        <div class="p-6">
-            {% if messages %}
-                {% for message in messages %}
-                <div class="alert flex items-start mb-4 p-3 rounded-lg
-                    {% if message.tags == 'success' %}bg-green-50 text-green-700 border border-green-200
-                    {% elif message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
-                    {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
-                    <i class="fas
-                        {% if message.tags == 'success' %}fa-check-circle
-                        {% elif message.tags == 'error' %}fa-exclamation-circle
-                        {% else %}fa-info-circle{% endif %} mt-1 mr-2"></i>
-                    <span>{{ message }}</span>
-                </div>
-                {% endfor %}
-            {% endif %}
+        <!-- Main Card -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover">
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
+                <h3 class="text-white font-semibold text-lg flex items-center">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Create Your Account
+                </h3>
+            </div>
 
-            <form id="registration-form" method="post" class="space-y-4">
-                {% csrf_token %}
-
-                <!-- Name Fields -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="id_first_name" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                        {{ form.first_name|add_class:"form-control block w-full p-2 pl-10 text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" }}
-                        {% if form.first_name.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
-                        {% endif %}
+            <div class="p-6">
+                <!-- Messages -->
+                {% if messages %}
+                <div class="mb-6 space-y-4">
+                    {% for message in messages %}
+                    <div class="rounded-xl p-4 {% if message.tags == 'success' %}success-alert{% elif message.tags == 'error' %}error-alert{% else %}info-alert{% endif %}">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas {% if message.tags == 'success' %}fa-check-circle text-green-500{% elif message.tags == 'error' %}fa-exclamation-circle text-red-500{% else %}fa-info-circle text-blue-500{% endif %} text-lg"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h4 class="font-semibold {% if message.tags == 'success' %}text-green-800{% elif message.tags == 'error' %}text-red-800{% else %}text-blue-800{% endif %}">
+                                    {% if message.tags == 'success' %}Success!{% elif message.tags == 'error' %}Action
+                                    Required{% else %}Notice{% endif %}
+                                </h4>
+                                <p class="mt-1 text-sm {% if message.tags == 'success' %}text-green-700{% elif message.tags == 'error' %}text-red-700{% else %}text-blue-700{% endif %}">
+                                    {{ message }}
+                                </p>
+                            </div>
+                        </div>
                     </div>
-
-                    <div>
-                        <label for="id_last_name" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                        {{ form.last_name|add_class:"form-control block w-full p-2 pl-10 text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" }}
-                        {% if form.last_name.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
-                        {% endif %}
-                    </div>
+                    {% endfor %}
                 </div>
-
-                <!-- Email -->
-                <div>
-                    <label for="id_email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                    {{ form.email|add_class:"form-control block w-full p-2 pl-10 text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" }}
-                    {% if form.email.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Password -->
-                <div>
-                    <label for="id_password1" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <div class="relative">
-                        {{ form.password1|add_class:"form-control block w-full p-2 pl-10 text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" }}
-                        <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-                            onclick="togglePassword('id_password1', this)">
-                            <i class="fas fa-eye-slash"></i>
-                        </button>
-                    </div>
-                    <p id="password-strength" class="text-sm mt-1"></p>
-                    {{ form.password1.help_text|safe }}
-                    {% if form.password1.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.password1.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Confirm Password -->
-                <div>
-                    <label for="id_password2" class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-                    <div class="relative">
-                        {{ form.password2|add_class:"form-control block w-full p-2 pl-10 text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" }}
-                        <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-                            onclick="togglePassword('id_password2', this)">
-                            <i class="fas fa-eye-slash"></i>
-                        </button>
-                    </div>
-                    {% if form.password2.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.password2.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Privacy & Terms -->
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <div class="flex items-start mb-3">
-                        {{ form.accept_terms }}
-                        <label for="id_accept_terms" class="ml-2 text-sm text-gray-700">
-                            I agree to the <a href="{% url 'users:terms' %}" class="text-blue-600 hover:underline">Terms of Service</a>
-                        </label>
-                    </div>
-                    {% if form.accept_terms.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.accept_terms.errors.0 }}</p>
-                    {% endif %}
-
-                    <div class="flex items-start">
-                        {{ form.marketing_optin }}
-                        <label for="id_marketing_optin" class="ml-2 text-sm text-gray-700">
-                            I want to receive marketing communications<br>
-                            <span class="text-xs text-gray-500">
-                                (You can change this anytime in account settings)
-                            </span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- reCAPTCHA -->
-                {% if settings.RECAPTCHA_SITE_KEY %}
-                    <input type="hidden" id="g-recaptcha-response" name="recaptcha">
                 {% endif %}
 
-                <!-- Privacy Policy -->
-                <div class="text-center text-xs text-gray-500">
-                    By creating an account, you agree to our
-                    <a href="{% url 'users:privacy' %}" class="text-blue-600 hover:underline">
-                        Privacy Policy
-                    </a> which explains how we collect, use, and protect your personal data
-                    in compliance with GDPR and other regulations.
-                </div>
+                <!-- Form -->
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
 
-                <!-- Submit Button -->
-                <button type="submit" id="submit-btn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white py-3 px-4 rounded-lg font-semibold shadow-md transition duration-300 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-                    <i class="fas fa-user-plus mr-2"></i> Create Account
-                    <span id="loading-animation" class="hidden ml-2">
-                        <i class="fas fa-spinner fa-spin"></i>
-                    </span>
-                </button>
-            </form>
+                    <!-- Name Fields -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <label for="id_first_name" class="block text-sm font-medium text-gray-700">
+                                <i class="fas fa-user mr-2 text-gray-500"></i>
+                                First Name
+                            </label>
+                            <input type="text" name="first_name" id="id_first_name"
+                                   class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 form-input"
+                                   placeholder="First name"
+                                   value="{{ form.first_name.value|default:'' }}"
+                                   required>
+                            {% if form.first_name.errors %}
+                            <p class="text-sm text-red-600 flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                {{ form.first_name.errors.0 }}
+                            </p>
+                            {% endif %}
+                        </div>
 
-            <!-- Login Link -->
-            <div class="text-center mt-4 text-sm text-gray-600">
-                Already have an account?
-                <a href="{% url 'users:login' %}" class="font-medium text-blue-600 hover:text-blue-500">
-                    Sign in
-                </a>
+                        <div class="space-y-2">
+                            <label for="id_last_name" class="block text-sm font-medium text-gray-700">
+                                <i class="fas fa-user mr-2 text-gray-500"></i>
+                                Last Name
+                            </label>
+                            <input type="text" name="last_name" id="id_last_name"
+                                   class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 form-input"
+                                   placeholder="Last name"
+                                   value="{{ form.last_name.value|default:'' }}"
+                                   required>
+                            {% if form.last_name.errors %}
+                            <p class="text-sm text-red-600 flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                {{ form.last_name.errors.0 }}
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Email Field -->
+                    <div class="space-y-2">
+                        <label for="id_email" class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-envelope mr-2 text-gray-500"></i>
+                            Email Address
+                        </label>
+                        <input type="email" name="email" id="id_email"
+                               class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 form-input"
+                               placeholder="your@email.com"
+                               value="{{ form.email.value|default:'' }}"
+                               required
+                               autocomplete="email">
+                        {% if form.email.errors %}
+                        <p class="text-sm text-red-600 flex items-center">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            {{ form.email.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+
+<!-- Password Field -->
+<div class="space-y-2">
+    <label for="id_password1" class="block text-sm font-medium text-gray-700">
+        <i class="fas fa-key mr-2 text-gray-500"></i>
+        Password
+    </label>
+    <div class="mt-1 relative rounded-md shadow-sm">
+        <input type="password" name="password1" id="id_password1"
+               class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 form-input"
+               placeholder="Create a strong password"
+               required
+               autocomplete="new-password">
+        <button type="button"
+                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 password-toggle">
+            <i class="far fa-eye"></i>
+        </button>
+    </div>
+
+    <!-- Password Strength Meter -->
+    <div class="password-strength-meter mt-3">
+        <div class="flex gap-1 mb-2">
+            <div id="length-strength" class="h-1 rounded bg-gray-200 flex-1 strength-bar"></div>
+            <div id="number-strength" class="h-1 rounded bg-gray-200 flex-1 strength-bar"></div>
+            <div id="case-strength" class="h-1 rounded bg-gray-200 flex-1 strength-bar"></div>
+            <div id="special-strength" class="h-1 rounded bg-gray-200 flex-1 strength-bar"></div>
+        </div>
+        <p class="text-xs text-gray-500" id="password-strength-text">
+            Enter a password
+        </p>
+    </div>
+
+    <!-- Password Requirements -->
+    <div class="bg-gray-50 rounded-lg p-4 mt-3">
+        <h4 class="text-sm font-medium text-gray-700 mb-2">Password must contain:</h4>
+        <div class="grid grid-cols-1 gap-1 text-xs">
+            <div class="flex items-center requirement text-gray-600" data-requirement="length">
+                <i class="fas fa-circle text-gray-300 mr-2 text-xs"></i>
+                <span>At least 10 characters</span>
+            </div>
+            <div class="flex items-center requirement text-gray-600" data-requirement="number">
+                <i class="fas fa-circle text-gray-300 mr-2 text-xs"></i>
+                <span>At least one number</span>
+            </div>
+            <div class="flex items-center requirement text-gray-600" data-requirement="lowercase">
+                <i class="fas fa-circle text-gray-300 mr-2 text-xs"></i>
+                <span>At least one lowercase letter</span>
+            </div>
+            <div class="flex items-center requirement text-gray-600" data-requirement="uppercase">
+                <i class="fas fa-circle text-gray-300 mr-2 text-xs"></i>
+                <span>At least one uppercase letter</span>
+            </div>
+            <div class="flex items-center requirement text-gray-600" data-requirement="special">
+                <i class="fas fa-circle text-gray-300 mr-2 text-xs"></i>
+                <span>At least one special character</span>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        // Password visibility toggle
-        function togglePassword(fieldId, button) {
-            const field = document.getElementById(fieldId);
-            if (field.type === 'password') {
-                field.type = 'text';
-                button.innerHTML = '<i class="fas fa-eye"></i>';
-            } else {
-                field.type = 'password';
-                button.innerHTML = '<i class="fas fa-eye-slash"></i>';
-            }
-        }
+<!-- Confirm Password Field -->
+<div class="space-y-2">
+    <label for="id_password2" class="block text-sm font-medium text-gray-700">
+        <i class="fas fa-key mr-2 text-gray-500"></i>
+        Confirm Password
+    </label>
+    <div class="mt-1 relative rounded-md shadow-sm">
+        <input type="password" name="password2" id="id_password2"
+               class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 form-input"
+               placeholder="Re-enter your password"
+               required
+               autocomplete="new-password">
+        <button type="button"
+                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 password-toggle">
+            <i class="far fa-eye"></i>
+        </button>
+    </div>
+</div>
 
-        // Real-time validation
-        document.querySelectorAll('.form-control').forEach(input => {
-            input.addEventListener('blur', function() {
-                if (this.checkValidity()) {
-                    this.classList.remove('border-red-500');
-                    this.classList.add('border-green-500');
-                } else {
-                    this.classList.remove('border-green-500');
-                    this.classList.add('border-red-500');
-                }
-            });
-        });
 
-        // Password strength indicator
-        document.getElementById('id_password1').addEventListener('input', function() {
-            const password = this.value;
-            const strength = getPasswordStrength(password);
-            // Update password strength indicator
-            const strengthIndicator = document.getElementById('password-strength');
-            strengthIndicator.textContent = strength;
-            strengthIndicator.classList.remove('text-red-500', 'text-yellow-500', 'text-green-500');
-            strengthIndicator.classList.add(getStrengthClass(strength));
-        });
+                    <!-- Terms and Privacy -->
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-4">
+                        <div class="flex items-start">
+                            <input type="checkbox" name="accept_terms" id="id_accept_terms"
+                                   class="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                   required>
+                            <label for="id_accept_terms" class="ml-3 text-sm text-gray-700">
+                                I agree to the <a href="{% url 'users:terms' %}"
+                                                  class="text-indigo-600 hover:text-indigo-500 font-medium">Terms of
+                                Service</a>
+                                and <a href="{% url 'users:privacy' %}"
+                                       class="text-indigo-600 hover:text-indigo-500 font-medium">Privacy Policy</a>
+                            </label>
+                        </div>
+                        {% if form.accept_terms.errors %}
+                        <p class="text-sm text-red-600 flex items-center">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            {{ form.accept_terms.errors.0 }}
+                        </p>
+                        {% endif %}
 
-        function getPasswordStrength(password) {
-            // Calculate password strength based on length, complexity, etc.
-            if (password.length < 8) return 'Weak';
-            if (password.length >= 10 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /[0-9]/.test(password)) return 'Strong';
-            return 'Medium';
-        }
+                        <div class="flex items-start">
+                            <input type="checkbox" name="marketing_optin" id="id_marketing_optin"
+                                   class="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="id_marketing_optin" class="ml-3 text-sm text-gray-700">
+                                Send me marketing communications and updates
+                                <span class="text-xs text-gray-500 block mt-1">
+                                    (You can change this anytime in account settings)
+                                </span>
+                            </label>
+                        </div>
+                    </div>
 
-        function getStrengthClass(strength) {
-            switch (strength) {
-                case 'Weak':
-                    return 'text-red-500';
-                case 'Medium':
-                    return 'text-yellow-500';
-                case 'Strong':
-                    return 'text-green-500';
-            }
-        }
+                    <!-- Submit Button -->
+                    <button type="submit"
+                            class="w-full btn-primary text-white font-medium py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-md">
+                        <i class="fas fa-user-plus mr-2"></i> Create Account
+                    </button>
+                </form>
 
-        // reCAPTCHA integration
-        {% if settings.RECAPTCHA_SITE_KEY %}
-        document.getElementById('registration-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const submitBtn = document.getElementById('submit-btn');
-            const loadingAnimation = document.getElementById('loading-animation');
-            submitBtn.disabled = true;
-            loadingAnimation.classList.remove('hidden');
+                <!-- Login Link -->
+                <div class="text-center mt-6 text-sm text-gray-600">
+                    Already have an account?
+                    <a href="{% url 'users:login' %}" class="font-medium text-indigo-600 hover:text-indigo-500">
+                        Sign in here
+                    </a>
+                </div>
+            </div>
+        </div>
 
-            grecaptcha.ready(function() {
-               grecaptcha.execute('{{ settings.RECAPTCHA_SITE_KEY }}', {action: 'register'}).then(function(token) {
-                    document.getElementById('g-recaptcha-response').value = token;
-                    document.getElementById('registration-form').submit();  // ✅ USE THIS, not e.target.submit()
-               });
-            });
-        });
-        {% else %}
-        document.getElementById('registration-form').addEventListener('submit', function() {
-            const submitBtn = document.getElementById('submit-btn');
-            const loadingAnimation = document.getElementById('loading-animation');
-            submitBtn.disabled = true;
-            loadingAnimation.classList.remove('hidden');
-        });
-        {% endif %}
-    </script>
+        <!-- Security Card -->
+        <div class="bg-white rounded-2xl shadow-lg mt-6 overflow-hidden card-hover">
+            <div class="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-4">
+                <h3 class="text-white font-semibold text-lg flex items-center">
+                    <i class="fas fa-shield-alt mr-2"></i>
+                    Your Security Matters
+                </h3>
+            </div>
+            <div class="p-6">
+                <ul class="space-y-3 text-gray-700">
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mr-3 mt-1 flex-shrink-0"></i>
+                        <span>Your data is encrypted and protected</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mr-3 mt-1 flex-shrink-0"></i>
+                        <span>We never share your personal information</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mr-3 mt-1 flex-shrink-0"></i>
+                        <span>GDPR and privacy regulation compliant</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8 text-gray-500 text-sm">
+            <p>&copy; 2025 ASAI. All rights reserved. <span class="text-indigo-500">🔒 Secure Registration</span></p>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/auth/register.js' %}"></script>
+<script src="{% static 'js/utils/password-toggle.js' %}"></script>
+<script src="{% static 'js/utils/password-validation.js' %}"></script>
+
 </body>
 </html>
