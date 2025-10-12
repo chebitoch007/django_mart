@@ -1,3 +1,4 @@
+// users_src/password-reset/password_reset_done.ts - Fixed version
 interface CountdownElements {
     countdownElement: HTMLElement | null;
     resendButton: HTMLElement | null;
@@ -11,7 +12,7 @@ interface ResendResponse {
 function initializePasswordResetDone(): void {
     console.log('Initializing password reset done page...');
     initializeCountdownTimer();
-    initializeProgressIndicator();
+    initializeDoneProgressIndicator(); // ← Renamed this function
     initializeInteractiveElements();
     initializeEmailAnimation();
     initializeSuccessAnimation();
@@ -65,8 +66,8 @@ function initializeCountdownTimer(): void {
     }, 1000);
 }
 
-
-function initializeProgressIndicator(): void {
+// Renamed this function to avoid conflict
+function initializeDoneProgressIndicator(): void {
     const progressSteps = document.querySelectorAll('.progress-step');
     if (!progressSteps.length) return;
 
@@ -97,12 +98,13 @@ function initializeProgressIndicator(): void {
                 progressSteps.forEach(step => {
                     step.classList.remove('active', 'completed');
                 });
-                setTimeout(initializeProgressIndicator, 1000);
+                setTimeout(initializeDoneProgressIndicator, 1000);
             }, 2000);
         }
     }, 800);
 }
 
+// ... rest of your password_reset_done.ts code remains the same ...
 function initializeInteractiveElements(): void {
     const cards = document.querySelectorAll('.password-reset-done-card');
     cards.forEach(card => {
@@ -251,15 +253,20 @@ function initializeAutoResend(): void {
     const messageElement = document.getElementById('resend-message');
 
     if (!resendButton || !resendText || !countdownElement) {
-        console.error('Required elements for resend not found:', {
-            resendButton: !!resendButton,
-            resendText: !!resendText,
-            countdownElement: !!countdownElement
-        });
+        console.error('Required elements for resend not found');
         return;
     }
 
-    console.log('All resend elements found');
+    // Check if resend URL is available
+    const resendUrl = resendButton.dataset.resendUrl;
+    if (!resendUrl) {
+        console.error('Resend URL not found in data-resend-url attribute');
+        resendButton.disabled = true;
+        resendText.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Resend unavailable';
+        return;
+    }
+
+    console.log('All resend elements found, URL:', resendUrl);
 
     // Create message element if it doesn't exist
     let messageContainer = messageElement;
@@ -307,7 +314,7 @@ function initializeAutoResend(): void {
             return;
         }
 
-        console.log('Resend button clicked');
+        console.log('Resend button clicked, URL:', resendUrl);
 
         // Disable button and show loading state
         canResend = false;
@@ -319,7 +326,7 @@ function initializeAutoResend(): void {
             const csrfToken = getCsrfToken();
             console.log('CSRF Token:', csrfToken ? 'Found' : 'Not found');
 
-            const response = await fetch(resendButton.dataset.resendUrl || '', {
+            const response = await fetch(resendUrl, {  // Use the resendUrl variable
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -328,6 +335,11 @@ function initializeAutoResend(): void {
                 },
                 body: JSON.stringify({}),
             });
+
+            // Check if response is OK before parsing JSON
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
             const data: ResendResponse = await response.json();
             console.log('Resend response:', data);
@@ -413,9 +425,3 @@ document.addEventListener('DOMContentLoaded', function(): void {
     console.log('DOM loaded, initializing password reset done...');
     initializePasswordResetDone();
 });
-
-export {
-    initializePasswordResetDone,
-    initializeCountdownTimer,
-    initializeProgressIndicator
-};

@@ -1,3 +1,4 @@
+// users_src/password-reset/password_reset_complete.ts - Fixed version
 interface ConfettiConfig {
     colors: string[];
     count: number;
@@ -10,7 +11,7 @@ interface RippleEvent extends MouseEvent {
 function initializePasswordResetComplete(): void {
     createConfettiCelebration();
     initializeStaggerAnimations();
-    initializeProgressIndicator();
+    initializeCompleteProgressIndicator(); // ← Renamed this function
     initializeInteractiveTips();
     initializeButtonInteractions();
 }
@@ -69,7 +70,8 @@ function initializeStaggerAnimations(): void {
     });
 }
 
-function initializeProgressIndicator(): void {
+// Renamed this function to avoid conflict
+function initializeCompleteProgressIndicator(): void {
     const progressBar = document.querySelector('.password-reset-progress-bar') as HTMLElement;
     if (progressBar) {
         setTimeout(() => {
@@ -200,8 +202,3 @@ addRippleAnimation();
 document.addEventListener('DOMContentLoaded', function(): void {
     initializePasswordResetComplete();
 });
-
-export {
-    initializePasswordResetComplete,
-    createConfettiCelebration
-};

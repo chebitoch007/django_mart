@@ -94,3 +94,17 @@
     padding: 20px 25px;
     border-radius: 12px 12px 0 0 !important;
 }
+
+/* Add these animations to your auth.css file */
+@keyframes confettiFall {
+    0% {
+        transform: translateY(0) rotate(0deg);
+    }
+    100% {
+        transform: translateY(100vh) rotate(360deg);
+    }
+}
+
+.confetti {
+    animation: confettiFall 3s linear forwards;
+}
