@@ -1,15 +1,24 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:host": "vite --host",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf ../static/frontend/* .vite dist",
+    "build:cart": "node build-cart.js",
+    "watch:cart": "tsc --project tsconfig.cart.json --watch"
   },
   "devDependencies": {
-    "vite": "^7.1.7"
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.0",
+    "vite": "^7.1.7",
+    "rollup-plugin-visualizer": "^6.0.4"
+  },
+  "dependencies": {
   }
 }
-

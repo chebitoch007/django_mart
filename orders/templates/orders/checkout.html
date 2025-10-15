@@ -1,3 +1,5 @@
+<!-- orders/templates/orders/checkout.html -->
+
 {% extends "store/base.html" %}
 {% load humanize static %}
 
@@ -26,7 +28,15 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
 <!-- Use the non-module version for now to avoid import issues -->
-<script src="{% static 'js/payments-simple.js' %}"></script>
+<script type="module" src="{% static 'js/payment-methods/mpesa.js' %}"></script>
+<script type="module" src="{% static 'js/payment-methods/paypal.js' %}"></script>
+<script type="module" src="{% static 'js/types/payment.js' %}"></script>
+<script type="module" src="{% static 'js/ui/ui.js' %}"></script>
+<script type="module" src="{% static 'js/utils/utils.js' %}"></script>
+<script type="module" src="{% static 'js/utils/validation.js' %}"></script>
+<script type="module" src="{% static 'js/payments.js' %}"></script>
+
+
 {% endblock %}
 
 {% block content %}
@@ -976,9 +986,10 @@
   <!-- PayPal button container -->
   <div id="paypal-button-container" class="mb-3"></div>
 
-  <!-- Status area -->
-<div id="paypal-status" class="alert text-center d-none" role="alert">
-  <div class="spinner-border text-primary me-2" role="status" style="display:none;"></div>
+
+<!-- Status area -->
+<div id="paypal-status" class="payment-status info" style="display: none;">
+  <i class="fas fa-spinner fa-spin"></i>
   <span class="status-message"></span>
 </div>
 
@@ -1055,85 +1066,6 @@
         <p class="modal-text" id="modalText">Please wait while we complete your transaction</p>
     </div>
 </div>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-  const tabs = document.querySelectorAll(".payment-tab");
-  const methodName = document.getElementById("selectedMethodName");
-  const methodInput = document.getElementById("selectedMethod");
-  const submitButton = document.getElementById("paymentSubmitButton");
-  const submitText = document.getElementById("submitText");
-  const mobileSection = document.getElementById("mobileMoneySection");
-  const paypalSection = document.getElementById("paypalSection");
-
-    const paymentForm = document.getElementById('paymentForm');
-    const processingModal = document.getElementById('processingModal');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalText = document.getElementById('modalText');
-    const paymentStatus = document.getElementById('paymentStatus');
-    const paymentErrors = document.getElementById('paymentErrors');
-    const selectedMethodInput = document.getElementById('selectedMethod');
-    const currencySelector = document.getElementById('currencySelector');
-    const currencyTooltip = document.getElementById('currencyTooltip');
-    const tooltipText = document.getElementById('tooltipText');
-    const methodConfirmation = document.getElementById('methodConfirmation');
-    const submitIcon = document.getElementById('submitIcon');
-    const formCurrency = document.getElementById('formCurrency');
-    const formConversionRate = document.getElementById('formConversionRate');
-    const phoneInput = document.getElementById('phoneNumber');
-    const phoneError = document.getElementById('phoneError');
-    const termsCheckbox = document.getElementById('termsAgreement');
-    const paypalButtonContainer = document.getElementById('paypal-button-container');
-    const summaryToggle = document.getElementById('summaryToggle');
-    const summaryContent = document.getElementById('summaryContent');
-
-
-
-  tabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-      // deactivate all tabs
-      tabs.forEach(t => t.classList.remove("active"));
-      tab.classList.add("active");
-
-      const selected = tab.dataset.method;
-      methodName.textContent = selected === "paypal" ? "PayPal" : "M-Pesa";
-      methodInput.value = selected;
-      submitText.textContent = selected === "paypal" ? "Pay with PayPal" : "Pay with M-Pesa";
-
-      // toggle visible form section
-      if (selected === "paypal") {
-        mobileSection.classList.remove("active");
-        mobileSection.style.display = "none";
-
-        paypalSection.style.display = "block";
-        paypalSection.classList.add("active");
-      } else {
-        paypalSection.classList.remove("active");
-        paypalSection.style.display = "none";
-
-        mobileSection.style.display = "block";
-        mobileSection.classList.add("active");
-      }
-    });
-  });
-});
-
-if (window.paypal) {
-  paypal.Buttons({
-    createOrder: function(data, actions) {
-      return actions.order.create({
-        purchase_units: [{ amount: { value: "{{ order.total_price|floatformat:2 }}" } }]
-      });
-    },
-    onApprove: function(data, actions) {
-      return actions.order.capture().then(function(details) {
-        window.location.href = "{% url 'orders:success' order.id %}";
-      });
-    }
-  }).render("#paypal-button-container");
-}
-
-</script>
-
-
 {% endblock %}
+
+

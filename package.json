@@ -1,20 +1,29 @@
 {
   "name": "django-mart",
   "version": "1.0.0",
+  "private": true,
   "scripts": {
-    "build:payments": "tsc && node build-payments.js",
-    "build:payments:watch": "tsc --watch",
+    "build:payments": "echo 'Payments are bundled by Vite, no separate build needed'",
+    "build:payments:watch": "echo 'Payments are handled by Vite in watch mode'",
     "build:users": "cd users_src && node build.js",
     "build:users:watch": "cd users_src && tsc --watch",
     "build:frontend": "cd frontend && npm run build",
-    "build:all": "npm run build:payments && npm run build:users && npm run build:frontend",
+    "build:frontend:dev": "cd frontend && npm run dev",
+    "build:cart": "cd frontend && npm run build:cart",
+    "build:cart:watch": "cd frontend && tsc --watch --project tsconfig.cart.json",
+    "build:all": "npm run build:users && npm run build:frontend && npm run build:cart",
     "clean:users": "rm -rf users/static/js/*",
-    "clean:all": "rm -rf static/js/* users/static/js/* staticfiles/js/*",
+    "clean:cart": "rm -rf cart/static/cart/js/*",
+    "clean:frontend": "rm -rf static/frontend/* frontend/dist frontend/.vite",
+    "clean:all": "npm run clean:users && npm run clean:cart && npm run clean:frontend",
     "clean:build": "npm run clean:all && npm run build:all",
-    "dev": "npm run clean:users && npm run build:payments && npm run build:users && python manage.py runserver"
+    "dev": "npm run build:users && npm run build:cart && python manage.py runserver",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:full": "concurrently \"npm run dev:frontend\" \"python manage.py runserver\""
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.10.0",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3"
   }
 }

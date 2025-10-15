@@ -1,11 +1,29 @@
 {
-  "src/main.js": {
-    "file": "assets/main-D6E_efp8.js",
+  "src/js/payments.js": {
+    "file": "js/payments-Cy2hTf7g.js",
+    "name": "payments",
+    "src": "src/js/payments.js",
+    "isEntry": true
+  },
+  "src/main.ts": {
+    "file": "js/main-BbUr2PB9.js",
     "name": "main",
-    "src": "src/main.js",
+    "src": "src/main.ts",
+    "isEntry": true,
+    "imports": [
+      "src/js/payments.js"
+    ],
+    "css": [
+      "css/main-CrYBktwj.css"
+    ]
+  },
+  "src/store/main.ts": {
+    "file": "js/store-BRNlZgFu.js",
+    "name": "store",
+    "src": "src/store/main.ts",
     "isEntry": true,
     "css": [
-      "assets/main-CrYBktwj.css"
+      "css/store-dndWbzkt.css"
     ]
   }
 }

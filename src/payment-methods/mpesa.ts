@@ -1,15 +1,15 @@
 //mpesa.ts
 
-import { validatePhoneNumber } from '../utils/utils';
+import { validatePhoneNumber } from '../utils/utils.js';
 import {
   setSubmitButtonState,
   startProcessingAnimation,
   stopProcessingAnimation,
   showPaymentError,
   showPaymentStatus
-} from '../ui/ui';
-import { PaymentSystem } from '../payments';
-import { MpesaResponse, PaymentResponse } from '../types/payment';
+} from '../ui/ui.js';
+import { PaymentSystem } from '../payments.js';
+import { MpesaResponse, PaymentResponse } from '../types/payment.js';
 
 export async function initializeMpesa(paymentSystem: PaymentSystem): Promise<boolean> {
   try {

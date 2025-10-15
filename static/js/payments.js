@@ -1,7 +1,7 @@
-import { initializeMpesa } from './payment-methods/mpesa.js';
-import { initializePayPal, cleanupPayPal } from './payment-methods/paypal.js';
-import { validatePhoneNumber, formatCurrency, saveFormState, restoreFormState, updateServerPaymentMethod } from './utils/utils.js';
-import { showPaymentError, updatePaymentMethodUI, updateSubmitButton, showCurrencyTooltip, hideCurrencyTooltip, showInputError, clearInputError } from './ui/ui.js';
+import { initializeMpesa } from './payment-methods/mpesa';
+import { initializePayPal, cleanupPayPal } from './payment-methods/paypal';
+import { validatePhoneNumber, formatCurrency, saveFormState, restoreFormState, updateServerPaymentMethod } from './utils/utils';
+import { showPaymentError, updatePaymentMethodUI, updateSubmitButton, showCurrencyTooltip, hideCurrencyTooltip, showInputError, clearInputError } from './ui/ui';
 export class PaymentSystem {
     constructor(config) {
         this.config = config;

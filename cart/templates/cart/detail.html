@@ -1,563 +1,16 @@
+<!-- cart/templates/cart/detail.html -->
+
 {% extends "store/base.html" %}
 {% load humanize %}
 {% load static %}
 
 {% block title %}Your Shopping Cart - ASAI{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'cart/css/cart-detail.css' %}">
+{% endblock %}
+
 {% block content %}
-<style>
-    /* Cart Page Specific Styles */
-    .cart-page-container {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-
-    .cart-page-header {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        margin-bottom: 30px;
-        background: linear-gradient(to right, #f0f9ff, #e6f7ff);
-        border-radius: 12px;
-        padding: 20px;
-    }
-
-    @media (min-width: 768px) {
-        .cart-page-header {
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: center;
-        }
-    }
-
-    .cart-header-content {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
-
-    .cart-icon-wrapper {
-        width: 50px;
-        height: 50px;
-        background: linear-gradient(to right, #1d4ed8, #3b82f6);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .cart-icon {
-        color: white;
-        font-size: 1.5rem;
-    }
-
-    .cart-title {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #1e293b;
-    }
-
-    .cart-item-count {
-        background: white;
-        border: 1px solid #cbd5e1;
-        color: #1e40af;
-        padding: 8px 16px;
-        border-radius: 24px;
-        font-weight: 600;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-
-    .cart-table-container {
-        background: white;
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        overflow: hidden;
-        margin-bottom: 30px;
-    }
-
-    .cart-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .cart-table thead {
-        background: linear-gradient(to right, #f8fafc, #f1f5f9);
-    }
-
-    .cart-table th {
-        padding: 15px 20px;
-        text-align: left;
-        color: #334155;
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.85rem;
-        letter-spacing: 0.5px;
-    }
-
-    .cart-table th.text-center {
-        text-align: center;
-    }
-
-    .cart-table th.text-right {
-        text-align: right;
-    }
-
-    .cart-item-row {
-        border-bottom: 1px solid #e2e8f0;
-    }
-
-    .cart-item-row:hover {
-        background-color: #f8fafc;
-    }
-
-    .cart-item-row.unavailable {
-        background-color: #fefce8;
-    }
-
-    .cart-item-cell {
-        padding: 20px;
-        vertical-align: top;
-    }
-
-    .cart-item-content {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
-
-    .cart-item-image-wrapper {
-        flex-shrink: 0;
-        width: 80px;
-        height: 80px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-    }
-
-    .cart-item-image {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-    }
-
-    .cart-item-details {
-        flex-grow: 1;
-    }
-
-    .cart-item-name {
-        font-weight: 600;
-        color: #1e293b;
-        margin-bottom: 5px;
-        display: block;
-    }
-
-    .cart-item-name:hover {
-        color: #3b82f6;
-    }
-
-    .cart-item-category {
-        background: #f1f5f9;
-        color: #475569;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.8rem;
-        display: inline-block;
-        margin-top: 5px;
-    }
-
-    .cart-item-unavailable {
-        background: #fef3c7;
-        color: #b45309;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.8rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        margin-top: 5px;
-    }
-
-    .quantity-control {
-        display: flex;
-        justify-content: center;
-    }
-
-    .quantity-form {
-        display: inline-flex;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    .quantity-btn {
-        width: 35px;
-        height: 35px;
-        background: #f8fafc;
-        border: none;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: background 0.2s;
-    }
-
-    .quantity-btn:hover {
-        background: #e2e8f0;
-    }
-
-    .quantity-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .quantity-input {
-        width: 50px;
-        height: 35px;
-        text-align: center;
-        border: none;
-        border-left: 1px solid #cbd5e1;
-        border-right: 1px solid #cbd5e1;
-        font-weight: 600;
-    }
-
-    .quantity-input:focus {
-        outline: none;
-        border-color: #3b82f6;
-    }
-
-    .stock-warning {
-        color: #dc2626;
-        font-size: 0.75rem;
-        margin-top: 5px;
-        text-align: center;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-    }
-
-    .cart-item-price {
-        font-weight: 600;
-        color: #1d4ed8;
-        text-align: right;
-    }
-
-    .cart-item-original-price {
-        text-decoration: line-through;
-        color: #94a3b8;
-        font-size: 0.9rem;
-        display: block;
-        margin-top: 3px;
-    }
-
-    .cart-item-total {
-        font-weight: 700;
-        color: #1d4ed8;
-        text-align: right;
-    }
-
-    .cart-remove-btn {
-        background: none;
-        border: none;
-        color: #94a3b8;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto;
-        transition: color 0.2s;
-    }
-
-    .cart-remove-btn:hover {
-        color: #dc2626;
-    }
-
-    .cart-summary-section {
-        padding: 20px;
-        border-top: 1px solid #e2e8f0;
-    }
-
-    .cart-summary-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-
-
-
-
-
-    @media (min-width: 480px) {
-        .cart-summary-grid {
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-    }
-
-    @media (min-width: 768px) {
-        .cart-summary-grid {
-            gap: 30px;
-        }
-    }
-
-    .continue-shopping {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .continue-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        background: white;
-        border: 2px solid #3b82f6;
-        color: #3b82f6;
-        padding: 12px 24px;
-        border-radius: 8px;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-
-    .continue-btn:hover {
-        background: #eff6ff;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        transform: translateY(-2px);
-    }
-
-    .order-summary {
-        background: linear-gradient(to bottom, #f0f9ff, #e0f2fe);
-        border-radius: 12px;
-        padding: 25px;
-        border: 1px solid #dbeafe;
-    }
-
-    .summary-title {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 1px solid #e2e8f0;
-    }
-
-    .summary-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 10px 0;
-        border-bottom: 1px solid #e2e8f0;
-        font-size: 0.95rem;
-    }
-
-    .summary-total-row {
-        padding-top: 15px;
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #1e293b;
-    }
-
-    .checkout-btn {
-        width: 100%;
-        padding: 15px;
-        background: linear-gradient(to right, #10b981, #059669);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        cursor: pointer;
-        margin-top: 20px;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
-    }
-
-    .checkout-btn:hover {
-        background: linear-gradient(to right, #059669, #047857);
-        box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4);
-        transform: translateY(-2px);
-    }
-
-    .checkout-btn:disabled {
-        opacity: 0.7;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    .payment-methods {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        margin-top: 15px;
-    }
-
-    .payment-method {
-        width: 40px;
-        height: 25px;
-        background: white;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-
-    .payment-icon {
-        color: #64748b;
-        font-size: 1rem;
-    }
-
-    .stock-notice {
-        background: #fffbeb;
-        border-left: 4px solid #f59e0b;
-        padding: 15px;
-        border-radius: 0 8px 8px 0;
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-    }
-
-    .notice-icon {
-        color: #f59e0b;
-        font-size: 1.2rem;
-        flex-shrink: 0;
-    }
-
-    .notice-content h3 {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #b45309;
-        margin-bottom: 5px;
-    }
-
-    .notice-content p {
-        font-size: 0.9rem;
-        color: #b45309;
-    }
-
-    .empty-cart-container {
-        background: linear-gradient(to bottom, #f0f9ff, #e0f2fe);
-        border-radius: 16px;
-        border: 1px solid #dbeafe;
-        padding: 40px 20px;
-        text-align: center;
-        max-width: 600px;
-        margin: 0 auto;
-    }
-
-    .empty-cart-icon {
-        width: 100px;
-        height: 100px;
-        background: linear-gradient(to right, #93c5fd, #3b82f6);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 20px;
-    }
-
-    .empty-cart-icon i {
-        color: white;
-        font-size: 3rem;
-    }
-
-    .empty-cart-title {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 15px;
-    }
-
-    .empty-cart-text {
-        color: #475569;
-        margin-bottom: 30px;
-        max-width: 400px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    .discover-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        background: linear-gradient(to right, #3b82f6, #1d4ed8);
-        color: white;
-        padding: 14px 32px;
-        border-radius: 8px;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
-    }
-
-    .discover-btn:hover {
-        background: linear-gradient(to right, #1d4ed8, #1e40af);
-        box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
-        transform: translateY(-2px);
-    }
-
-    .recently-viewed {
-        margin-top: 30px;
-        padding-top: 25px;
-        border-top: 1px solid #e2e8f0;
-    }
-
-    .recently-viewed-title {
-        font-weight: 600;
-        color: #475569;
-        text-align: center;
-        margin-bottom: 15px;
-    }
-
-    .recent-products {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-    }
-
-    .recent-product {
-        display: block;
-        width: 60px;
-        height: 60px;
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        overflow: hidden;
-        transition: all 0.3s ease;
-    }
-
-    .recent-product:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-
-    .recent-product img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .error-notice {
-        background: #ffebee;
-        color: #c62828;
-        padding: 15px;
-        border-radius: 4px;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        border-left: 4px solid #c62828;
-    }
-</style>
-
 <div class="cart-page-container">
     <!-- Cart Header -->
     <div class="cart-page-header">
@@ -594,7 +47,10 @@
             </thead>
             <tbody>
                 {% for item in cart.items.all %}
-                <tr class="cart-item-row {% if not item.product.available %}unavailable{% endif %}">
+                <tr class="cart-item-row {% if not item.product.available %}unavailable{% endif %}"
+                    data-product-id="{{ item.product.id }}"
+                    data-update-url="{% url 'cart:cart_update' item.product.id %}"
+                    data-stock="{{ item.product.stock }}">
                     <!-- Product Column -->
                     <td class="cart-item-cell">
                         <div class="cart-item-content">
@@ -621,31 +77,30 @@
 
                     <!-- Quantity Column -->
                     <td class="cart-item-cell">
-                        <div class="quantity-form">
-                            <button type="button" class="quantity-btn decrease"
-                                data-product-id="{{ item.product.id }}"
-                                {% if not item.product.available %}disabled{% endif %}>
-                                <i class="fas fa-minus"></i>
-                            </button>
-                            <input type="number"
-                                   value="{{ item.quantity }}"
-                                   min="1"
-                                   max="{{ item.product.stock }}"
-                                   class="quantity-input"
-                                   data-product-id="{{ item.product.id }}"
-                                   {% if not item.product.available %}disabled{% endif %}>
-                            <button type="button" class="quantity-btn increase"
-                                data-product-id="{{ item.product.id }}"
-                                {% if not item.product.available %}disabled{% endif %}>
-                                <i class="fas fa-plus"></i>
-                            </button>
+                        <div class="quantity-control">
+                            <div class="quantity-form">
+                                <button type="button" class="quantity-btn decrease"
+                                    {% if not item.product.available %}disabled{% endif %}>
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number"
+                                       value="{{ item.quantity }}"
+                                       min="1"
+                                       max="{{ item.product.stock }}"
+                                       class="quantity-input"
+                                       {% if not item.product.available %}disabled{% endif %}>
+                                <button type="button" class="quantity-btn increase"
+                                    {% if not item.product.available %}disabled{% endif %}>
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            {% if item.quantity > item.product.stock %}
+                            <div class="stock-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Only {{ item.product.stock }} available
+                            </div>
+                            {% endif %}
                         </div>
-                        {% if item.quantity > item.product.stock %}
-                        <div class="stock-warning">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            Only {{ item.product.stock }} available
-                        </div>
-                        {% endif %}
                     </td>
 
                     <!-- Price Column -->
@@ -723,24 +178,24 @@
                     <br>
 
                     <!-- Payment Methods -->
-                    <div class="payment-methods flex items-center justify-center gap-4 mt-4 text-3xl">
+                    <div class="payment-methods">
                         <!-- M-Pesa -->
-                        <div class="payment-method text-green-600" title="M-Pesa">
+                        <div class="payment-method" title="M-Pesa">
                             <i class="fas fa-mobile-alt"></i>
                         </div>
 
                         <!-- Visa -->
-                        <div class="payment-method text-blue-600" title="Visa">
+                        <div class="payment-method" title="Visa">
                             <i class="fab fa-cc-visa"></i>
                         </div>
 
                         <!-- MasterCard -->
-                        <div class="payment-method text-red-500" title="MasterCard">
+                        <div class="payment-method" title="MasterCard">
                             <i class="fab fa-cc-mastercard"></i>
                         </div>
 
                         <!-- PayPal -->
-                        <div class="payment-method text-blue-700 text-3xl" title="PayPal">
+                        <div class="payment-method" title="PayPal">
                             <i class="fab fa-paypal"></i>
                         </div>
                     </div>
@@ -791,198 +246,41 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Load cart JavaScript -->
+<script type="module" src="{% static 'cart/js/cart-detail.js' %}"></script>
+
+<!-- Debug script to verify loading -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Function to update cart quantity via AJAX
-    function updateCartItem(productId, quantity) {
-    const url = `{% url 'cart:cart_update' 0 %}`.replace('0', productId);
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    const data = new FormData();
-    data.append('quantity', quantity);
-    data.append('csrfmiddlewaretoken', csrfToken);
+    console.log('🛒 Cart template JavaScript loaded');
 
-    return fetch(url, {
-        method: 'POST',
-        body: data,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .catch(error => {
-        console.error('Error updating cart:', error);
-        return { success: false, message: 'Network error' };
-    });
-}
+    // Enhanced debug to check everything
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('📦 DOM Content Loaded - checking cart setup');
 
-    // Function to update UI after cart change
-    function updateCartUI(data, productId, input) {
-        if (data.success) {
-            // Update item total
-            const totalElement = document.getElementById(`total-${productId}`);
-            if (totalElement) {
-                totalElement.textContent = `KES ${parseFloat(data.item_total).toLocaleString('en-US')}`;
-            }
+        // Check if cart elements exist
+        const cartItems = document.querySelectorAll('.cart-item-row');
+        const quantityButtons = document.querySelectorAll('.quantity-btn');
+        const quantityInputs = document.querySelectorAll('.quantity-input');
 
-            // Update cart totals
-            const subtotalElement = document.getElementById('cart-subtotal');
-            const totalCartElement = document.getElementById('cart-total');
-            if (subtotalElement && totalCartElement) {
-                subtotalElement.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString('en-US')}`;
-                totalCartElement.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString('en-US')}`;
-            }
+        console.log(`🔍 Found ${cartItems.length} cart items`);
+        console.log(`🔍 Found ${quantityButtons.length} quantity buttons`);
+        console.log(`🔍 Found ${quantityInputs.length} quantity inputs`);
 
-            // Update cart count in header
-            const cartCountElement = document.querySelector('.cart-item-count');
-            if (cartCountElement) {
-                cartCountElement.textContent = `${data.cart_total_items} item${data.cart_total_items !== 1 ? 's' : ''}`;
-            }
-
-            // Update max stock and input value
-            input.max = data.product_stock;
-            input.value = data.item_quantity;
-
-            // Show stock warning if needed
-            const formRow = input.closest('.cart-item-cell');
-            if (formRow) {
-                const existingWarnings = formRow.querySelectorAll('.stock-warning');
-                existingWarnings.forEach(el => el.remove());
-
-                if (input.value >= data.product_stock) {
-                    showStockWarning(input, data.product_stock);
-                }
-            }
-
-            // Show success notification
-            showNotification('Cart updated successfully', 'success');
-        } else if (data.message) {
-            showNotification(data.message, 'error');
-        }
-    }
-
-    // Function to show stock warnings
-    function showStockWarning(input, maxStock) {
-        const formRow = input.closest('.cart-item-cell');
-        if (!formRow) return;
-
-        const warning = document.createElement('div');
-        warning.className = 'stock-warning';
-        warning.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Only ${maxStock} available`;
-        formRow.appendChild(warning);
-    }
-
-    // Function to show notifications
-    function showNotification(message, type) {
-        // Create toast element
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.textContent = message;
-        toast.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            border-radius: 6px;
-            z-index: 9999;
-            color: ${type === 'success' ? '#155724' : '#721c24'};
-            background: ${type === 'success' ? '#d4edda' : '#f8d7da'};
-            border: 1px solid ${type === 'success' ? '#c3e6cb' : '#f5c6cb'};
-            animation: fadeIn 0.3s forwards;
-        `;
-
-        document.body.appendChild(toast);
-
-        // Remove after 3 seconds
-        setTimeout(() => {
-            toast.style.animation = 'fadeOut 0.3s forwards';
-            toast.addEventListener('animationend', () => {
-                toast.remove();
-            });
-        }, 2700);
-    }
-
-    // Quantity button event listeners
-document.querySelectorAll('.quantity-btn').forEach(button => {
-    button.addEventListener('click', function() {
-        const productId = this.dataset.productId;
-        const input = this.parentElement.querySelector('.quantity-input');
-        let newQuantity = parseInt(input.value);
-
-        if (this.classList.contains('increase')) {
-            newQuantity++;
-        } else if (this.classList.contains('decrease') && newQuantity > 1) {
-            newQuantity--;
-        }
-
-        input.value = newQuantity;
-
-        // Update cart
-        updateCartItem(productId, newQuantity)
-            .then(data => updateCartUI(data, productId, input));
-    });
-});
-
-// Quantity input changes
-document.querySelectorAll('.quantity-input').forEach(input => {
-    input.addEventListener('change', function() {
-        const productId = this.dataset.productId;
-        let newQuantity = parseInt(this.value);
-
-        // Validate quantity
-        if (isNaN(newQuantity) || newQuantity < 1) newQuantity = 1;
-        if (newQuantity > parseInt(this.max)) newQuantity = parseInt(this.max);
-
-        this.value = newQuantity;
-
-        // Update cart
-        updateCartItem(productId, newQuantity)
-            .then(data => updateCartUI(data, productId, this));
-    });
-});
-
-    // Remove item forms
-    document.querySelectorAll('.cart-remove-form').forEach(form => {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const productId = this.action.split('/').filter(Boolean).pop();
-
-            fetch(this.action, {
-                method: 'POST',
-                body: new FormData(this),
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Remove row from table
-                    this.closest('.cart-item-row').remove();
-
-                    // Update cart totals
-                    const subtotal = document.getElementById('cart-subtotal');
-                    const total = document.getElementById('cart-total');
-                    if (subtotal && total) {
-                        subtotal.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString('en-US')}`;
-                        total.textContent = `KES ${parseFloat(data.cart_total_price).toLocaleString('en-US')}`;
-                    }
-
-                    // Update cart count in header
-                    const cartCountElement = document.querySelector('.cart-item-count');
-                    if (cartCountElement) {
-                        cartCountElement.textContent = `${data.cart_total_items} item${data.cart_total_items !== 1 ? 's' : ''}`;
-                    }
-
-                    // Show empty cart if needed
-                    if (data.cart_total_items === 0) {
-                        location.reload();
-                    }
-
-                    showNotification('Item removed from cart', 'success');
-                }
+        // Test if buttons are interactive
+        quantityButtons.forEach((btn, index) => {
+            btn.addEventListener('click', function () {
+                console.log(`🎯 Quantity button ${index + 1} clicked - functionality works!`);
             });
         });
+
+        // Check for cart manager
+        setTimeout(() => {
+            if (window.cartManager) {
+                console.log('✅ CartManager found on window:', window.cartManager);
+            } else {
+                console.log('ℹ️ CartManager not on window, but may be working internally');
+            }
+        }, 100);
     });
-});
 </script>
 {% endblock %}

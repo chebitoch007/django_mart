@@ -165,30 +165,17 @@ USE_TZ = True
 STATICFILES_DIRS = [
     BASE_DIR / 'store/static',
     BASE_DIR / 'static',
-    BASE_DIR / 'users_src',  # For source maps in development
+    BASE_DIR / 'cart/static',  # Include cart static files
+    BASE_DIR / 'users/static', # Include users static files
+    BASE_DIR / 'static/frontend',
 ]
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+"""STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'"""
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 # ================== Vite Configuration ==================
 VITE_APP_DIR = BASE_DIR / 'frontend'  # Correct path to your Vite app
-VITE_MANIFEST_PATH = BASE_DIR / "static" / "frontend" / ".vite" / "manifest.json"
-
-# Optional for hot-reload dev server (during npm run dev)
-VITE_DEV_SERVER = {
-    "host": "localhost",
-    "port": 5173,
-}
-
-DJANGO_VITE = {
-    "default": {
-        "dev_mode": DEBUG, # Enables HMR during development
-        "manifest_path": BASE_DIR / "static" / "frontend" / ".vite" / "manifest.json",
-        "static_url_prefix": "frontend/",
-    }
-}
-
 
 # Media files (Cloudflare R2)
 if env('USE_CLOUDFLARE_R2', default=False):

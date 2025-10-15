@@ -1,14 +1,14 @@
 // paypal.ts
-import { formatCurrency, isPaypalCurrencySupported } from '../utils/utils';
+import { formatCurrency, isPaypalCurrencySupported } from '../utils/utils.js';
 import {
   startProcessingAnimation,
   stopProcessingAnimation,
   showPayPalStatus,
   showPayPalError,
   clearPayPalStatus
-} from '../ui/ui';
-import { PaymentSystem } from '../payments';
-import { PaymentResponse, PayPalButtons } from '../types/payment';
+} from '../ui/ui.js';
+import { PaymentSystem } from '../payments.js';
+import { PaymentResponse, PayPalButtons } from '../types/payment.js';
 
 let paypalButtons: PayPalButtons | null = null;
 

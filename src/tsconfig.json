@@ -5,16 +5,21 @@
     "moduleResolution": "node",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "allowJs": true,
-    "outDir": "./static/js",
-    "rootDir": "./src",
-    "strict": false,
+    "outDir": "../static/js",
+    "rootDir": ".",
+    "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "declaration": false,
     "sourceMap": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "static/js", "frontend"]
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "../static",
+    "../frontend"
+  ]
 }
-

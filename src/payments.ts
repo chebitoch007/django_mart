@@ -1,12 +1,12 @@
-import { initializeMpesa } from './payment-methods/mpesa';
-import { initializePayPal, cleanupPayPal } from './payment-methods/paypal';
+import { initializeMpesa } from './payment-methods/mpesa.js';
+import { initializePayPal, cleanupPayPal } from './payment-methods/paypal.js';
 import {
   validatePhoneNumber,
   formatCurrency,
   saveFormState,
   restoreFormState,
   updateServerPaymentMethod
-} from './utils/utils';
+} from './utils/utils.js';
 import {
   showPaymentStatus,
   showPaymentError,
@@ -19,8 +19,8 @@ import {
   hideCurrencyTooltip,
   showInputError,
   clearInputError
-} from './ui/ui';
-import { PaymentConfig, PaymentState, PaymentElements, PaymentMethod } from './types/payment';
+} from './ui/ui.js';
+import { PaymentConfig, PaymentState, PaymentElements, PaymentMethod } from './types/payment.js';
 
 export class PaymentSystem {
   private config: PaymentConfig;
