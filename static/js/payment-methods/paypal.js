@@ -1,6 +1,6 @@
 // paypal.ts
-import { formatCurrency, isPaypalCurrencySupported } from '../utils/utils';
-import { startProcessingAnimation, stopProcessingAnimation, showPayPalStatus, showPayPalError, clearPayPalStatus } from '../ui/ui';
+import { formatCurrency, isPaypalCurrencySupported } from '../utils/utils.js';
+import { startProcessingAnimation, stopProcessingAnimation, showPayPalStatus, showPayPalError, clearPayPalStatus } from '../ui/ui.js';
 let paypalButtons = null;
 export function initializePayPal(paymentSystem) {
     clearPayPalStatus();

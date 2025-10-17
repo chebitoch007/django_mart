@@ -1,59 +1,50 @@
 <!-- store/templates/store/base.html -->
 
-{% load static %}
-{% load django_vite %}
-
+{% load static vite_tags django_vite %}
 
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ASAI - Premium Shopping Experience</title>
 
     <!-- Favicon -->
     <link rel="shortcut icon" href="{% static 'store/images/favicon.ico' %}" type="image/x-icon">
 
-    <!-- Tailwind CSS -->
+    <!-- Tailwind css -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap"
-          rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
 
 
-{% load vite_tags %}
 
-<!-- Vite CSS -->
-{% vite_css 'src/main.ts' %}
-{% vite_css 'src/store/main.ts' %}
-{% vite_css 'src/js/payments.js' %}  {# include if payments also outputs css #}
+    {% if debug %}
+    {% vite_hmr_client %}
+    {% endif %}
 
-<!-- Vite JS -->
-<script type="module" src="{% vite_asset 'src/main.ts' %}"></script>
-<script type="module" src="{% vite_asset 'src/store/main.ts' %}"></script>
-<script type="module" src="{% vite_asset 'src/js/payments.js' %}"></script>
+    {% vite_asset 'src/store/main.ts' %}
 
 
-    <!-- Base CSS -->
-    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}"/>
+
+
 
     {% block extra_head %}{% endblock %}
-    {% block extra_head_scripts %}{% endblock %}
 </head>
 
 <!-- Add page-specific body classes -->
 <body class="flex flex-col min-h-screen {% block body_class %}{% endblock %}"
       data-page="{% block page_name %}{% endblock %}">
+
+<div id="app"></div>
 
 <!-- Enhanced Navigation -->
 <header class="amazon-nav sticky top-0 z-50">
@@ -64,6 +55,7 @@
             <div class="asai-logo">
                 <div class="asai-text">ASAI</div>
                 <div class="controller-icons">
+
                     <i class="fas fa-circle icon-pad" style="color: #999;" aria-hidden="true"></i>
                     <i class="fas fa-circle icon-pad" style="color: #ccc;" aria-hidden="true"></i>
                     <i class="fas fa-circle icon-pad" style="color: #bbb;" aria-hidden="true"></i>

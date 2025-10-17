@@ -106,16 +106,25 @@ function pollMpesaPaymentStatus(checkoutRequestId: string, paymentSystem: Paymen
   const config = paymentSystem.getConfig();
 
   const pollInterval = 3000;
-  const maxAttempts = 40;
+  const maxAttempts = 40; // 2 minutes total
   let attempts = 0;
 
   const poller = setInterval(async () => {
     attempts++;
+
+    // Update UI with attempt count
+    if (attempts % 5 === 0) { // Every 15 seconds
+      showPaymentStatus(`Still waiting for payment confirmation... (${attempts}/${maxAttempts})`, elements.paymentStatus);
+    }
+
     if (attempts > maxAttempts) {
       clearInterval(poller);
       stopProcessingAnimation(elements.processingModal);
       setSubmitButtonState(false, elements.paymentSubmitButton);
-      showPaymentError('Payment timed out. Please check your phone or try again.', elements.paymentErrors);
+      showPaymentError(
+        'Payment timed out. Please check your phone to complete the M-Pesa payment, or try again.',
+        elements.paymentErrors
+      );
       return;
     }
 
@@ -127,27 +136,40 @@ function pollMpesaPaymentStatus(checkoutRequestId: string, paymentSystem: Paymen
         method: 'GET',
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
       });
+
+      if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status}`);
+      }
+
       const json: MpesaResponse = await resp.json();
-      console.info('[MPESA] poll status:', json);
+      console.info('[MPESA] poll status:', json, `Attempt: ${attempts}/${maxAttempts}`);
 
       if (json.status === 'success' || json.status === 'completed') {
         clearInterval(poller);
-        elements.modalTitle.textContent = 'Payment Confirmed';
+        elements.modalTitle.textContent = 'Payment Confirmed!';
         elements.modalText.textContent = 'Finalizing your order...';
-        // proceed to finalize order on server
+        showPaymentStatus('Payment confirmed! Finalizing order...', elements.paymentStatus);
         finalizeMpesaPayment(checkoutRequestId, paymentSystem);
-      } else if (json.status === 'failed' || json.status === 'error') {
+      } else if (json.status === 'failed' || json.status === 'cancelled' || json.status === 'error') {
         clearInterval(poller);
         stopProcessingAnimation(elements.processingModal);
         setSubmitButtonState(false, elements.paymentSubmitButton);
-        showPaymentError(json.message || 'Payment failed', elements.paymentErrors);
+        showPaymentError(
+          json.message || 'Payment failed or was cancelled. Please try again.',
+          elements.paymentErrors
+        );
       } else {
-        // still pending: update UI optionally
-        showPaymentStatus('Awaiting M-Pesa confirmation...', elements.paymentStatus);
+        // Still processing - update status message occasionally
+        if (attempts === 1) {
+          showPaymentStatus('Payment initiated. Please check your phone and enter your M-Pesa PIN.', elements.paymentStatus);
+        }
       }
     } catch (err) {
       console.error('[MPESA] polling error', err);
-      // continue polling but log
+      // Don't stop on network errors, just log and continue
+      if (attempts % 10 === 0) { // Log every 30 seconds
+        showPaymentStatus('Having trouble checking payment status. Still trying...', elements.paymentStatus);
+      }
     }
   }, pollInterval);
 }

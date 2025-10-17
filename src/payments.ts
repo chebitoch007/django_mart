@@ -163,7 +163,6 @@ export class PaymentSystem {
     }
 
     // Update server and save state
-    updateServerPaymentMethod(method, this.config.csrfToken);
     saveFormState({
       method: method,
       currency: this.state.currentCurrency,

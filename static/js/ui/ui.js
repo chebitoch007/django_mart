@@ -1,11 +1,12 @@
-import { getMethodDisplayName, isPaypalCurrencySupported } from '../utils/utils';
+import { getMethodDisplayName, isPaypalCurrencySupported } from '../utils/utils.js';
 // Processing stages for different payment methods
 const processingStages = {
     mpesa: [
         { title: 'Connecting to M-Pesa', text: 'Establishing secure connection with Safaricom...' },
         { title: 'Sending Payment Request', text: 'Your phone will receive a payment prompt shortly...' },
-        { title: 'Awaiting Confirmation', text: 'Please complete the transaction on your phone...' },
-        { title: 'Finalizing Transaction', text: 'Processing payment confirmation...' }
+        { title: 'Awaiting Confirmation', text: 'Please check your phone and enter your M-Pesa PIN to complete the payment...' },
+        { title: 'Verifying Payment', text: 'Confirming your payment with M-Pesa...' },
+        { title: 'Finalizing Transaction', text: 'Processing payment confirmation and updating your order...' }
     ],
     paypal: [
         { title: 'Connecting to PayPal', text: 'Establishing secure connection...' },

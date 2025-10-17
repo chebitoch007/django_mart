@@ -3,21 +3,27 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build:payments": "echo 'Payments are bundled by Vite, no separate build needed'",
-    "build:payments:watch": "echo 'Payments are handled by Vite in watch mode'",
+    "build:payments": "cd src && npm run build",
+    "build:payments:watch": "cd src && npm run build:watch",
+
     "build:users": "cd users_src && node build.js",
     "build:users:watch": "cd users_src && tsc --watch",
+
     "build:frontend": "cd frontend && npm run build",
     "build:frontend:dev": "cd frontend && npm run dev",
-    "build:cart": "cd frontend && npm run build:cart",
-    "build:cart:watch": "cd frontend && tsc --watch --project tsconfig.cart.json",
-    "build:all": "npm run build:users && npm run build:frontend && npm run build:cart",
+
+    "build:all": "npm run build:users && npm run build:payments && npm run build:frontend",
+
     "clean:users": "rm -rf users/static/js/*",
+    "clean:payments": "rm -rf static/js/*",
     "clean:cart": "rm -rf cart/static/cart/js/*",
-    "clean:frontend": "rm -rf static/frontend/* frontend/dist frontend/.vite",
-    "clean:all": "npm run clean:users && npm run clean:cart && npm run clean:frontend",
+    "clean:frontend": "rm -rf static/frontend/js/* static/frontend/css/* static/frontend/assets/* frontend/dist frontend/.vite",
+
+    "clean:all": "npm run clean:users && npm run clean:payments && npm run clean:cart && npm run clean:frontend",
+
     "clean:build": "npm run clean:all && npm run build:all",
-    "dev": "npm run build:users && npm run build:cart && python manage.py runserver",
+
+    "dev": "npm run build:users && npm run build:payments && python manage.py runserver",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:full": "concurrently \"npm run dev:frontend\" \"python manage.py runserver\""
   },

@@ -1,10 +1,6 @@
 <!-- orders/templates/orders/checkout.html -->
-
 {% extends "store/base.html" %}
 {% load humanize static %}
-
-
-
 {% block extra_head_scripts %}
 <script>
   window.paymentConfig = {
@@ -28,19 +24,11 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
 <!-- Use the non-module version for now to avoid import issues -->
-<script type="module" src="{% static 'js/payment-methods/mpesa.js' %}"></script>
-<script type="module" src="{% static 'js/payment-methods/paypal.js' %}"></script>
-<script type="module" src="{% static 'js/types/payment.js' %}"></script>
-<script type="module" src="{% static 'js/ui/ui.js' %}"></script>
-<script type="module" src="{% static 'js/utils/utils.js' %}"></script>
-<script type="module" src="{% static 'js/utils/validation.js' %}"></script>
 <script type="module" src="{% static 'js/payments.js' %}"></script>
 
 
 {% endblock %}
-
 {% block content %}
-
 <style>
     /* Enhanced Checkout Page Styles */
     :root {

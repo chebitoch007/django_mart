@@ -177,6 +177,16 @@ STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesSto
 # ================== Vite Configuration ==================
 VITE_APP_DIR = BASE_DIR / 'frontend'  # Correct path to your Vite app
 
+VITE_WS_CLIENT_URL = "http://localhost:5173"
+
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": DEBUG,
+        "manifest_path": BASE_DIR / "static/frontend/manifest.json",
+        "static_url_prefix": "/static/frontend/",
+    }
+}
+
 # Media files (Cloudflare R2)
 if env('USE_CLOUDFLARE_R2', default=False):
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'

@@ -1,4 +1,13 @@
 {
+  "src/cart/cart-detail.ts": {
+    "file": "js/cart-BTIvafzV.js",
+    "name": "cart",
+    "src": "src/cart/cart-detail.ts",
+    "isEntry": true,
+    "css": [
+      "css/cart-yVL6tFM3.css"
+    ]
+  },
   "src/js/payments.js": {
     "file": "js/payments-Cy2hTf7g.js",
     "name": "payments",
