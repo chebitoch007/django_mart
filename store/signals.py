@@ -1,8 +1,7 @@
-from django.db.models.signals import post_migrate
+from django.db.models.signals import post_migrate, post_save, post_delete
 from django.dispatch import receiver
-from store.models import Category
+from .models import Category, Review, Product
 from store.constants import CATEGORIES
-from django.utils.text import slugify
 from django.db import transaction
 
 
@@ -41,3 +40,16 @@ def create_initial_categories(sender, **kwargs):
             # Rebuild MPTT tree
             Category.objects.rebuild()
             print("Category tree rebuilt successfully")
+
+def update_product_review_count(product):
+    # Count only approved reviews
+    count = Review.objects.filter(product=product, approved=True).count()
+    Product.objects.filter(id=product.id).update(review_count=count)
+
+@receiver(post_save, sender=Review)
+def update_review_count_on_save(sender, instance, **kwargs):
+    update_product_review_count(instance.product)
+
+@receiver(post_delete, sender=Review)
+def update_review_count_on_delete(sender, instance, **kwargs):
+    update_product_review_count(instance.product)

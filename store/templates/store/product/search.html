@@ -1,427 +1,131 @@
 {% extends 'store/base.html' %}
-{% load humanize %}
-{% load static %}
+{% load humanize static query_transform %}
 
 {% block body_class %}search-results-page{% endblock %}
 {% block page_name %}search-results{% endblock %}
 
 {% block extra_head %}
   {{ block.super }}
-
 {% endblock %}
 
 {% block content %}
-<!-- HTML content without inline css and JavaScript -->
 <div class="search-results-container">
-    <!-- Search Header -->
-    <div class="search-header">
-        <h1 class="search-title">Search Results</h1>
-        <p>Showing results for: <span class="search-query">"{{ query }}"</span></p>
-        <div class="results-count">{{ products.paginator.count }} Items</div>
+  <div class="search-header">
+    <h1 class="search-title">Search Results</h1>
+    <p>Showing results for: <span class="search-query">"{{ query }}"</span></p>
+    <div class="results-count">{{ products.paginator.count }} Items</div>
 
-        <!-- Active Filters -->
-        <div class="active-filters">
-            {% if request.GET.category %}
-            <div class="filter-tag">
-                Category: {{ request.GET.category }}
-                <a href="?{% query_transform category=None %}" class="remove-filter">
-                    <i class="fas fa-times"></i>
-                </a>
-            </div>
-            {% endif %}
-
-            {% if request.GET.max_price %}
-            <div class="filter-tag">
-                Max Price: KES {{ request.GET.max_price|intcomma }}
-                <a href="?{% query_transform max_price=None %}" class="remove-filter">
-                    <i class="fas fa-times"></i>
-                </a>
-            </div>
-            {% endif %}
-
-            {% if request.GET.min_rating %}
-            <div class="filter-tag">
-                Min Rating: {{ request.GET.min_rating }} stars
-                <a href="?{% query_transform min_rating=None %}" class="remove-filter">
-                    <i class="fas fa-times"></i>
-                </a>
-            </div>
-            {% endif %}
-
-            {% if request.GET.in_stock %}
-            <div class="filter-tag">
-                In Stock Only
-                <a href="?{% query_transform in_stock=None %}" class="remove-filter">
-                    <i class="fas fa-times"></i>
-                </a>
-            </div>
-            {% endif %}
+    <div class="active-filters" aria-live="polite">
+      {% if request.GET.category %}
+        <div class="filter-tag">Category: {{ request.GET.category }}
+          <a href="?{% query_transform category=None %}" class="remove-filter" title="Remove category filter"><i class="fas fa-times"></i></a>
         </div>
-    </div>
-
-    <div class="results-layout">
-        <!-- Filter Sidebar -->
-        <aside class="filter-sidebar">
-            <button class="filter-toggle" id="filterToggle">
-                <i class="fas fa-filter"></i> Show Filters
-            </button>
-
-            <div class="filter-card">
-                <div class="filter-header">
-                    <h2 class="filter-title">
-                        <i class="fas fa-filter"></i> Filters
-                    </h2>
-                    <a href="?q={{ query }}" class="reset-link">Reset All</a>
-                </div>
-
-                <div class="filter-content" id="filterContent">
-                    <!-- Sort Section -->
-                    <div class="filter-section">
-                        <h3 class="section-title">
-                            <i class="fas fa-sort section-icon"></i> Sort By
-                        </h3>
-                        <div class="sort-options">
-                            {% for sort_key, sort_name in sort_options.items %}
-                            <a href="?{% query_transform sort=sort_key %}"
-                               class="sort-option {% if sort_by == sort_key %}active{% endif %}">
-                                <span>{{ sort_name }}</span>
-                                {% if sort_by == sort_key %}
-                                <i class="fas fa-check"></i>
-                                {% else %}
-                                <i class="fas fa-chevron-right"></i>
-                                {% endif %}
-                            </a>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <!-- Categories Section -->
-                    <div class="filter-section">
-                        <h3 class="section-title">
-                            <i class="fas fa-tag section-icon"></i> Categories
-                        </h3>
-                        <div class="popular-categories">
-                            {% for cat in categories|slice:":7" %}
-                            <a href="?{% query_transform category=cat.slug %}"
-                               class="category-card {% if request.GET.category == cat.slug %}active{% endif %}">
-                                <div class="category-info">
-                                    {% if cat.image %}
-                                    <div class="category-image">
-                                        <img src="{{ cat.image.url }}" alt="{{ cat.name }}">
-                                    </div>
-                                    {% else %}
-                                    <div class="category-image">
-                                        <i class="fas fa-box"></i>
-                                    </div>
-                                    {% endif %}
-                                    <span class="category-name">{{ cat.name }}</span>
-                                </div>
-                                <span class="category-count">{{ cat.product_count }}</span>
-                            </a>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <!-- Price Filter -->
-                    <div class="filter-section">
-                        <h3 class="section-title">
-                            <i class="fas fa-tag section-icon"></i> Price Range
-                        </h3>
-                        <div class="price-filter">
-                            <div class="price-slider-container">
-                                <input type="range" class="price-slider" min="0" max="1000"
-                                       value="{{ max_price|default:'1000' }}" id="priceRange">
-                                <div class="price-display">
-                                    <span>0 KES</span>
-                                    <span id="priceDisplay">{{ max_price|default:'1000' }} KES</span>
-                                </div>
-                            </div>
-
-                            <div class="price-inputs">
-                                <input type="number" id="minPriceInput" class="price-input"
-                                       placeholder="Min" min="0" max="1000">
-                                <input type="number" id="maxPriceInput" class="price-input"
-                                       placeholder="Max" min="0" max="1000"
-                                       value="{{ max_price|default:'' }}">
-                                <button class="apply-price-btn" id="applyPriceBtn">Apply</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Availability Filter -->
-                    <div class="filter-section">
-                        <h3 class="section-title">
-                            <i class="fas fa-box section-icon"></i> Availability
-                        </h3>
-                        <div class="stock-filter">
-                            <input type="checkbox" id="inStock" class="stock-checkbox"
-                                   {% if in_stock %}checked{% endif %}>
-                            <label for="inStock" class="stock-label">In Stock Only</label>
-                        </div>
-                    </div>
-
-                    <!-- Rating Filter -->
-                    <div class="filter-section">
-                        <h3 class="section-title">
-                            <i class="fas fa-star section-icon"></i> Minimum Rating
-                        </h3>
-                        <div class="rating-filter">
-                            {% for i in "54321" %}
-                                <a href="?{% query_transform min_rating=i %}"
-                                   class="rating-option {% if request.GET.min_rating == i %}active{% endif %}">
-                                    {% for _ in i|make_list %}
-                                        <i class="fas fa-star"></i>
-                                    {% endfor %}
-                                    <span>& up</span>
-                                </a>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Results Content -->
-        <div class="results-content">
-            <!-- Sort Dropdown -->
-            <div class="sort-container">
-                <select class="sort-select" id="sortSelect">
-                    {% for sort_key, sort_name in sort_options.items %}
-                    <option value="{{ sort_key }}" {% if sort_by == sort_key %}selected{% endif %}>
-                        Sort by: {{ sort_name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- Product Grid -->
-            <div class="results-grid">
-                {% if products %}
-                    {% for product in products %}
-                    <div class="product-card">
-                        <div class="product-image-container">
-                            <a href="{{ product.get_absolute_url }}">
-                                <img src="{{ product.get_image_url }}" alt="{{ product.name }}" class="product-image">
-                            </a>
-
-                            {% if product.on_sale %}
-                            <div class="product-badge">SAVE {{ product.get_discount_percentage }}%</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="product-info">
-                            <h3 class="product-name">
-                                <a href="{{ product.get_absolute_url }}">{{ product.name }}</a>
-                            </h3>
-
-                            <div class="product-rating">
-                                <div class="rating-stars">
-                                    {% with rating=product.rating|default:4.5 %}
-                                    {% for i in "12345" %}
-                                        {% if forloop.counter <= rating|add:0.5|floatformat:0|add:"-1" %}
-                                            <i class="fas fa-star"></i>
-                                        {% elif forloop.counter <= rating %}
-                                            <i class="fas fa-star-half-alt"></i>
-                                        {% else %}
-                                            <i class="far fa-star"></i>
-                                        {% endif %}
-                                    {% endfor %}
-                                    {% endwith %}
-                                </div>
-                                <span class="rating-count">({{ product.review_count|default:"24" }})</span>
-                            </div>
-
-                            <div class="product-pricing">
-                                <span class="current-price">KES {{ product.get_display_price|intcomma }}</span>
-                                {% if product.discount_price %}
-                                <span class="original-price">KES {{ product.price|intcomma }}</span>
-                                {% endif %}
-                            </div>
-
-                            <form action="{% url 'cart:cart_add' product.id %}" method="post" class="add-to-cart-form">
-                                {% csrf_token %}
-                                <input type="hidden" name="quantity" value="1">
-                                <button class="add-to-cart-btn" {% if product.stock <= 0 %}disabled{% endif %}>
-                                    {% if product.stock > 0 %}
-                                    <i class="fas fa-shopping-cart"></i> Add to Cart
-                                    {% else %}
-                                    Out of Stock
-                                    {% endif %}
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                <!-- Empty State -->
-                <div class="empty-state">
-                    <div class="empty-icon"><i class="fas fa-search-minus"></i></div>
-                    <h3 class="empty-title">No Matching Products Found</h3>
-                    <p class="empty-text">Try these suggestions:</p>
-                    <ul class="suggestions-list">
-                        <li class="suggestion-item">• Check your spelling or try different keywords</li>
-                        <li class="suggestion-item">• Browse our <a href="{% url 'store:product_list' %}" class="suggestion-link">full catalog</a></li>
-                        <li class="suggestion-item">• Try a more general search term</li>
-                        <li class="suggestion-item">• Check out our <a href="#" class="suggestion-link">trending products</a></li>
-                    </ul>
-                    <a href="{% url 'store:product_list' %}" class="browse-btn">Browse All Products</a>
-                </div>
-                {% endif %}
-            </div>
-
-
-               <!-- NEW: Related Searches Section -->
-            {% if related_searches %}
-            <div class="related-searches">
-                <h3 class="related-title">Related Searches</h3>
-                <div class="related-tags">
-                    {% for term in related_searches %}
-                    <a href="{% url 'store:product_search' %}?q={{ term|urlencode }}" class="related-tag">
-                        {{ term }}
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-
-            <!-- Pagination -->
-            {% if products.paginator.num_pages > 1 %}
-            <div class="pagination-container">
-                <div class="pagination">
-                    {% if products.has_previous %}
-                    <a href="?{% query_transform page=products.previous_page_number %}" class="pagination-item">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                    {% endif %}
-
-                    {% for num in products.paginator.page_range %}
-                        {% if num == products.number %}
-                        <span class="pagination-item active">{{ num }}</span>
-                        {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
-                        <a href="?{% query_transform page=num %}" class="pagination-item">{{ num }}</a>
-                        {% endif %}
-                    {% endfor %}
-
-                    {% if products.has_next %}
-                    <a href="?{% query_transform page=products.next_page_number %}" class="pagination-item">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
+      {% endif %}
+      {% if request.GET.max_price %}
+        <div class="filter-tag">Max Price: KES {{ request.GET.max_price|intcomma }}
+          <a href="?{% query_transform max_price=None %}" class="remove-filter" title="Remove price filter"><i class="fas fa-times"></i></a>
         </div>
+      {% endif %}
+      {% if request.GET.min_rating %}
+        <div class="filter-tag">Min Rating: {{ request.GET.min_rating }} stars
+          <a href="?{% query_transform min_rating=None %}" class="remove-filter" title="Remove rating filter"><i class="fas fa-times"></i></a>
+        </div>
+      {% endif %}
+      {% if request.GET.in_stock %}
+        <div class="filter-tag">In Stock Only
+          <a href="?{% query_transform in_stock=None %}" class="remove-filter" title="Remove in-stock filter"><i class="fas fa-times"></i></a>
+        </div>
+      {% endif %}
+      {% if request.GET.brand %}
+        <div class="filter-tag">Brand: {{ request.GET.brand }}
+          <a href="?{% query_transform brand=None %}" class="remove-filter" title="Remove brand filter"><i class="fas fa-times"></i></a>
+        </div>
+      {% endif %}
+      {% if request.GET.supplier %}
+        <div class="filter-tag">Supplier
+          <a href="?{% query_transform supplier=None %}" class="remove-filter" title="Remove supplier filter"><i class="fas fa-times"></i></a>
+        </div>
+      {% endif %}
     </div>
+  </div>
+
+  <div class="results-layout">
+    <aside class="filter-sidebar" aria-label="Filters">
+      <button class="filter-toggle" id="filterToggle" aria-expanded="false"> <i class="fas fa-filter"></i> Show Filters</button>
+      <div class="filter-card" id="filterContent" hidden>
+        <div class="filter-header">
+          <h2 class="filter-title"><i class="fas fa-filter" aria-hidden="true"></i> Filters</h2>
+          <a href="?q={{ query }}" class="reset-link">Reset All</a>
+        </div>
+
+        <div class="filter-section">
+          <h3 class="section-title"><i class="fas fa-sort section-icon" aria-hidden="true"></i> Sort By</h3>
+          <div class="sort-options">
+            {% for sort_key, sort_name in sort_options.items %}
+              <a href="?{% query_transform sort=sort_key %}" class="sort-option {% if sort_by == sort_key %}active{% endif %}">
+                <span>{{ sort_name }}</span>
+                {% if sort_by == sort_key %}<i class="fas fa-check" aria-hidden="true"></i>{% else %}<i class="fas fa-chevron-right" aria-hidden="true"></i>{% endif %}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <h3 class="section-title"><i class="fas fa-tag section-icon" aria-hidden="true"></i> Price Range</h3>
+          <div class="price-filter">
+            <input type="range" class="price-slider" min="0" max="100000" id="priceRange" value="{{ max_price|default:'1000' }}">
+            <div class="price-display"><span>0 KES</span> <span id="priceDisplay">{{ max_price|default:'1000' }} KES</span></div>
+            <div class="price-inputs">
+              <input type="number" id="minPriceInput" class="price-input" placeholder="Min" min="0">
+              <input type="number" id="maxPriceInput" class="price-input" placeholder="Max" min="0" value="{{ max_price|default:'' }}">
+              <button type="button" id="applyPriceBtn" class="apply-price-btn">Apply</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <h3 class="section-title"><i class="fas fa-briefcase section-icon" aria-hidden="true"></i> Brands</h3>
+          <div class="brand-filter" style="max-height:200px;overflow:auto;">
+            {% for brand in brands %}
+            <a href="?{% query_transform q=query brand=brand.slug page=None %}" class="brand-item">
+              {% if brand.logo %}
+                <img src="{{ brand.logo.url }}" alt="{{ brand.name }}" class="brand-logo-small">
+              {% else %}
+                <span class="brand-name">{{ brand.name }}</span>
+              {% endif %}
+              <span class="brand-count" aria-hidden="true">{{ brand.product_count }}</span>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <h3 class="section-title"><i class="fas fa-truck section-icon" aria-hidden="true"></i> Suppliers</h3>
+          <div class="supplier-filter" style="max-height:160px;overflow:auto;">
+            {% for sup in suppliers %}
+            <a href="?{% query_transform q=query supplier=sup.id page=None %}" class="supplier-item">
+              {{ sup.name }}
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <h3 class="section-title"><i class="fas fa-box section-icon" aria-hidden="true"></i> Availability</h3>
+          <div class="stock-filter">
+            <input type="checkbox" id="inStock" class="stock-checkbox" {% if in_stock %}checked{% endif %}>
+            <label for="inStock" class="stock-label">In Stock Only</label>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+    <div class="results-content" id="resultsRoot">
+      {% include 'store/product/_results_grid.html' %}
+    </div>
+  </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Mobile filter toggle
-    const filterToggle = document.getElementById('filterToggle');
-    const filterContent = document.getElementById('filterContent');
-
-    if (filterToggle && filterContent) {
-        filterToggle.addEventListener('click', function() {
-            filterContent.classList.toggle('expanded');
-            filterToggle.innerHTML = filterContent.classList.contains('expanded') ?
-                '<i class="fas fa-times"></i> Hide Filters' :
-                '<i class="fas fa-filter"></i> Show Filters';
-        });
-    }
-
-    // Price range filter
-    const priceRange = document.getElementById('priceRange');
-    const maxPriceInput = document.getElementById('maxPriceInput');
-    const priceDisplay = document.getElementById('priceDisplay');
-
-    if (priceRange) {
-        priceRange.addEventListener('input', function() {
-            priceDisplay.textContent = this.value + ' KES';
-            if (maxPriceInput) maxPriceInput.value = this.value;
-        });
-    }
-
-    if (maxPriceInput) {
-        maxPriceInput.addEventListener('input', function() {
-            if (this.value > 1000) this.value = 1000;
-            if (this.value < 0) this.value = 0;
-            if (priceRange) priceRange.value = this.value;
-            priceDisplay.textContent = this.value + ' KES';
-        });
-    }
-
-    // Apply price filter
-    const applyPriceBtn = document.getElementById('applyPriceBtn');
-    if (applyPriceBtn) {
-        applyPriceBtn.addEventListener('click', function() {
-            const max = maxPriceInput.value || 1000;
-            const url = updateQueryStringParameter(window.location.href, 'max_price', max);
-            window.location.href = url;
-        });
-    }
-
-    // Stock filter
-    const inStockCheckbox = document.getElementById('inStock');
-    if (inStockCheckbox) {
-        inStockCheckbox.addEventListener('change', function() {
-            const url = this.checked ?
-                updateQueryStringParameter(window.location.href, 'in_stock', 'true') :
-                removeQueryStringParameter(window.location.href, 'in_stock');
-            window.location.href = url;
-        });
-    }
-
-    // Sorting dropdown
-    const sortSelect = document.getElementById('sortSelect');
-    if (sortSelect) {
-        sortSelect.addEventListener('change', function() {
-            const url = updateQueryStringParameter(window.location.href, 'sort', this.value);
-            window.location.href = url;
-        });
-    }
-
-    // Helper functions for URL manipulation
-    function updateQueryStringParameter(url, key, value) {
-        const urlObj = new URL(url);
-        urlObj.searchParams.set(key, value);
-        return urlObj.href;
-    }
-
-    function removeQueryStringParameter(url, key) {
-        const urlObj = new URL(url);
-        urlObj.searchParams.delete(key);
-        return urlObj.href;
-    }
-});
-
-
-
-
-
-
-
-
-        // NEW: Search analytics
-    const searchForm = document.querySelector('.search-bar-form');
-    if (searchForm) {
-        const searchInput = searchForm.querySelector('input[name="q"]');
-        if (searchInput && searchInput.value.trim()) {
-            // Send search analytics
-            fetch('/analytics/search/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                    query: searchInput.value.trim(),
-                    results_count: {{ products.paginator.count|default:0 }}
-                })
-            });
-        }
-    }
-});
-
-</script>
+<script src="{% static 'store/js/search.js' %}"></script>
 {% endblock %}

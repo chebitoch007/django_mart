@@ -1,4 +1,4 @@
-//frontend/src/store/main.ts
+// frontend/src/store/main.ts
 
 // Store main entry point
 import './styles/product-list.css';
@@ -15,36 +15,23 @@ import { initCategories } from './categories';
 
 // Initialize based on current page
 document.addEventListener('DOMContentLoaded', () => {
-  const body = document.body;
+  // Get the unique page name from the body's data-page attribute
+  const pageName = document.body.dataset.page;
 
-  console.log('🛒 Store main script loaded');
+  console.log(`🛒 Store main script loaded. Page: ${pageName}`);
 
-  // Check for product list page
-  if (body.classList.contains('product-list-page') ||
-      window.location.pathname.includes('/products/') ||
-      document.querySelector('.product-list-container')) {
-    console.log('📦 Detected product list page');
-    initProductList();
-  }
-
-  // Check for product detail page
-  if (body.classList.contains('product-detail-page') ||
-      document.querySelector('.product-detail-container')) {
+  // Use a mutually exclusive if/else if block
+  // This ensures ONLY the correct script runs
+  if (pageName === 'product-detail') {
     console.log('🔍 Detected product detail page');
     initProductDetail();
-  }
-
-  // Check for search page
-  if (body.classList.contains('search-page') ||
-      window.location.pathname.includes('/search/') ||
-      document.querySelector('.search-results-container')) {
+  } else if (pageName === 'product-list') {
+    console.log('📦 Detected product list page');
+    initProductList();
+  } else if (pageName === 'search') {
     console.log('🔎 Detected search page');
     initSearch();
-  }
-
-  // Check for categories page
-  if (body.classList.contains('categories-page') ||
-      document.querySelector('.categories-container')) {
+  } else if (pageName === 'categories') {
     console.log('📂 Detected categories page');
     initCategories();
   }

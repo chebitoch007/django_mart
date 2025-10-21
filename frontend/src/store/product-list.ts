@@ -691,4 +691,3 @@ export {
   initInfiniteScroll,
   loadMoreProducts
 };
-

@@ -1,20 +1,11 @@
 {% extends 'store/base.html' %}
-{% load humanize %}
-{% load static %}
+{% load humanize static query_transform %}
 
 {% block body_class %}categories-page{% endblock %}
 {% block page_name %}categories{% endblock %}
 
-{% block extra_head %}
-  {{ block.super }}
-
-{% endblock %}
-
 {% block content %}
-<!-- HTML content without inline css and JavaScript -->
 <div class="categories-container">
-
-
     <div class="category-nav">
         <div class="category-nav-list">
             <a href="{% url 'store:product_list' %}" class="category-tag {% if not category %}active{% endif %}">All Products</a>
@@ -33,23 +24,23 @@
     </div>
 
     <div class="categories-layout">
-        <aside class="filter-sidebar">
+        <aside class="filter-sidebar" aria-label="Filters">
             <div class="filter-card">
                 <div class="filter-header">
-                    <h2 class="filter-title"><i class="fas fa-filter filter-icon"></i>Filters</h2>
-                    <a href="?sort={{ request.GET.sort }}" class="reset-link">Reset All</a>
+                    <h2 class="filter-title"><i class="fas fa-filter" aria-hidden="true"></i> Filters</h2>
+                    <a href="?{% query_transform sort=request.GET.sort max_price=None in_stock=None brand=None supplier=None %}" class="reset-link">Reset All</a>
                 </div>
 
                 <div class="filter-section">
-                    <h3 class="section-title"><i class="fas fa-sort section-icon"></i>Sort By</h3>
+                    <h3 class="section-title"><i class="fas fa-sort section-icon" aria-hidden="true"></i>Sort By</h3>
                     <div class="sort-options">
                         {% for sort_key, sort_name in sort_options.items %}
-                        <a href="?sort={{ sort_key }}" class="sort-option {% if request.GET.sort == sort_key %}active{% endif %}">
+                        <a href="?{% query_transform sort=sort_key %}" class="sort-option {% if request.GET.sort == sort_key %}active{% endif %}">
                             <span>{{ sort_name }}</span>
                             {% if request.GET.sort == sort_key %}
-                            <i class="fas fa-check"></i>
+                            <i class="fas fa-check" aria-hidden="true"></i>
                             {% else %}
-                            <i class="fas fa-chevron-right"></i>
+                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
                             {% endif %}
                         </a>
                         {% endfor %}
@@ -57,9 +48,9 @@
                 </div>
 
                 <div class="filter-section">
-                    <h3 class="section-title"><i class="fas fa-tag section-icon"></i>Price Range</h3>
+                    <h3 class="section-title"><i class="fas fa-tag section-icon" aria-hidden="true"></i>Price Range</h3>
                     <div class="price-filter">
-                        <input type="range" class="price-slider" min="0" max="1000" value="{% if request.GET.max_price %}{{ request.GET.max_price }}{% else %}1000{% endif %}" id="priceRange">
+                        <input type="range" class="price-slider" min="0" max="100000" value="{% if request.GET.max_price %}{{ request.GET.max_price }}{% else %}1000{% endif %}" id="priceRange">
                         <div class="price-display">
                             <span>0 KES</span>
                             <span id="priceDisplay">{% if request.GET.max_price %}{{ request.GET.max_price }}{% else %}1000{% endif %} KES</span>
@@ -68,7 +59,7 @@
                 </div>
 
                 <div class="filter-section">
-                    <h3 class="section-title"><i class="fas fa-box section-icon"></i>Availability</h3>
+                    <h3 class="section-title"><i class="fas fa-box section-icon" aria-hidden="true"></i>Availability</h3>
                     <div class="stock-filter">
                         <input type="checkbox" id="inStock" class="stock-checkbox" {% if request.GET.in_stock %}checked{% endif %}>
                         <label for="inStock" class="stock-label">In Stock Only</label>
@@ -77,162 +68,11 @@
             </div>
         </aside>
 
-        <div class="products-grid">
-            <div class="products-container">
-                {% if products %}
-                    {% for product in products %}
-                    <div class="product-card">
-                        <div class="product-image-container">
-                            <a href="{{ product.get_absolute_url }}">
-                                {% if category.image %}
-                                <img src="{{ category.image.url }}" alt="{{ category.name }}" class="category-image">
-                                {% else %}
-                                <img src="{% static 'store/images/categories/default.png' %}" alt="{{ category.name }}" class="category-image">
-                                {% endif %}
-                            </a>
-
-                            {% if product.on_sale %}
-                            <div class="product-badge">SAVE {{ product.get_discount_percentage }}%</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="product-info">
-                            <h3 class="product-name">
-                                <a href="{{ product.get_absolute_url }}">{{ product.name }}</a>
-                            </h3>
-
-                            <div class="product-rating">
-                                <div class="rating-stars">
-                                    {% with rating=product.rating|default:4.5 %}
-                                    {% for i in "12345" %}
-                                        {% if forloop.counter <= rating|add:0.5|floatformat:0|add:"-1" %}
-                                            <i class="fas fa-star"></i>
-                                        {% elif forloop.counter <= rating %}
-                                            <i class="fas fa-star-half-alt"></i>
-                                        {% else %}
-                                            <i class="far fa-star"></i>
-                                        {% endif %}
-                                    {% endfor %}
-                                    {% endwith %}
-                                </div>
-                                <span class="rating-count">({{ product.review_count|default:"24" }})</span>
-                            </div>
-
-                            <div class="product-pricing">
-                                <span class="current-price">KES {{ product.get_display_price|intcomma }}</span>
-                                {% if product.discount_price %}
-                                <span class="original-price">KES {{ product.price|intcomma }}</span>
-                                {% endif %}
-                            </div>
-
-                            <form action="{% url 'cart:cart_add' product.id %}" method="post" class="add-to-cart-form">
-                                {% csrf_token %}
-                                <input type="hidden" name="quantity" value="1">
-                                <button class="add-to-cart-btn" {% if product.stock <= 0 %}disabled{% endif %}>
-                                    {% if product.stock > 0 %}
-                                    <i class="fas fa-shopping-cart"></i> Add to Cart
-                                    {% else %}
-                                    Out of Stock
-                                    {% endif %}
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                <div class="empty-state">
-                    <div class="empty-icon"><i class="fas fa-search"></i></div>
-                    <h3 class="empty-title">No Products Found</h3>
-                    <p class="empty-text">
-                        We couldn't find any products matching your filters. Try adjusting your criteria or browse our full collection.
-                    </p>
-                    <a href="{% url 'store:product_list' %}" class="browse-btn">Browse All Products</a>
-                </div>
-                {% endif %}
-            </div>
-
-            {% if products.paginator.num_pages > 1 %}
-            <div class="pagination-container">
-                <div class="pagination-info">
-                    Showing {{ products.start_index }} - {{ products.end_index }} of {{ products.paginator.count }} products
-                </div>
-
-                <div class="pagination">
-                    {% if products.has_previous %}
-                    <a href="?page={{ products.previous_page_number }}&sort={{ request.GET.sort }}" class="pagination-item">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                    {% endif %}
-
-                    {% for num in products.paginator.page_range %}
-                        {% if num == products.number %}
-                        <span class="pagination-item active">{{ num }}</span>
-                        {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
-                        <a href="?page={{ num }}&sort={{ request.GET.sort }}" class="pagination-item">{{ num }}</a>
-                        {% endif %}
-                    {% endfor %}
-
-                    {% if products.has_next %}
-                    <a href="?page={{ products.next_page_number }}&sort={{ request.GET.sort }}" class="pagination-item">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-
-            <section class="brands-section">
-                <h2 class="brands-title">Shop By Brand</h2>
-                <p class="brands-subtitle">Discover products from our trusted partners</p>
-
-                <div class="brands-grid">
-                    {% for brand in brands %}
-                    <a href="{% url 'store:product_list' %}?brand={{ brand.slug }}" class="brand-card">
-                        {% if brand.logo %}
-                        <img src="{{ brand.logo.url }}" alt="{{ brand.name }}" class="brand-logo">
-                        {% else %}
-                        <span class="brand-name">{{ brand.name }}</span>
-                        {% endif %}
-                    </a>
-                    {% endfor %}
-                </div>
-            </section>
+        <div class="products-grid" id="resultsRoot">
+            {% include 'store/product/_results_grid.html' %}
         </div>
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Price range filter
-    const priceRange = document.getElementById('priceRange');
-    if (priceRange) {
-        const priceDisplay = document.getElementById('priceDisplay');
-        let priceTimeout;
-
-        priceRange.addEventListener('input', function() {
-            priceDisplay.textContent = this.value + ' KES';
-            clearTimeout(priceTimeout);
-            priceTimeout = setTimeout(() => {
-                const url = new URL(window.location.href);
-                url.searchParams.set('max_price', this.value);
-                window.location.href = url.toString();
-            }, 800);
-        });
-    }
-
-    // Stock filter
-    const inStockCheckbox = document.getElementById('inStock');
-    if (inStockCheckbox) {
-        inStockCheckbox.addEventListener('change', function() {
-            const url = new URL(window.location.href);
-            if (this.checked) {
-                url.searchParams.set('in_stock', 'true');
-            } else {
-                url.searchParams.delete('in_stock');
-            }
-            window.location.href = url.toString();
-        });
-    }
-});
-</script>
+<script src="{% static 'store/js/search.js' %}"></script>
 {% endblock %}

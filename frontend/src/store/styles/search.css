@@ -604,3 +604,43 @@
         background: #bae6fd;
         transform: translateY(-2px);
     }
+
+
+
+    .product-badges {
+  margin: 4px 0 6px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+
+.badge-top-rated {
+  background-color: #fde047;
+  border-color: #facc15;
+}
+
+.badge-popular {
+  background-color: #fecaca;
+  border-color: #f87171;
+}
+
+.badge-deal {
+  background-color: #bbf7d0;
+  border-color: #4ade80;
+}
+
+.badge-stock {
+  background-color: #bae6fd;
+  border-color: #38bdf8;
+}

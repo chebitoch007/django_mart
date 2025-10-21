@@ -1,0 +1,112 @@
+{# templates/store/product/_results_grid.html #}
+{% load humanize static query_transform %}
+<div class="results-grid">
+  {% if products %}
+    {% for product in products %}
+      <div class="product-card" data-product-id="{{ product.id }}">
+        <div class="product-image-container">
+          <a href="{{ product.get_absolute_url }}" aria-label="{{ product.name }}">
+            <img src="{{ product.get_image_url }}" alt="{{ product.name }}" class="product-image" loading="lazy">
+          </a>
+          {% if product.on_sale %}
+          <div class="product-badge" aria-hidden="true">SAVE {{ product.get_discount_percentage }}%</div>
+          {% endif %}
+        </div>
+
+        <div class="product-info">
+
+<h3 class="product-name">
+  <a href="{{ product.get_absolute_url }}">{{ product.name }}</a>
+</h3>
+
+<!-- Product Badges Row -->
+<div class="product-badges">
+  {% if product.rating >= 4.7 and product.review_count >= 25 %}
+    <span class="badge badge-top-rated">⭐ Top Rated</span>
+  {% endif %}
+  {% if product.review_count >= 50 %}
+    <span class="badge badge-popular">❤️ Popular</span>
+  {% endif %}
+  {% if product.get_discount_percentage >= 20 %}
+    <span class="badge badge-deal">💰 Best Deal</span>
+  {% endif %}
+  {% if product.stock > 20 %}
+    <span class="badge badge-stock">🔥 Trending</span>
+  {% endif %}
+</div>
+
+          <div class="product-rating" aria-hidden="true">
+            <div class="rating-stars">
+              {% with rating=product.rating|default:4.5 %}
+              {% for i in "12345" %}
+                {% if forloop.counter <= rating|add:0.5|floatformat:0|add:"-1" %}
+                  <i class="fas fa-star" aria-hidden="true"></i>
+                {% elif forloop.counter <= rating %}
+                  <i class="fas fa-star-half-alt" aria-hidden="true"></i>
+                {% else %}
+                  <i class="far fa-star" aria-hidden="true"></i>
+                {% endif %}
+              {% endfor %}
+              {% endwith %}
+            </div>
+            <span class="rating-count">({{ product.review_count|default:"0" }})</span>
+          </div>
+
+          <div class="product-pricing" aria-label="Price">
+            <span class="current-price">KES {{ product.get_display_price|intcomma }}</span>
+            {% if product.discount_price %}
+              <span class="original-price">KES {{ product.price|intcomma }}</span>
+            {% endif %}
+          </div>
+
+          <form action="{% url 'cart:cart_add' product.id %}" method="post" class="add-to-cart-form"
+                hx-post="{% url 'cart:cart_add' product.id %}"
+                hx-swap="none"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+            {% csrf_token %}
+            <input type="hidden" name="quantity" value="1">
+            <button class="add-to-cart-btn" {% if product.stock <= 0 %}disabled{% endif %}>
+              {% if product.stock > 0 %}
+                <i class="fas fa-shopping-cart" aria-hidden="true"></i> Add to Cart
+              {% else %}
+                Out of Stock
+              {% endif %}
+            </button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon" aria-hidden="true"><i class="fas fa-search-minus"></i></div>
+      <h3 class="empty-title">No Matching Products Found</h3>
+      <p class="empty-text">Try different keywords or remove filters.</p>
+    </div>
+  {% endif %}
+</div>
+
+{% if products.paginator.num_pages > 1 %}
+  <div class="pagination-container">
+    <div class="pagination">
+      {% if products.has_previous %}
+        <a href="?{% query_transform page=products.previous_page_number %}" class="pagination-item" data-no-ajax="false" aria-label="Previous page">
+          <i class="fas fa-chevron-left" aria-hidden="true"></i>
+        </a>
+      {% endif %}
+
+      {% for num in products.paginator.page_range %}
+        {% if num == products.number %}
+          <span class="pagination-item active" aria-current="page">{{ num }}</span>
+        {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
+          <a href="?{% query_transform page=num %}" class="pagination-item" aria-label="Page {{ num }}">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {% if products.has_next %}
+        <a href="?{% query_transform page=products.next_page_number %}" class="pagination-item" data-no-ajax="false" aria-label="Next page">
+          <i class="fas fa-chevron-right" aria-hidden="true"></i>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}

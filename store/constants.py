@@ -44,3 +44,15 @@ CATEGORIES = {
         "Health Devices": [],
     }
 }
+
+# ----- Sorting config -----
+# note: use review_count_annotation to avoid conflict with Product.review_count field
+SORT_OPTIONS = {
+    'price_asc': 'price',
+    'price_desc': '-price',
+    'name': 'name',
+    'rating': '-avg_rating',
+    'popular': '-review_count_annotation',     # changed to annotation name
+    'newest': '-created',
+    'discount': '-discount_percentage',
+}
