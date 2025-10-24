@@ -6,7 +6,6 @@ import './styles/product-detail.css';
 import './styles/search.css';
 import './styles/categories.css';
 
-
 // Then import functionality
 import { initProductList } from './product-list';
 import { initProductDetail } from './product-detail';
@@ -20,21 +19,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
   console.log(`🛒 Store main script loaded. Page: ${pageName}`);
 
-  // Use a mutually exclusive if/else if block
-  // This ensures ONLY the correct script runs
   if (pageName === 'product-detail') {
     console.log('🔍 Detected product detail page');
     initProductDetail();
-  } else if (pageName === 'product-list') {
+  }
+  else if (pageName === 'product-list') {
     console.log('📦 Detected product list page');
     initProductList();
-  } else if (pageName === 'search') {
+  }
+  else if (pageName === 'search') {
     console.log('🔎 Detected search page');
     initSearch();
-  } else if (pageName === 'categories') {
+  }
+  else if (pageName === 'categories') {
     console.log('📂 Detected categories page');
     initCategories();
   }
+
+  // Additional: handle HTMX swaps so page-specific initialisation fires after swap
+  document.body.addEventListener('htmx:afterSwap', (evt: any) => {
+    const target = evt.detail?.target as HTMLElement | null;
+    if (!target) return;
+
+    // If the results container was swapped in (for product list), re-initialise
+    if (pageName === 'product-list' && target.id === 'resultsRoot') {
+      console.log('↻ HTMX afterSwap on resultsRoot — re-init product list logic');
+      initProductList();
+    }
+
+    // If other page types need re-init after swap, add here as needed
+  });
 });
 
 // Export for global access if needed
@@ -43,5 +57,4 @@ declare global {
     storeUtils: any;
   }
 }
-
 export { initProductList, initProductDetail, initSearch, initCategories };

@@ -6,7 +6,7 @@
 {% block page_name %}product-list{% endblock %}
 
 {% block extra_head %}
-  {{ block.super }}
+{{ block.super }}
 {% endblock %}
 
 {% block content %}
@@ -19,106 +19,170 @@
             {% if category %}
             <p class="page-description">{{ category.description }}</p>
             {% else %}
-            <p class="page-description">Explore our collection of high-performance gaming gear and accessories designed for competitive gamers</p>
+            <p class="page-description">Explore our collection of high-performance gaming gear and accessories designed
+                for competitive gamers</p>
             {% endif %}
         </div>
         <div class="product-count">{{ products.paginator.count }} Products</div>
     </div>
 
     <div class="product-list-layout">
-        <aside class="filter-sidebar" aria-label="Filters">
-            <button class="filter-toggle" id="filterToggle" aria-expanded="false" aria-controls="filterContent">
-                <i class="fas fa-filter" aria-hidden="true"></i> <span id="filterToggleText">Show Filters</span>
+
+        <!-- Filter Sidebar -->
+        <aside class="filter-sidebar" id="filterSidebar" aria-label="Filters">
+            <!-- Toggle Button for Mobile -->
+            <button class="filter-toggle" id="filterToggle" aria-expanded="false">
+                <i class="fas fa-filter"></i> <span>Show Filters</span>
             </button>
 
-            <div class="filter-card" id="filterContent" hidden>
+            <!-- Filters Content -->
+            <div class="filter-content" id="filterContent" hidden>
                 <div class="filter-header">
-                    <h2 class="filter-title">
-                        <i class="fas fa-filter filter-icon" aria-hidden="true"></i> Filters
-                    </h2>
-                    <a href="?{% query_transform max_price=None in_stock=None page=None brand=None supplier=None min_rating=None %}" class="reset-link">Reset All</a>
+                    <h2><i class="fas fa-sliders-h"></i> Filters</h2>
+                    <a href="?{% query_transform max_price=None in_stock=None brand=None supplier=None min_rating=None %}"
+                       class="reset-link">Reset</a>
                 </div>
 
-                <div class="filter-section">
-                    <h3 class="section-title"><i class="fas fa-sort section-icon" aria-hidden="true"></i> Sort By</h3>
-                    <div class="sort-options">
-                        {% for sort_key, sort_name in sort_options.items %}
-                        <a href="?{% query_transform sort=sort_key %}" class="sort-option {% if sort_by == sort_key %}active{% endif %}">
-                            <span>{{ sort_name }}</span>
-                            {% if sort_by == sort_key %}
-                            <i class="fas fa-check" aria-hidden="true"></i>
-                            {% else %}
-                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
-                            {% endif %}
-                        </a>
-                        {% endfor %}
-                    </div>
-                </div>
+<!-- Sort -->
+<div class="filter-section">
+  <h3><i class="fas fa-sort section-icon"></i> Sort By</h3>
+  <div class="sort-options">
+    {% for key, opt in sort_options.items %}
+      <a
+        hx-get="?{% query_transform sort=key page=None %}"
+        hx-target="#resultsRoot"
+        hx-swap="innerHTML"
+        hx-indicator="#grid-loading-spinner"
+        class="sort-option {% if sort_by == key %}active{% endif %}"
+      >
+        <i class="fas {{ opt.icon }}"></i> {{ opt.label }}
+      </a>
+    {% endfor %}
+  </div>
+</div>
 
+
+                <!-- Price -->
                 <div class="filter-section">
-                    <h3 class="section-title"><i class="fas fa-tag section-icon" aria-hidden="true"></i> Price Range</h3>
+                    <h3>Price Range</h3>
                     <div class="price-filter">
-                        <input type="range" class="price-slider" min="0" max="1000" value="{{ max_price }}" id="priceRange" aria-label="Maximum price">
+                        <input type="range"
+                               min="0"
+                               max="1000"
+                               value="{{ max_price|default:500 }}"
+                               id="priceRange"
+                               class="price-slider">
                         <div class="price-display">
                             <span>0 KES</span>
-                            <span id="priceDisplay">{{ max_price }} KES</span>
+                            <span id="priceDisplay">{{ max_price|default:"500" }} KES</span>
                         </div>
-                        <div class="price-inputs">
-                            <input type="number" id="minPriceInput" class="price-input" placeholder="Min" min="0" max="100000">
-                            <input type="number" id="maxPriceInput" class="price-input" placeholder="Max" min="0" max="100000" value="{{ max_price }}">
-                            <button class="apply-price-btn" id="applyPriceBtn">Apply Price</button>
-                        </div>
+                        <button class="apply-price-btn"
+                                hx-get="?{% query_transform page=None %}"
+                                hx-include="#priceRange"
+                                hx-vals='js:{max_price: document.getElementById("priceRange").value}'
+                                hx-target="#resultsRoot"
+                                hx-swap="innerHTML"
+                                hx-indicator="#grid-loading-spinner"
+                                id="applyPriceBtn">
+                            Apply
+                        </button>
                     </div>
                 </div>
 
+                <!-- Rating -->
                 <div class="filter-section">
-                    <h3 class="section-title"><i class="fas fa-star section-icon" aria-hidden="true"></i> Minimum Rating</h3>
+                    <h3>Minimum Rating</h3>
                     <div class="rating-filter">
                         {% for i in "54321" %}
-                            <a href="?{% query_transform min_rating=i %}" class="rating-option {% if min_rating == i %}active{% endif %}">{{ i }} & up</a>
+                        <a hx-get="?{% query_transform min_rating=i page=None %}"
+                           hx-target="#resultsRoot"
+                           hx-swap="innerHTML"
+                           hx-indicator="#grid-loading-spinner"
+                           class="rating-option {% if min_rating == i %}active{% endif %}">
+                            {{ i }}★ & up
+                        </a>
                         {% endfor %}
                     </div>
                 </div>
 
+                <!-- Brands -->
                 <div class="filter-section">
-                    <h3 class="section-title"><i class="fas fa-briefcase section-icon" aria-hidden="true"></i> Brands</h3>
-                    <div class="brand-filter" role="list" style="max-height:220px;overflow:auto;">
+                    <h3>Brands</h3>
+                    <div class="brand-filter">
                         {% for brand in brands %}
-                        <a href="?{% query_transform brand=brand.slug page=None %}" class="brand-item" role="listitem" aria-label="Filter by {{ brand.name }}">
-                            {% if brand.logo %}
-                                <img src="{{ brand.logo.url }}" alt="{{ brand.name }}" class="brand-logo-small">
-                            {% else %}
-                                <span class="brand-name">{{ brand.name }}</span>
-                            {% endif %}
-                            <span class="brand-count" aria-hidden="true">{{ brand.product_count }}</span>
+                        <a hx-get="?{% query_transform brand=brand.slug page=None %}"
+                           hx-target="#resultsRoot"
+                           hx-swap="innerHTML"
+                           hx-indicator="#grid-loading-spinner"
+                           class="brand-item {% if selected_brand == brand.slug %}active{% endif %}">
+                            {{ brand.name }}
+                            <span class="count">({{ brand.product_count }})</span>
                         </a>
                         {% endfor %}
                     </div>
                 </div>
 
+                <!-- Suppliers -->
                 <div class="filter-section">
-                    <h3 class="section-title"><i class="fas fa-truck section-icon" aria-hidden="true"></i> Suppliers</h3>
-                    <div class="supplier-filter" style="max-height:160px;overflow:auto;">
+                    <h3>Suppliers</h3>
+                    <div class="supplier-filter">
                         {% for sup in suppliers %}
-                        <a href="?{% query_transform supplier=sup.id page=None %}" class="supplier-item">
-                            <span class="supplier-name">{{ sup.name }}</span>
+                        <a hx-get="?{% query_transform supplier=sup.id page=None %}"
+                           hx-target="#resultsRoot"
+                           hx-swap="innerHTML"
+                           hx-indicator="#grid-loading-spinner"
+                           class="supplier-item {% if selected_supplier == sup.id|stringformat:'s' %}active{% endif %}">
+                            {{ sup.name }}
+                            <span class="count">({{ sup.product_count }})</span>
                         </a>
                         {% endfor %}
                     </div>
                 </div>
 
+                <!-- In Stock -->
                 <div class="filter-section">
-                    <h3 class="section-title"><i class="fas fa-box section-icon" aria-hidden="true"></i> Availability</h3>
-                    <div class="stock-filter">
-                        <input type="checkbox" id="inStock" class="stock-checkbox" {% if in_stock %}checked{% endif %}>
-                        <label for="inStock" class="stock-label">In Stock Only</label>
-                    </div>
+                    <label class="stock-filter">
+                        <input type="checkbox"
+                               id="inStock"
+                               name="in_stock"
+                               value="true"
+                               hx-get="?{% query_transform page=None %}"
+                               hx-vals='js:{in_stock: document.getElementById("inStock").checked ? "true" : "false"}'
+                               hx-target="#resultsRoot"
+                               hx-swap="innerHTML"
+                               hx-trigger="change"
+                               hx-indicator="#grid-loading-spinner"
+                               {% if in_stock %}checked{% endif %}>
+                        <span class="stock-label">In Stock Only</span>
+                    </label>
                 </div>
             </div>
+
+<div class="sort-section">
+  <h4>Sort By</h4>
+  <form method="get" id="sortForm">
+    <input type="hidden" name="q" value="{{ query }}">
+    <select name="sort" onchange="this.form.submit()" class="sort-dropdown">
+      {% for key, option in sort_options.items %}
+        <option value="{{ key }}" {% if key == sort %}selected{% endif %}>
+          <i class="fa {{ option.icon }}"></i> {{ option.label }}
+        </option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
         </aside>
 
-        <main class="product-grid-container" id="resultsRoot">
-            {% include 'store/product/_results_grid.html' %}
+        <main class="product-grid-container">
+            <!-- Loading Indicator -->
+            <div id="grid-loading-spinner" class="htmx-indicator">
+                <i class="fas fa-spinner fa-spin"></i>
+            </div>
+
+            <div id="resultsRoot">
+                {% include 'store/product/_results_grid.html' %}
+            </div>
         </main>
     </div>
 
@@ -126,64 +190,35 @@
         <h2 class="brands-title">Shop By Brand</h2>
         <div class="brands-grid">
             {% for brand in brands %}
-                <a href="?{% query_transform brand=brand.slug page=None %}" class="brand-card">
-                    {% if brand.logo %}
-                    <img src="{{ brand.logo.url }}" alt="{{ brand.name }}" class="brand-logo">
-                    {% else %}
-                    <span class="brand-name">{{ brand.name }}</span>
-                    {% endif %}
-                </a>
+            <a href="?{% query_transform brand=brand.slug page=None %}" class="brand-card">
+                {% if brand.logo %}
+                <img src="{{ brand.logo.url }}" alt="{{ brand.name }}" class="brand-logo">
+                {% else %}
+                <span class="brand-name">{{ brand.name }}</span>
+                {% endif %}
+            </a>
             {% endfor %}
         </div>
     </section>
 </div>
-{% endblock %}
 
-{% block extra_scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // simple filter toggle for mobile
-  const toggle = document.getElementById('filterToggle');
-  const content = document.getElementById('filterContent');
-  const toggleText = document.getElementById('filterToggleText');
-  if (toggle && content) {
-    toggle.addEventListener('click', () => {
-      const expanded = toggle.getAttribute('aria-expanded') === 'true';
-      toggle.setAttribute('aria-expanded', String(!expanded));
-      content.hidden = expanded;
-      toggleText.textContent = expanded ? 'Show Filters' : 'Hide Filters';
+    // Initialize product list features after page load
+    document.addEventListener('DOMContentLoaded', function () {
+        // Import and initialize the product list module
+        if (window.initProductList) {
+            window.initProductList();
+        }
     });
-  }
 
-  // price range -> update display and apply via query_transform link
-  const priceRange = document.getElementById('priceRange');
-  const priceDisplay = document.getElementById('priceDisplay');
-  const applyBtn = document.getElementById('applyPriceBtn');
-  const maxInput = document.getElementById('maxPriceInput');
-  if (priceRange && priceDisplay) {
-    priceRange.addEventListener('input', () => priceDisplay.textContent = priceRange.value + ' KES');
-    if (maxInput) maxInput.value = priceRange.value;
-  }
-  if (applyBtn && maxInput) {
-    applyBtn.addEventListener('click', () => {
-      const url = new URL(window.location.href);
-      url.searchParams.set('max_price', String(maxInput.value || priceRange.value));
-      url.searchParams.delete('page');
-      window.location.href = url.toString();
+    // Re-initialize after HTMX swaps
+    document.body.addEventListener('htmx:afterSwap', function (event) {
+        if (event.detail.target.id === 'resultsRoot') {
+            // Re-initialize lazy loading and animations for new content
+            if (window.initProductList) {
+                window.initProductList();
+            }
+        }
     });
-  }
-
-  // in-stock checkbox
-  const inStock = document.getElementById('inStock');
-  if (inStock) {
-    inStock.addEventListener('change', function() {
-      const url = new URL(window.location.href);
-      if (this.checked) url.searchParams.set('in_stock', 'true');
-      else url.searchParams.delete('in_stock');
-      url.searchParams.delete('page');
-      window.location.href = url.toString();
-    });
-  }
-});
 </script>
 {% endblock %}

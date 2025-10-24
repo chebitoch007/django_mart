@@ -79,19 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Enhanced mobile menu functionality
-function toggleMobileMenu() {
-    const mobileMenu = document.getElementById('mobile-menu');
-    const menuToggle = document.getElementById('mobile-menu-toggle');
 
-    if (mobileMenu && menuToggle) {
-        const isActive = mobileMenu.classList.contains('active');
-
-        mobileMenu.classList.toggle('active');
-        mobileMenu.setAttribute('aria-hidden', isActive ? 'true' : 'false');
-        menuToggle.setAttribute('aria-expanded', isActive ? 'false' : 'true');
-    }
-}
 
 // Enhanced search category dropdown
 document.addEventListener('DOMContentLoaded', function() {
@@ -303,3 +291,26 @@ if ('IntersectionObserver' in window) {
         imageObserver.observe(img);
     });
 }
+
+// Responsive Navigation Toggle
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobile-menu');
+    const toggle = document.getElementById('mobile-menu-toggle');
+
+    if (!menu || !toggle) return;
+
+    const isActive = menu.classList.toggle('active');
+    toggle.setAttribute('aria-expanded', isActive);
+    menu.setAttribute('aria-hidden', !isActive);
+}
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('mobile-menu');
+    const toggle = document.getElementById('mobile-menu-toggle');
+
+    if (menu && toggle && !menu.contains(e.target) && !toggle.contains(e.target)) {
+        menu.classList.remove('active');
+        toggle.setAttribute('aria-expanded', 'false');
+    }
+});

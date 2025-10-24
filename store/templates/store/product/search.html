@@ -52,23 +52,30 @@
   <div class="results-layout">
     <aside class="filter-sidebar" aria-label="Filters">
       <button class="filter-toggle" id="filterToggle" aria-expanded="false"> <i class="fas fa-filter"></i> Show Filters</button>
-      <div class="filter-card" id="filterContent" hidden>
+      <div class="filter-card" id="filterContent">
         <div class="filter-header">
           <h2 class="filter-title"><i class="fas fa-filter" aria-hidden="true"></i> Filters</h2>
           <a href="?q={{ query }}" class="reset-link">Reset All</a>
         </div>
 
-        <div class="filter-section">
-          <h3 class="section-title"><i class="fas fa-sort section-icon" aria-hidden="true"></i> Sort By</h3>
-          <div class="sort-options">
-            {% for sort_key, sort_name in sort_options.items %}
-              <a href="?{% query_transform sort=sort_key %}" class="sort-option {% if sort_by == sort_key %}active{% endif %}">
-                <span>{{ sort_name }}</span>
-                {% if sort_by == sort_key %}<i class="fas fa-check" aria-hidden="true"></i>{% else %}<i class="fas fa-chevron-right" aria-hidden="true"></i>{% endif %}
-              </a>
-            {% endfor %}
-          </div>
-        </div>
+
+<div class="filter-section">
+  <h3 class="section-title"><i class="fas fa-sort section-icon"></i> Sort By</h3>
+  <div class="sort-options">
+    {% for key, opt in sort_options.items %}
+      <a
+        href="?{% query_transform sort=key %}"
+        class="sort-option {% if sort_by == key %}active{% endif %}"
+      >
+        <i class="fas {{ opt.icon }}"></i> {{ opt.label }}
+        {% if sort_by == key %}
+          <i class="fas fa-check"></i>
+        {% endif %}
+      </a>
+    {% endfor %}
+  </div>
+</div>
+
 
         <div class="filter-section">
           <h3 class="section-title"><i class="fas fa-tag section-icon" aria-hidden="true"></i> Price Range</h3>
@@ -119,6 +126,22 @@
         </div>
 
       </div>
+
+
+<div class="sort-section">
+  <h4>Sort By</h4>
+  <form method="get" id="sortForm">
+    <input type="hidden" name="q" value="{{ query }}">
+    <select name="sort" onchange="this.form.submit()" class="sort-dropdown">
+      {% for key, option in sort_options.items %}
+        <option value="{{ key }}" {% if key == sort %}selected{% endif %}>
+          <i class="fa {{ option.icon }}"></i> {{ option.label }}
+        </option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
     </aside>
 
     <div class="results-content" id="resultsRoot">

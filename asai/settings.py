@@ -92,12 +92,15 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'db_cleaner',
     'django_vite',
+    'django_htmx', # <-- ADD THIS
+    'crispy_bootstrap4',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django_htmx.middleware.HtmxMiddleware', # <-- ADD THIS
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -450,5 +453,8 @@ else:
     # Currency caching settings
 CURRENCY_CACHE_TIMEOUT = 60 * 60 * 4  # 4 hours
 CURRENCY_CACHE_TIMEOUT_ERROR = 60 * 5  # 5 minutes for errors
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap4'
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 BASE_URL='https://4cfd5a00596e.ngrok-free.app'

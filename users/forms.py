@@ -231,29 +231,35 @@ class UserRegisterForm(UserCreationForm):
 
 class ProfileUpdateForm(forms.ModelForm):
     email = forms.EmailField(
-        disabled=False,
+        disabled=True,  # read-only
         help_text="Contact support to change email",
         widget=forms.EmailInput(attrs={'aria-label': 'Email (read-only)'})
     )
 
     class Meta:
         model = Profile
-        fields = ['profile_image', 'email_notifications',
-                  'sms_notifications', 'preferred_language', 'dark_mode']
+        fields = [
+            'profile_image',
+            'email_notifications',
+            'sms_notifications',
+            'preferred_language',
+            'dark_mode',
+            'date_of_birth'   # added date_of_birth if you want to render it
+        ]
         widgets = {
             'profile_image': forms.FileInput(attrs={
                 'accept': 'image/*',
-                'class': 'form-control-lg',
-                'aria-label': 'Profile image'
-            }),
-            'bio': forms.Textarea(attrs={
-                'rows': 3,
-                'placeholder': 'Tell us about yourself...',
-                'aria-label': 'About me'
+                'id': 'profileImageUpload',
             }),
             'preferred_language': forms.Select(attrs={
                 'class': 'form-select-lg',
                 'aria-label': 'Preferred language'
+            }),
+            # add widget settings for 'date_of_birth' if needed
+            'date_of_birth': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date',
+                'aria-label': 'Date of birth'
             }),
         }
 
@@ -262,30 +268,16 @@ class ProfileUpdateForm(forms.ModelForm):
         self.fields['email'].initial = self.instance.user.email
 
 
-class NotificationPreferencesForm(forms.ModelForm):
-    class Meta:
-        model = Profile
-        fields = ['email_notifications', 'sms_notifications']
-        labels = {
-            'email_notifications': _('Email notifications'),
-            'sms_notifications': _('SMS notifications'),
-        }
-        help_texts = {
-            'sms_notifications': _('Requires a verified phone number'),
-        }
-        widgets = {
-            'email_notifications': forms.CheckboxInput(attrs={
-                'aria-label': 'Email notifications'
-            }),
-            'sms_notifications': forms.CheckboxInput(attrs={
-                'aria-label': 'SMS notifications'
-            }),
-        }
+
+# REMOVED NotificationPreferencesForm
+# class NotificationPreferencesForm(forms.ModelForm):
+#    ...
+
 
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'phone_number']
+        fields = ['first_name', 'last_name', 'phone_number', 'email']  # added 'email'
         widgets = {
             'first_name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -300,11 +292,14 @@ class UserProfileForm(forms.ModelForm):
                 'data-mask': '+254000000000',
                 'aria-label': 'Phone number'
             }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'aria-label': 'Email address'
+            }),
         }
 
     def clean_phone_number(self):
-        phone_number = self.cleaned_data['phone_number']
-        # Use the same regex validator from models
+        phone_number = self.cleaned_data.get('phone_number')
         phone_regex = r'^\+?1?\d{9,15}$'
         if phone_number and not re.match(phone_regex, phone_number):
             raise ValidationError(
@@ -508,4 +503,3 @@ class AccountDeletionForm(forms.Form):
         if not self.user or not self.user.check_password(password):
             raise ValidationError(_('Your password was entered incorrectly'))
         return password
-

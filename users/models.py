@@ -273,6 +273,11 @@ class Profile(models.Model):
         null=True
     )
     bio = models.TextField(_('bio'), blank=True)
+    # New field
+    date_of_birth = models.DateField(
+        _('date of birth'),
+        blank=True, null=True
+    )
 
     # Notification preferences
     email_notifications = models.BooleanField(_('email notifications'), default=True)

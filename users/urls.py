@@ -1,4 +1,4 @@
-#users/urls.py
+# users/urls.py
 from .views import session_keepalive, CustomPasswordResetView
 from django.contrib.auth import views as auth_views
 from . import views
@@ -9,13 +9,17 @@ from .views import (
     PrivacyView,
     ReturnPolicyView,
     register,
-    ProfileUpdateView,
+    # REMOVED ProfileUpdateView
     AddressCreateView,
     AddressUpdateView,
     AddressDeleteView,
     set_default_address,
     AccountView,
-    NotificationPreferencesView, CustomLogoutView, LogoutSuccessView, AccountDeleteView, CustomLoginView,
+    # REMOVED NotificationPreferencesView
+    CustomLogoutView,
+    LogoutSuccessView,
+    AccountDeleteView,
+    CustomLoginView,
 )
 from django.urls import path, reverse_lazy
 from django.views.generic.base import RedirectView
@@ -28,9 +32,8 @@ urlpatterns = [
 
     path('account/', AccountView.as_view(), name='account'),
 
-
-# Authentication
-    #path('login/',auth_views.LoginView.as_view(template_name='users/login.html',redirect_authenticated_user=True), name='login'),
+    # Authentication
+    # path('login/',auth_views.LoginView.as_view(template_name='users/login.html',redirect_authenticated_user=True), name='login'),
     path('login/', CustomLoginView.as_view(), name='login'),
 
     path('logout/', CustomLogoutView.as_view(), name='logout'),
@@ -39,10 +42,13 @@ urlpatterns = [
     path('register/', register, name='register'),
 
     # Profile management - now handled through account page
-    path('profile/update/', ProfileUpdateView.as_view(), name='profile_update'),
-    path('profile/notifications/',
-         NotificationPreferencesView.as_view(),
-         name='notification_prefs'),
+    # UPDATED to use function-based view
+    path('profile/update/', views.profile_update_view, name='profile_update'),
+
+    # REMOVED notification_prefs URL
+    # path('profile/notifications/',
+    #      NotificationPreferencesView.as_view(),
+    #      name='notification_prefs'),
 
     # Address management
     path('address/add/', AddressCreateView.as_view(), name='add_address'),
@@ -63,13 +69,11 @@ urlpatterns = [
 
     path('password-reset/', CustomPasswordResetView.as_view(), name='password_reset'),
 
-
     path('password-reset/done/',
          auth_views.PasswordResetDoneView.as_view(
              template_name='users/password_reset_done.html'
          ),
          name='password_reset_done'),
-
 
     path('password-reset-confirm/<uidb64>/<token>/',
          auth_views.PasswordResetConfirmView.as_view(
@@ -77,7 +81,6 @@ urlpatterns = [
              success_url='/accounts/password-reset-complete/'  # Changed to /accounts/
          ),
          name='password_reset_confirm'),
-
 
     path('password-reset-complete/',
          auth_views.PasswordResetCompleteView.as_view(

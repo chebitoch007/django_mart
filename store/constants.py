@@ -48,11 +48,39 @@ CATEGORIES = {
 # ----- Sorting config -----
 # note: use review_count_annotation to avoid conflict with Product.review_count field
 SORT_OPTIONS = {
-    'price_asc': 'price',
-    'price_desc': '-price',
-    'name': 'name',
-    'rating': '-avg_rating',
-    'popular': '-review_count_annotation',     # changed to annotation name
-    'newest': '-created',
-    'discount': '-discount_percentage',
+    'popular': {
+        'label': 'Most Popular',
+        'field': '-review_count_annotation',
+        'icon': 'fa-fire',
+    },
+    'newest': {
+        'label': 'Newest Arrivals',
+        'field': '-created',
+        'icon': 'fa-clock',
+    },
+    'price_low': {
+        'label': 'Price: Low to High',
+        'field': 'price',
+        'icon': 'fa-arrow-down-short-wide',
+    },
+    'price_high': {
+        'label': 'Price: High to Low',
+        'field': '-price',
+        'icon': 'fa-arrow-up-short-wide',
+    },
+    'rating': {
+        'label': 'Top Rated',
+        'field': '-avg_rating',
+        'icon': 'fa-star',
+    },
+    'discount': {
+        'label': 'Biggest Discount',
+        'field': '-discount_percentage',
+        'icon': 'fa-tags',
+    },
+    'name': {
+        'label': 'Name: A–Z',
+        'field': 'name',
+        'icon': 'fa-font',
+    },
 }

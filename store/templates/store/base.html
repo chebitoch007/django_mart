@@ -44,6 +44,8 @@
 <body class="flex flex-col min-h-screen {% block body_class %}{% endblock %}"
       data-page="{% block page_name %}{% endblock %}">
 
+
+
 <div id="app"></div>
 
 <!-- Enhanced Navigation -->
@@ -65,10 +67,9 @@
         </a>
 
         <!-- Enhanced Search Bar -->
-        <div class="search-container flex-grow max-w-3xl mx-4 relative">
+        <div class="search-container">
             <form action="{% url 'store:product_search' %}" method="get" class="w-full" id="search-form">
                 <div class="search-bar flex" id="search-bar">
-
                     <input
                             type="text"
                             name="q"
@@ -93,7 +94,7 @@
                     </div>
 
                     <button type="submit"
-                            class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 transition-colors duration-200"
+                            class="search-bar button"
                             aria-label="Search">
                         <i class="fas fa-search" aria-hidden="true"></i>
                     </button>
@@ -102,7 +103,7 @@
 
             <!-- Suggestions dropdown -->
             <div id="search-suggestions"
-                 class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-b-lg shadow-xl max-h-96 overflow-y-auto"
+                 class="suggestion-section-header"
                  role="listbox"
                  aria-labelledby="search-form">
             </div>

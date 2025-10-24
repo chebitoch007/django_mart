@@ -17,7 +17,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
-from .forms import UserRegisterForm, ProfileUpdateForm, NotificationPreferencesForm, AccountDeletionForm
+# IMPORT UserProfileForm, REMOVE NotificationPreferencesForm
+from .forms import UserRegisterForm, ProfileUpdateForm, AccountDeletionForm, UserProfileForm
 from .forms import AddressForm, PasswordChangeForm
 from .models import Profile, Address
 from orders.models import Order
@@ -161,19 +162,30 @@ def register(request):
     })
 
 
-@method_decorator(login_required, name='dispatch')
-class ProfileUpdateView(UpdateView):
-    model = Profile
-    form_class = ProfileUpdateForm
-    template_name = 'users/profile_update.html'
-    success_url = reverse_lazy('users:account')
+# REPLACED ProfileUpdateView with a function-based view
+@login_required
+def profile_update_view(request):
+    if request.method == 'POST':
+        # Pass instance for both forms
+        user_form = UserProfileForm(request.POST, instance=request.user)
+        profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
 
-    def get_object(self):
-        return self.request.user.profile
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            messages.success(request, 'Profile updated successfully')
+            return redirect('users:account')
+        else:
+            messages.error(request, 'Please correct the error(s) below.')
+    else:
+        user_form = UserProfileForm(instance=request.user)
+        profile_form = ProfileUpdateForm(instance=request.user.profile)
 
-    def form_valid(self, form):
-        messages.success(self.request, 'Profile updated successfully')
-        return super().form_valid(form)
+    context = {
+        'user_form': user_form,
+        'profile_form': profile_form
+    }
+    return render(request, 'users/profile_update.html', context)
 
 
 @method_decorator(login_required, name='dispatch')
@@ -214,19 +226,7 @@ class AccountDeleteView(FormView):
         return super().form_valid(form)
 
 
-@method_decorator(login_required, name='dispatch')
-class NotificationPreferencesView(UpdateView):
-    model = Profile
-    form_class = NotificationPreferencesForm
-    template_name = 'users/notification_preferences.html'
-    success_url = reverse_lazy('users:account')
-
-    def get_object(self):
-        return self.request.user.profile
-
-    def form_valid(self, form):
-        messages.success(self.request, 'Notification preferences updated')
-        return super().form_valid(form)
+# REMOVED NotificationPreferencesView - its functionality is merged into profile_update_view
 
 
 class CustomPasswordChangeView(PasswordChangeView):
@@ -417,6 +417,9 @@ class AccountView(TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
 
+        # ADDED: Get user addresses
+        addresses = Address.objects.filter(user=user)
+
         # Get recent orders (last 5)
         orders = Order.objects.filter(user=user).order_by('-created')[:5]
 
@@ -441,6 +444,7 @@ class AccountView(TemplateView):
         avg_order = total_spent / order_count if order_count > 0 else Decimal('0.00')
 
         context.update({
+            'addresses': addresses, # ADDED
             'orders': orders,
             'total_spent': total_spent,
             'last_order': last_order.created if last_order else None,
@@ -458,5 +462,3 @@ def session_keepalive(request):
         request.session.modified = True
         return HttpResponse(status=204)
     return HttpResponse(status=400)
-
-

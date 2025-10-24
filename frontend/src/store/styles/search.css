@@ -644,3 +644,38 @@
   background-color: #bae6fd;
   border-color: #38bdf8;
 }
+
+
+
+
+.sort-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sort-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #374151;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sort-option:hover {
+  background: #f3f4f6;
+}
+
+.sort-option.active {
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+}
+
+.sort-option i {
+  color: inherit;
+}

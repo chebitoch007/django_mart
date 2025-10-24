@@ -1,0 +1,77 @@
+{% extends "store/base.html" %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/asai-forms.css' %}">
+
+{% block title %}Confirm Deletion - ASAI{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-6">
+
+            <!-- Warning Card -->
+            <div class="asai-card asai-card-danger animate-scale-in">
+                <div class="asai-card-header-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion
+                </div>
+                <div class="asai-card-body text-center">
+
+                    <!-- Warning Message -->
+                    <div class="deletion-warning mb-4">
+                        <div class="warning-icon mb-3">
+                            <i class="fas fa-trash-alt"></i>
+                        </div>
+                        <h3 class="warning-title">Delete This Address?</h3>
+                        <p class="warning-message">
+                            This action cannot be undone. The address will be permanently removed from your account.
+                        </p>
+                    </div>
+
+                    <!-- Address Preview -->
+                    <div class="address-preview-box">
+                        <div class="address-preview-label">
+                            <i class="fas fa-map-marker-alt me-2"></i>Address to Delete
+                        </div>
+                        <div class="address-preview-content">
+                            {% if object.nickname %}
+                            <div class="address-nickname">{{ object.nickname }}</div>
+                            {% endif %}
+                            <strong>{{ object.full_name }}</strong><br>
+                            {{ object.street_address }}
+                            {% if object.apartment %}, {{ object.apartment }}{% endif %}<br>
+                            {{ object.city }}, {{ object.state }} {{ object.postal_code }}
+                            {% if object.country %}<br>{{ object.country }}{% endif %}
+                            {% if object.phone_number %}
+                            <div class="mt-2 text-muted">
+                                <i class="fas fa-phone me-1"></i>{{ object.phone_number }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Deletion Form -->
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="asai-form-actions asai-form-actions-stacked">
+                            <button type="submit" class="asai-btn asai-btn-danger">
+                                <i class="fas fa-trash-alt me-2"></i>Yes, Delete Address
+                            </button>
+                            <a href="{% url 'users:account' %}" class="asai-btn asai-btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel, Keep Address
+                            </a>
+                        </div>
+                    </form>
+
+                    <!-- Additional Info -->
+                    <div class="deletion-info mt-4">
+                        <small class="text-muted">
+                            <i class="fas fa-shield-alt me-1"></i>
+                            You can add this address again later if needed
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

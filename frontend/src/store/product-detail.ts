@@ -294,40 +294,60 @@ function initRatingSystem(): void {
 // ========================================
 // Quantity Controls with Validation
 // ========================================
-
 function initQuantityControls(): void {
   const quantityInput = document.querySelector('.quantity-input') as HTMLInputElement;
   const quantityMinus = document.querySelector('.quantity-minus');
   const quantityPlus = document.querySelector('.quantity-plus');
 
-  if (!quantityInput) return;
+  console.log('[Quantity] initQuantityControls() called');
+  console.log('[Quantity] Input element:', quantityInput);
+  console.log('[Quantity] Minus button:', quantityMinus);
+  console.log('[Quantity] Plus button:', quantityPlus);
+
+  if (!quantityInput) {
+    console.warn('[Quantity] ❌ Quantity input not found');
+    return;
+  }
 
   let maxStock = parseInt(quantityInput.dataset.maxStock || '99');
+  console.log('[Quantity] Max stock initially:', maxStock);
 
-  // Observer for dynamic stock changes
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       if (mutation.type === 'attributes' && mutation.attributeName === 'data-max-stock') {
         maxStock = parseInt(quantityInput.dataset.maxStock || '99');
         quantityInput.max = maxStock.toString();
+        console.log('[Quantity] Updated maxStock from data-max-stock:', maxStock);
       }
     });
   });
   observer.observe(quantityInput, { attributes: true });
 
-  quantityMinus?.addEventListener('click', () => {
+  quantityMinus?.addEventListener('click', (e) => {
+    console.log('[Quantity] Minus clicked');
+    e.stopPropagation();
     const currentValue = parseInt(quantityInput.value) || 1;
+    console.log('[Quantity] Current value before minus:', currentValue);
     if (currentValue > 1) {
       quantityInput.value = (currentValue - 1).toString();
+      console.log('[Quantity] New value after minus:', quantityInput.value);
       animateButton(quantityMinus as HTMLElement);
+    } else {
+      console.log('[Quantity] Already at minimum');
     }
   });
 
-  quantityPlus?.addEventListener('click', () => {
+  quantityPlus?.addEventListener('click', (e) => {
+    console.log('[Quantity] Plus clicked');
+    e.stopPropagation();
     const currentValue = parseInt(quantityInput.value) || 1;
+    console.log('[Quantity] Current value before plus:', currentValue, 'Max:', maxStock);
     if (currentValue < maxStock) {
       quantityInput.value = (currentValue + 1).toString();
+      console.log('[Quantity] New value after plus:', quantityInput.value);
       animateButton(quantityPlus as HTMLElement);
+    } else {
+      console.log('[Quantity] Already at maximum');
     }
   });
 
@@ -336,18 +356,19 @@ function initQuantityControls(): void {
     if (value < 1) value = 1;
     if (value > maxStock) value = maxStock;
     quantityInput.value = value.toString();
+    console.log('[Quantity] Input changed manually to:', value);
   });
 
-    // Keyboard support
-    quantityInput.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            (quantityPlus as HTMLButtonElement | null)?.click();
-        } else if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            (quantityMinus as HTMLButtonElement | null)?.click();
-        }
-    });
+  quantityInput.addEventListener('keydown', (e) => {
+    console.log('[Quantity] Key pressed:', e.key);
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      (quantityPlus as HTMLButtonElement | null)?.click();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      (quantityMinus as HTMLButtonElement | null)?.click();
+    }
+  });
 }
 
 /**
@@ -456,18 +477,38 @@ function initReviewFormToggle(): void {
   const toggleBtn = document.getElementById('toggle-review-form');
   const reviewForm = document.getElementById('review-form');
 
-  if (toggleBtn && reviewForm) {
-    toggleBtn.addEventListener('click', () => {
-      reviewForm.classList.toggle('active');
+  console.log('[ReviewForm] initReviewFormToggle() called');
+  console.log('[ReviewForm] toggleBtn:', toggleBtn);
+  console.log('[ReviewForm] reviewForm:', reviewForm);
 
-      if (reviewForm.classList.contains('active')) {
-        toggleBtn.innerHTML = '<i class="fas fa-times"></i> Cancel';
-        reviewForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } else {
-        toggleBtn.innerHTML = '<i class="fas fa-edit"></i> Write a Review';
-      }
-    });
+  if (!toggleBtn) {
+    console.warn('[ReviewForm] ❌ Toggle button (#toggle-review-form) not found');
+    return;
   }
+  if (!reviewForm) {
+    console.warn('[ReviewForm] ❌ Review form (#review-form) not found');
+    return;
+  }
+
+  toggleBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    console.log('[ReviewForm] Toggle button clicked');
+
+    const isActive = reviewForm.classList.toggle('active');
+    console.log('[ReviewForm] Form active state:', isActive);
+
+    toggleBtn.innerHTML = isActive
+      ? '<i class="fas fa-times"></i> Cancel'
+      : '<i class="fas fa-edit"></i> Write a Review';
+
+    if (isActive) {
+      console.log('[ReviewForm] Scheduling scrollIntoView after animation');
+      setTimeout(() => {
+        console.log('[ReviewForm] Scrolling into view now');
+        reviewForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 400); // match CSS transition duration
+    }
+  });
 }
 
 // ========================================
@@ -846,8 +887,17 @@ function initScrollAnimations(): void {
 // ========================================
 // Main Initialization Function
 // ========================================
+console.log('[Init] initProductDetail() called');
+let productDetailInitialized = false;
 
 export function initProductDetail(): void {
+    if (productDetailInitialized) {
+          console.warn('[Init] Product detail already initialized — skipping duplicate');
+    return;
+      }
+      productDetailInitialized = true;
+      console.log('[Init] Product detail initialized once');
+
   // Core functionality
   initImageGallery();
   initQuantityControls();

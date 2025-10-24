@@ -4,100 +4,47 @@ export function initProductList(): void {
   const filterToggle = document.getElementById('filterToggle');
   const filterContent = document.getElementById('filterContent');
   const priceRange = document.getElementById('priceRange') as HTMLInputElement;
-  const maxPriceInput = document.getElementById('maxPriceInput') as HTMLInputElement;
-  const applyPriceBtn = document.getElementById('applyPriceBtn') as HTMLButtonElement;
-  const inStockCheckbox = document.getElementById('inStock') as HTMLInputElement;
-  const clearAllBtn = document.getElementById('clearAllBtn');
   const priceDisplay = document.getElementById('priceDisplay');
 
-  console.log('Initializing product list...');
-
-  // Mobile filter toggle
+  // Mobile sidebar toggle (doesn't conflict with HTMX)
   if (filterToggle && filterContent) {
     filterToggle.addEventListener('click', () => {
-      filterContent.classList.toggle('expanded');
-      const icon = filterContent.classList.contains('expanded') ?
-        '<i class="fas fa-times"></i> Hide Filters' :
-        '<i class="fas fa-filter"></i> Show Filters';
-      filterToggle.innerHTML = icon;
+      const isHidden = filterContent.hasAttribute('hidden');
+
+      if (isHidden) {
+        filterContent.removeAttribute('hidden');
+        filterToggle.setAttribute('aria-expanded', 'true');
+      } else {
+        filterContent.setAttribute('hidden', '');
+        filterToggle.setAttribute('aria-expanded', 'false');
+      }
+
+      const span = filterToggle.querySelector('span');
+      if (span) {
+        span.textContent = isHidden ? 'Hide Filters' : 'Show Filters';
+      }
     });
   }
 
-  // Price range filter
+  // Live update price display (visual feedback only, HTMX handles submission)
   if (priceRange && priceDisplay) {
     priceRange.addEventListener('input', () => {
-      const value = priceRange.value;
-      priceDisplay.textContent = `${value} KES`;
-      if (maxPriceInput) maxPriceInput.value = value;
+      priceDisplay.textContent = `${priceRange.value} KES`;
     });
   }
 
-  if (maxPriceInput && priceRange && priceDisplay) {
-    maxPriceInput.addEventListener('input', () => {
-      let value = parseInt(maxPriceInput.value);
-      if (isNaN(value)) value = 0;
-      if (value > 1000) value = 1000;
-      if (value < 0) value = 0;
-
-      maxPriceInput.value = value.toString();
-      priceRange.value = value.toString();
-      priceDisplay.textContent = `${value} KES`;
-    });
-  }
-
-  // Apply price filter
-  if (applyPriceBtn && maxPriceInput) {
-    applyPriceBtn.addEventListener('click', () => {
-      const max = maxPriceInput.value || '1000';
-      const url = StoreUtils.updateQueryStringParameter(window.location.href, 'max_price', max);
-      window.location.href = url;
-    });
-  }
-
-  // Stock filter
-  if (inStockCheckbox) {
-    inStockCheckbox.addEventListener('change', () => {
-      const url = inStockCheckbox.checked ?
-        StoreUtils.updateQueryStringParameter(window.location.href, 'in_stock', 'true') :
-        StoreUtils.removeQueryStringParameter(window.location.href, 'in_stock');
-      window.location.href = url;
-    });
-  }
-
-  // Clear all filters
-  if (clearAllBtn) {
-    clearAllBtn.addEventListener('click', () => {
-      const url = new URL(window.location.href);
-      url.searchParams.delete('sort');
-      url.searchParams.delete('min_rating');
-      url.searchParams.delete('max_price');
-      url.searchParams.delete('in_stock');
-      window.location.href = url.toString();
-    });
-  }
-
-  // View all categories
-  const viewAllBtn = document.getElementById('viewAllBtn');
-  if (viewAllBtn) {
-    viewAllBtn.addEventListener('click', () => {
-      window.location.href = '/categories/';
-    });
-  }
-
-  // Initialize product grid with proper card parameter
+  // Initialize product grid enhancements (non-conflicting)
   initProductGrid();
+
+  // Initialize analytics tracking
   initAnalytics();
-  initPriceWatch();
-  initInfiniteScroll();
-  initComparison();
-  initQuickView();
 }
 
 function initProductGrid(): void {
   const productCards = document.querySelectorAll('.product-card');
 
   productCards.forEach((card) => {
-    // Add hover effects
+    // Add hover effects for better UX
     card.addEventListener('mouseenter', () => {
       card.classList.add('hover');
       preloadProductImages(card as HTMLElement);
@@ -109,18 +56,14 @@ function initProductGrid(): void {
 
     // Lazy loading for images
     initLazyLoading(card as HTMLElement);
-
-    // Quick actions
-    initProductQuickActions(card as HTMLElement);
   });
 
-  // Product count animation
+  // Animate product count on page load
   animateProductCount();
 }
 
 function preloadProductImages(card: HTMLElement): void {
-    card.getAttribute('data-product-id');
-    const hoverImage = card.getAttribute('data-hover-image');
+  const hoverImage = card.getAttribute('data-hover-image');
 
   if (hoverImage && !card.classList.contains('image-preloaded')) {
     const img = new Image();
@@ -138,21 +81,26 @@ function initLazyLoading(card: HTMLElement): void {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         const img = entry.target as HTMLImageElement;
-        img.src = img.getAttribute('data-src')!;
-        img.removeAttribute('data-src');
-        observer.unobserve(img);
+        const dataSrc = img.getAttribute('data-src');
+        if (dataSrc) {
+          img.src = dataSrc;
+          img.removeAttribute('data-src');
+          observer.unobserve(img);
 
-        // Add loaded class for fade-in effect
-        img.addEventListener('load', () => {
-          img.classList.add('loaded');
-        });
+          // Add loaded class for fade-in effect
+          img.addEventListener('load', () => {
+            img.classList.add('loaded');
+          });
+        }
       }
     });
+  }, {
+    rootMargin: '50px 0px',
+    threshold: 0.01
   });
 
   images.forEach(img => observer.observe(img));
 }
-
 
 function initQuickView(): void {
   // Quick view modal functionality
@@ -176,23 +124,21 @@ function initQuickView(): void {
   });
 
   // Keyboard navigation
-
-    document.addEventListener('keydown', (e: KeyboardEvent) => {
-  const quickView = document.getElementById('quick-view-modal');
-  if (quickView && !quickView.classList.contains('hidden')) {
-    if (e.key === 'Escape') {
-      closeQuickView();
-    } else if (e.key === 'ArrowLeft') {
-      navigateQuickView('prev');
-    } else if (e.key === 'ArrowRight') {
-      navigateQuickView('next');
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    const quickView = document.getElementById('quick-view-modal');
+    if (quickView && !quickView.classList.contains('hidden')) {
+      if (e.key === 'Escape') {
+        closeQuickView();
+      } else if (e.key === 'ArrowLeft') {
+        navigateQuickView('prev');
+      } else if (e.key === 'ArrowRight') {
+        navigateQuickView('next');
+      }
     }
-  }
-});
+  });
 }
 
 function openQuickView(productId: string): void {
-  // Show loading state
   const modal = document.getElementById('quick-view-modal');
   if (modal) {
     modal.classList.remove('hidden');
@@ -248,7 +194,7 @@ function renderQuickView(product: any): void {
           <div class="image-thumbnails">
             ${product.images?.map((img: string, index: number) => `
               <img src="${img}" alt="Thumbnail ${index + 1}" class="thumbnail ${index === 0 ? 'active' : ''}">
-            `).join('')}
+            `).join('') || ''}
           </div>
         </div>
 
@@ -321,7 +267,6 @@ function initQuickViewActions(): void {
     const productId = button.getAttribute('data-product-id');
 
     if (productId) {
-      // Toggle wishlist state
       const isActive = button.classList.contains('active');
       button.classList.toggle('active');
       button.innerHTML = isActive ?
@@ -429,7 +374,6 @@ function initComparison(): void {
         countElement.textContent = products.length.toString();
       }
 
-      // Enable/disable compare button
       const compareBtn = compareBar.querySelector('.compare-btn');
       if (compareBtn) {
         (compareBtn as HTMLButtonElement).disabled = products.length < 2;
@@ -445,6 +389,7 @@ function initComparison(): void {
     window.open(`/compare/?products=${products}`, '_blank');
   });
 }
+
 function initInfiniteScroll(): void {
   if (!document.body.classList.contains('infinite-scroll')) return;
 
@@ -472,13 +417,10 @@ function loadMoreProducts(): void {
 
   if (currentPage >= totalPages) return;
 
-  // Show loading state
-    if (loadMoreBtn instanceof HTMLButtonElement) {
-  loadMoreBtn.disabled = true;
-}
+  if (loadMoreBtn instanceof HTMLButtonElement) {
+    loadMoreBtn.disabled = true;
+  }
 
-
-  // Fetch next page
   const nextPage = currentPage + 1;
   const url = new URL(window.location.href);
   url.searchParams.set('page', nextPage.toString());
@@ -491,14 +433,12 @@ function loadMoreProducts(): void {
       const newProducts = doc.querySelector('.product-grid')?.innerHTML;
 
       if (newProducts) {
-        // Append new products
         const productGrid = document.querySelector('.product-grid');
         if (productGrid) {
           productGrid.innerHTML += newProducts;
         }
 
-        // Update load more button
-        if (loadMoreBtn instanceof  HTMLButtonElement) {
+        if (loadMoreBtn instanceof HTMLButtonElement) {
           loadMoreBtn.setAttribute('data-page', nextPage.toString());
 
           if (nextPage >= totalPages) {
@@ -523,110 +463,6 @@ function loadMoreProducts(): void {
         }, 3000);
       }
     });
-}
-
-function initProductQuickActions(card: HTMLElement): void {
-  const quickActions = card.querySelector('.product-quick-actions');
-
-  if (quickActions) {
-    // Add to cart quick action
-    const quickAddBtn = quickActions.querySelector('.quick-add-btn');
-    quickAddBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      const productId = card.getAttribute('data-product-id');
-      if (productId) {
-        // Import cart manager only when needed
-        import('./base').then(({ cartManager }) => {
-          cartManager.quickAdd(parseInt(productId), 1);
-        });
-
-        // Visual feedback
-        (quickAddBtn as HTMLElement).innerHTML = '<i class="fas fa-check"></i>';
-        setTimeout(() => {
-          (quickAddBtn as HTMLElement).innerHTML = '<i class="fas fa-cart-plus"></i>';
-        }, 1000);
-      }
-    });
-  }
-}
-
-
-function initPriceWatch(): void {
-  const priceWatchButtons = document.querySelectorAll('.price-watch-btn');
-
-  priceWatchButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const productId = btn.getAttribute('data-product-id');
-      const currentPrice = btn.getAttribute('data-current-price');
-
-      if (productId && currentPrice) {
-        // Show price watch modal
-        showPriceWatchModal(parseInt(productId), parseFloat(currentPrice));
-      }
-    });
-  });
-}
-
-function showPriceWatchModal(productId: number, currentPrice: number): void {
-  // Implementation for price watch modal
-  const modal = document.createElement('div');
-  modal.className = 'price-watch-modal';
-  modal.innerHTML = `
-    <div class="modal-content">
-      <h3>Set Price Alert</h3>
-      <p>Get notified when the price drops below your target.</p>
-      
-      <div class="price-input-group">
-        <label>Current Price: ${StoreUtils.formatPrice(currentPrice)}</label>
-        <input type="number" class="target-price" placeholder="Enter target price" min="0">
-      </div>
-      
-      <div class="modal-actions">
-        <button class="btn-secondary cancel-btn">Cancel</button>
-        <button class="btn-primary set-alert-btn">Set Alert</button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-  // Event listeners for modal
-  modal.querySelector('.set-alert-btn')?.addEventListener('click', () => {
-    const targetPriceInput = modal.querySelector('.target-price') as HTMLInputElement;
-    const targetPrice = parseFloat(targetPriceInput.value);
-
-    if (targetPrice && targetPrice < currentPrice) {
-      setPriceAlert(productId, targetPrice);
-      modal.remove();
-    } else {
-      targetPriceInput.classList.add('error');
-    }
-  });
-
-  modal.querySelector('.cancel-btn')?.addEventListener('click', () => {
-    modal.remove();
-  });
-
-  // Close on backdrop click
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.remove();
-    }
-  });
-}
-
-function setPriceAlert(productId: number, targetPrice: number): void {
-  // Save price alert to localStorage or send to server
-  const alerts = StoreUtils.getStorage<Array<{productId: number, targetPrice: number}>>('price-alerts') || [];
-  alerts.push({ productId, targetPrice });
-  StoreUtils.setStorage('price-alerts', alerts);
-
-  // Show success message
-  const toast = StoreUtils.createElement('div', {
-    className: 'toast success'
-  }, ['Price alert set successfully!']);
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
 }
 
 function initAnalytics(): void {
@@ -666,6 +502,7 @@ function getProductListType(): string {
   if (window.location.pathname.includes('/deals/')) return 'deals';
   return 'general';
 }
+
 function animateProductCount(): void {
   const countElement = document.querySelector('.product-count');
   if (countElement) {
@@ -684,6 +521,7 @@ function generateStarRating(rating: number): string {
     ${'<i class="far fa-star"></i>'.repeat(emptyStars)}
   `;
 }
+
 // Export additional functions
 export {
   initQuickView,

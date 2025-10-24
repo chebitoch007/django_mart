@@ -604,17 +604,25 @@
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
+/* Review Form - Enhanced Visibility and Animation */
 .review-form {
     background: #f8fafc;
     border: 2px solid #e2e8f0;
     border-radius: 16px;
-    padding: 30px;
-    display: none;
-    animation: slideDown 0.3s ease;
+    padding: 0 30px;
+    display: block;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.4s ease;
 }
 
 .review-form.active {
-    display: block;
+    padding: 30px;
+    max-height: 1000px; /* Enough to fit form content */
+    opacity: 1;
+    transform: translateY(0);
 }
 
 @keyframes slideDown {
@@ -913,7 +921,37 @@ textarea.form-control {
     .mobile-sticky-cta {
         display: flex;
     }
+
+    /* 🩹 Fix overlapping gallery on mobile */
+    .product-gallery {
+        position: relative !important;
+        top: auto !important;
+        z-index: 0 !important;
+    }
+
+    .reviews-section {
+        position: relative !important;
+        z-index: 1 !important;
+        margin-top: 20px;
+    }
+
 }
+
+@media (max-width: 991px) and (min-width: 769px) {
+  /* 🩹 Fix overlapping gallery on tablets */
+  .product-gallery {
+    position: relative !important;
+    top: auto !important;
+    z-index: 0 !important;
+  }
+
+  .reviews-section {
+    position: relative !important;
+    z-index: 1 !important;
+    margin-top: 20px;
+  }
+}
+
 
 .mobile-price {
     font-size: 1.5rem;

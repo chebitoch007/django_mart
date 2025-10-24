@@ -1,18 +1,121 @@
 {% extends "store/base.html" %}
-{% load crispy_forms_filters %}
+{% load crispy_forms_tags crispy_forms_filters %}
+{% load static %}
 
 {% block title %}Update Profile - ASAI{% endblock %}
 
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <h2 class="mb-4">Update Profile</h2>
-        <form method="post">
-            {% csrf_token %}
-            {{ form|crispy }}
-            <button type="submit" class="btn btn-primary">Update</button>
-            <a href="{% url 'users:account' %}" class="btn btn-secondary">Cancel</a>
-        </form>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+
+            <!-- Page Header -->
+            <div class="asai-page-header mb-4">
+                <h1 class="asai-page-title">
+                    <i class="fas fa-user-circle me-2"></i>Update Profile
+                </h1>
+                <p class="asai-page-subtitle">Keep your personal information up to date</p>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" class="asai-form">
+                {% csrf_token %}
+
+                <!-- Personal Details -->
+                <div class="asai-card mb-4 animate-fade-in">
+                    <div class="asai-card-header">
+                        <i class="fas fa-user me-2"></i>Personal Details
+                    </div>
+                    <div class="asai-card-body">
+                        <div class="form-section">{{ user_form.first_name|as_crispy_field }}</div>
+                        <div class="form-section">{{ user_form.last_name|as_crispy_field }}</div>
+                        <div class="form-section">{{ user_form.email|as_crispy_field }}</div>
+                        <div class="form-section">{{ user_form.phone_number|as_crispy_field }}</div>
+                    </div>
+                </div>
+
+                <!-- Profile & Preferences -->
+                <div class="asai-card mb-4 animate-fade-in" style="animation-delay: 0.1s;">
+                    <div class="asai-card-header">
+                        <i class="fas fa-cog me-2"></i>Profile & Preferences
+                    </div>
+                    <div class="asai-card-body">
+
+                        <!-- Profile Image Upload -->
+                        {% if profile_form.profile_image %}
+                        <div class="form-section">
+                            <label class="form-label">Profile Image</label>
+                            <div class="profile-picture-wrapper">
+                                {% if profile_form.instance.profile_image %}
+                                <div class="current-picture mb-3">
+                                    <img src="{{ profile_form.instance.profile_image.url }}"
+                                         alt="Current profile"
+                                         class="profile-preview">
+                                    <small class="text-muted d-block mt-2">Current picture</small>
+                                </div>
+                                {% endif %}
+                                {{ profile_form.profile_image }}
+                                <small class="form-text text-muted">
+                                    Recommended: Square image, at least 200x200px
+                                </small>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Date of Birth -->
+                        <div class="form-section">
+                            {{ profile_form.date_of_birth|as_crispy_field }}
+                        </div>
+
+                        <!-- Preferred Language -->
+                        <div class="form-section">
+                            {{ profile_form.preferred_language|as_crispy_field }}
+                        </div>
+
+                        <!-- Dark Mode Toggle -->
+                        <div class="form-section">
+                            <div class="form-check asai-checkbox">
+                                {{ profile_form.dark_mode }}
+                                <label class="form-check-label" for="{{ profile_form.dark_mode.id_for_label }}">
+                                    Dark Mode
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Email Notifications -->
+                        <div class="form-section">
+                            <div class="form-check asai-checkbox">
+                                {{ profile_form.email_notifications }}
+                                <label class="form-check-label" for="{{ profile_form.email_notifications.id_for_label }}">
+                                    Email Notifications
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- SMS Notifications -->
+                        <div class="form-section">
+                            <div class="form-check asai-checkbox">
+                                {{ profile_form.sms_notifications }}
+                                <label class="form-check-label" for="{{ profile_form.sms_notifications.id_for_label }}">
+                                    SMS Notifications
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="asai-form-actions animate-fade-in" style="animation-delay: 0.2s;">
+                    <button type="submit" class="asai-btn asai-btn-primary">
+                        <i class="fas fa-save me-2"></i>Update Profile
+                    </button>
+                    <a href="{% url 'users:account' %}" class="asai-btn asai-btn-secondary">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+
+        </div>
     </div>
 </div>
 {% endblock %}
