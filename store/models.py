@@ -1,4 +1,5 @@
 # store/models.py
+import logging
 from django.db import transaction
 import uuid
 from django.db.models import Q, Value, CharField, TextField
@@ -13,6 +14,7 @@ from mptt.models import MPTTModel, TreeForeignKey
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField, SearchVector
 
+logger = logging.getLogger(__name__)
 
 class Category(MPTTModel):
     name = models.CharField(max_length=100)
@@ -233,9 +235,21 @@ class Product(models.Model):
             )
 
     def get_image_url(self):
-        if self.image and self.image.name:
-            return self.image.url
-        return static('store/images/placeholder.png')
+        """
+        Returns the URL of the product's primary image,
+        falling back to a placeholder if missing.
+        """
+        try:
+            if self.image:
+                url = self.image.url
+                logger.debug(f"[Product.get_image_url] Product '{self.name}' has image field='{self.image}', resolved URL='{url}'")
+                return url
+            else:
+                logger.warning(f"[Product.get_image_url] Product '{self.name}' has no image assigned, using placeholder.")
+                return '/static/store/images/placeholder.png'
+        except Exception as e:
+            logger.error(f"[Product.get_image_url] Error resolving image for '{self.name}': {e}", exc_info=True)
+            return '/static/store/images/placeholder.png'
 
     def get_large_image_url(self):
         """Returns the URL for a large version of the image, for zoom."""

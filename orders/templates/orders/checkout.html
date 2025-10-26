@@ -10,7 +10,7 @@
       mpesaStatus: "{% url 'payment:mpesa_status' %}",
       orderSuccess: "{% url 'orders:success' order.id %}"
     },
-    cartTotalPrice: "{{ cart.total_price }}",
+    cartTotalPrice: "{{ order.total }}",
     defaultCurrency: "{{ default_currency|default:'USD' }}",
     csrfToken: "{{ csrf_token }}",
     orderId: "{{ order.id }}",
@@ -904,7 +904,7 @@
                                     type="text"
                                     class="amount-input"
                                     id="amount"
-                                    value="{{ default_currency }} {{ cart.total_price|floatformat:2|intcomma }}"
+                                    value="{{ default_currency }} {{ order.total|floatformat:2|intcomma }}"
                                     readonly>
                             </div>
                         </div>

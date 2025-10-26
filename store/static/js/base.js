@@ -54,10 +54,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const now = new Date().getTime();
 
         if (lastCartUpdate && (now - parseInt(lastCartUpdate)) < 300000) {
-            htmx.ajax('GET', '{% url "cart:cart_total" %}', {
-                target: '#cart-count',
-                swap: 'innerHTML'
-            });
+            if (typeof htmx !== 'undefined') {
+                htmx.ajax('GET', '/cart/total/', {
+                    target: '#cart-count',
+                    swap: 'innerHTML'
+                });
+            }
         }
     }
 });
@@ -66,20 +68,20 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
     const backToTopButton = document.getElementById('back-to-top');
 
-    window.addEventListener('scroll', function() {
-        if (window.pageYOffset > 300) {
-            backToTopButton.classList.add('visible');
-        } else {
-            backToTopButton.classList.remove('visible');
-        }
-    });
+    if (backToTopButton) {
+        window.addEventListener('scroll', function() {
+            if (window.pageYOffset > 300) {
+                backToTopButton.classList.add('visible');
+            } else {
+                backToTopButton.classList.remove('visible');
+            }
+        });
 
-    backToTopButton.addEventListener('click', function() {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+        backToTopButton.addEventListener('click', function() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
 });
-
-
 
 // Enhanced search category dropdown
 document.addEventListener('DOMContentLoaded', function() {
@@ -274,24 +276,170 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Performance: Lazy load images
+// [ --- UPDATED LAZY LOADING LOGIC --- ]
+
+// Selectors for images that should NEVER be lazy-loaded
+const EAGER_SELECTORS = [
+    '.product-image',
+    '.cart-item img',
+    '.order-item img',
+    '.product-cell img',
+    '.items-table img',
+    '.order-detail-container img',
+    'img[data-no-lazy]',
+    'img.eager-loaded'
+];
+const EAGER_SELECTOR_STRING = EAGER_SELECTORS.join(', ');
+
+// 1. Run protective code FIRST - IMMEDIATELY upon script load
+(function() {
+    const protectCriticalImages = () => {
+        try {
+            document.querySelectorAll(EAGER_SELECTOR_STRING).forEach(img => {
+                // Remove lazy class
+                if (img.classList.contains('lazy')) {
+                    console.log('Protecting critical image from lazy-loader:', img);
+                    img.classList.remove('lazy');
+                }
+
+                // Force eager loading
+                img.loading = 'eager';
+
+                // If data-src exists, move it to src immediately
+                if (img.dataset.src && !img.src) {
+                    img.src = img.dataset.src;
+                    delete img.dataset.src; // Remove to prevent re-processing
+                    console.log('Restored hijacked image src:', img.src);
+                }
+
+                // Ensure visibility
+                img.style.opacity = '1';
+                img.style.visibility = 'visible';
+                img.style.display = 'block';
+
+                // Mark as protected
+                img.classList.add('eager-loaded');
+                img.setAttribute('data-no-lazy', 'true');
+            });
+        } catch (e) {
+            console.error('Error in eager-loading protective script:', e);
+        }
+    };
+
+    // Run immediately
+    protectCriticalImages();
+
+    // Run on DOMContentLoaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', protectCriticalImages);
+    }
+
+    // Run after a short delay to catch any late-loading elements
+    setTimeout(protectCriticalImages, 100);
+    setTimeout(protectCriticalImages, 500);
+})();
+
+// 2. Setup IntersectionObserver for actual lazy loading (only for non-critical images)
 if ('IntersectionObserver' in window) {
     const imageObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 const img = entry.target;
-                img.src = img.dataset.src;
-                img.classList.remove('lazy');
+
+                // Double-check this isn't a critical image
+                if (img.hasAttribute('data-no-lazy') || img.classList.contains('eager-loaded')) {
+                    imageObserver.unobserve(img);
+                    return;
+                }
+
+                // Process only if it has data-src and hasn't been loaded
+                if (img.dataset.src && !img.classList.contains('loaded')) {
+                    img.src = img.dataset.src;
+                    img.classList.remove('lazy');
+                    img.classList.add('loaded');
+                    console.log('Lazy-loaded image:', img);
+                }
                 imageObserver.unobserve(img);
             }
         });
     });
 
-    document.querySelectorAll('img[data-src]').forEach(img => {
-        imageObserver.observe(img);
-    });
+    // 3. Observe ONLY images that are .lazy[data-src] AND are NOT critical images
+    const setupLazyLoading = () => {
+        try {
+            // Build a selector that excludes all critical images
+            const notSelector = EAGER_SELECTORS.map(sel => `:not(${sel})`).join('');
+            const lazySelector = `img.lazy[data-src]${notSelector}`;
+
+            const imagesToObserve = document.querySelectorAll(lazySelector);
+            console.log(`Found ${imagesToObserve.length} images to lazy-load (excluding critical images).`);
+
+            imagesToObserve.forEach(img => {
+                // Skip if marked as critical
+                if (img.hasAttribute('data-no-lazy') || img.classList.contains('eager-loaded')) {
+                    return;
+                }
+                imageObserver.observe(img);
+            });
+        } catch (e) {
+            console.error('Error in lazy-loading observer setup:', e);
+        }
+    };
+
+    // Setup lazy loading after DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupLazyLoading);
+    } else {
+        setupLazyLoading();
+    }
 }
 
+// 4. Watch for dynamically added images
+const imageProtectionObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === 1) { // Element node
+                const element = node;
+
+                // Check if the node itself is a critical image
+                if (element.matches && element.matches(EAGER_SELECTOR_STRING)) {
+                    const img = element;
+                    img.classList.remove('lazy');
+                    img.loading = 'eager';
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src;
+                        delete img.dataset.src;
+                    }
+                    img.classList.add('eager-loaded');
+                    img.setAttribute('data-no-lazy', 'true');
+                }
+
+                // Check for critical images within the node
+                if (element.querySelectorAll) {
+                    const criticalImages = element.querySelectorAll(EAGER_SELECTOR_STRING);
+                    criticalImages.forEach(img => {
+                        img.classList.remove('lazy');
+                        img.loading = 'eager';
+                        if (img.dataset.src) {
+                            img.src = img.dataset.src;
+                            delete img.dataset.src;
+                        }
+                        img.classList.add('eager-loaded');
+                        img.setAttribute('data-no-lazy', 'true');
+                    });
+                }
+            }
+        });
+    });
+});
+
+// Start observing
+if (document.body) {
+    imageProtectionObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+}
 // Responsive Navigation Toggle
 function toggleMobileMenu() {
     const menu = document.getElementById('mobile-menu');

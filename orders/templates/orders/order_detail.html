@@ -1,242 +1,395 @@
-{% extends "store/base.html" %}
-{% load humanize %}
-{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order #{{ order.id }} - ASAI Store</title>
 
-{% block content %}
-<style>
-    /* Order Detail Styles */
-    .order-detail-container {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 20px;
-    }
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Orbitron:wght@800&display=swap"
+          rel="stylesheet">
 
-    .page-header {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        margin-bottom: 30px;
-    }
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    @media (min-width: 768px) {
+    {% load humanize %}
+    {% load static %}
+
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
         .page-header {
-            flex-direction: row;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        @media (min-width: 768px) {
+            .page-header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Order Card */
+        .order-card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .card-header {
+            display: flex;
             justify-content: space-between;
             align-items: center;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e2e8f0;
         }
-    }
 
-    .page-title {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #1e293b;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
+        .card-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
 
-    .back-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: #f1f5f9;
-        color: #3b82f6;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.3s ease;
-    }
+        .status-badge {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
-    .back-btn:hover {
-        background: #e2e8f0;
-        transform: translateY(-2px);
-    }
+        .status-paid {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
 
-    .order-card {
-        background: white;
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        padding: 30px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        margin-bottom: 30px;
-    }
+        .status-pending {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: white;
+        }
 
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-bottom: 20px;
-        margin-bottom: 20px;
-        border-bottom: 1px solid #e2e8f0;
-    }
-
-    .card-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-    .status-badge {
-        display: inline-block;
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-size: 0.9rem;
-        font-weight: 600;
-    }
-
-    .status-paid {
-        background: #dcfce7;
-        color: #166534;
-    }
-
-    .status-pending {
-        background: #fef9c3;
-        color: #854d0e;
-    }
-
-    .order-info {
-        display: grid;
-        grid-template-columns: repeat(1, 1fr);
-        gap: 20px;
-        margin-bottom: 30px;
-    }
-
-    @media (min-width: 768px) {
+        /* Order Info Grid */
         .order-info {
-            grid-template-columns: repeat(2, 1fr);
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 30px;
+            margin-bottom: 40px;
         }
-    }
 
-    .info-group {
-        margin-bottom: 15px;
-    }
+        @media (min-width: 768px) {
+            .order-info {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
 
-    .info-label {
-        font-weight: 600;
-        color: #334155;
-        margin-bottom: 5px;
-    }
+        .info-group {
+            margin-bottom: 20px;
+        }
 
-    .info-value {
-        color: #475569;
-    }
+        .info-label {
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 8px;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
-    .items-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 30px;
-    }
+        .info-value {
+            color: #1e293b;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
 
-    .items-table thead {
-        background: #f1f5f9;
-    }
+        /* Items Table */
+        .items-section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
 
-    .items-table th {
-        padding: 12px 15px;
-        text-align: left;
-        color: #334155;
-        font-weight: 600;
-    }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
 
-    .items-table td {
-        padding: 15px;
-        color: #475569;
-        border-bottom: 1px solid #e2e8f0;
-    }
+        .items-table thead {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
 
-    .product-cell {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
+        .items-table th {
+            padding: 16px;
+            text-align: left;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
-    .product-image {
-        width: 60px;
-        height: 60px;
-        border-radius: 8px;
-        object-fit: contain;
-        background: #f8fafc;
-        padding: 5px;
-    }
+        .items-table td {
+            padding: 20px 16px;
+            color: #475569;
+            border-bottom: 1px solid #e2e8f0;
+        }
 
-    .product-name {
-        font-weight: 600;
-        color: #1e293b;
-    }
+        .items-table tbody tr:hover {
+            background: #f8fafc;
+        }
 
-    .text-right {
-        text-align: right;
-    }
+        .product-cell {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
 
-    .text-center {
-        text-align: center;
-    }
+        .product-image-wrapper {
+            flex-shrink: 0;
+            width: 80px;
+            height: 80px;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-    .total-row {
-        font-weight: 700;
-        color: #1e293b;
-        border-top: 2px solid #e2e8f0;
-    }
+        .product-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
 
-    .payment-required {
-        background: #fffbeb;
-        border-radius: 12px;
-        padding: 25px;
-        border-left: 4px solid #f59e0b;
-    }
+        .product-info {
+            flex: 1;
+        }
 
-    .payment-header {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        margin-bottom: 15px;
-    }
+        .product-name {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
 
-    .payment-icon {
-        font-size: 1.5rem;
-        color: #f59e0b;
-    }
+        .product-name a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
 
-    .payment-title {
-        font-size: 1.3rem;
-        font-weight: 600;
-        color: #854d0e;
-    }
+        .product-name a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
 
-    .payment-text {
-        color: #854d0e;
-        margin-bottom: 20px;
-        line-height: 1.6;
-    }
+        .product-details {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
 
-    .payment-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        background: linear-gradient(to right, #3b82f6, #2563eb);
-        color: white;
-        padding: 12px 25px;
-        border-radius: 8px;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.3s ease;
-    }
+        .text-right {
+            text-align: right;
+        }
 
-    .payment-btn:hover {
-        background: linear-gradient(to right, #2563eb, #1d4ed8);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        transform: translateY(-2px);
-    }
-</style>
+        .text-center {
+            text-align: center;
+        }
 
-<div class="order-detail-container">
+        /* Table Footer - Totals */
+        .items-table tfoot td {
+            padding: 12px 16px;
+            font-size: 0.95rem;
+        }
+
+        .items-table tfoot tr:last-child {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-size: 1.1rem;
+        }
+
+        .items-table tfoot tr:last-child td {
+            border: none;
+            padding: 16px;
+            font-weight: 700;
+        }
+
+        /* Payment Required Section */
+        .payment-required {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-radius: 16px;
+            padding: 30px;
+            border-left: 5px solid #f59e0b;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        }
+
+        .payment-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .payment-icon {
+            font-size: 2rem;
+            color: #f59e0b;
+        }
+
+        .payment-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #78350f;
+        }
+
+        .payment-text {
+            color: #78350f;
+            margin-bottom: 20px;
+            line-height: 1.7;
+            font-size: 1rem;
+        }
+
+        .payment-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 14px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .payment-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .order-card {
+                padding: 25px;
+            }
+
+            .card-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            .items-table {
+                font-size: 0.875rem;
+            }
+
+            .items-table th,
+            .items-table td {
+                padding: 12px 8px;
+            }
+
+            .product-image-wrapper {
+                width: 60px;
+                height: 60px;
+            }
+
+            .product-cell {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .back-btn,
+            .payment-required {
+                display: none;
+            }
+
+            .order-card {
+                box-shadow: none;
+                border: 1px solid #e2e8f0;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
     <div class="page-header">
         <h1 class="page-title">
             <i class="fas fa-receipt"></i>
             Order #{{ order.id }}
         </h1>
-        <a href="{% url 'orders:history' %}" class="back-btn">
+        <a href="{% url 'orders:order_list' %}" class="back-btn">
             <i class="fas fa-arrow-left"></i>
             Back to Orders
         </a>
@@ -246,8 +399,8 @@
         <div class="card-header">
             <h2 class="card-title">Order Summary</h2>
             <span class="status-badge {% if order.status == 'PAID' %}status-paid{% else %}status-pending{% endif %}">
-                {{ order.get_status_display }}
-            </span>
+                    {{ order.get_status_display }}
+                </span>
         </div>
 
         <div class="order-info">
@@ -285,76 +438,74 @@
             </div>
         </div>
 
-        <h3 class="card-title">Order Items</h3>
+        <h3 class="items-section-title">Order Items</h3>
         <table class="items-table">
             <thead>
-                <tr>
-                    <th>Product</th>
-                    <th class="text-right">Price</th>
-                    <th class="text-center">Quantity</th>
-                    <th class="text-right">Total</th>
-                </tr>
+            <tr>
+                <th>Product</th>
+                <th class="text-right">Price</th>
+                <th class="text-center">Quantity</th>
+                <th class="text-right">Total</th>
+            </tr>
             </thead>
             <tbody>
-                {% for item in order.items.all %}
-                <tr>
-                    <td class="product-cell">
-                        <div>
-                            {% with first_image=item.product.additional_images.first %}
-                                {% if first_image and first_image.image %}
-                                    <img src="{{ first_image.image.url }}" alt="{{ item.product.name }}" class="product-image">
-                                {% elif item.product.image %}
-                                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="product-image">
-                                {% else %}
-                                    <img src="{% static 'img/no-image.png' %}" alt="No image" class="product-image">
-                                {% endif %}
-                            {% endwith %}
+            {% for item in order.items.all %}
+            <tr>
+                <td class="product-cell">
+                    <div class="product-image-wrapper">
+                        <img src="{{ item.product.get_image_url }}"
+                             alt="{{ item.product.name }}"
+                             class="product-image"
+                             loading="eager">
+                    </div>
+                    <div class="product-info">
+                        <div class="product-name">
+                            <a href="{% url 'store:product_detail' item.product.slug %}">
+                                {{ item.product.name }}
+                            </a>
                         </div>
-                        <div>
-                            <div class="product-name">
-                                <a href="{% url 'store:product_detail' item.product.slug %}" class="text-blue-600 hover:underline">
-                                    {{ item.product.name }}
-                                </a>
-                            </div>
-                            <div style="font-size: 0.875rem; color: #64748b;">
-                                {{ item.quantity }} × {{ order.currency }} {{ item.price|floatformat:2|intcomma }}
-                            </div>
+                        <div class="product-details">
+                            {{ item.quantity }} × {{ order.currency }} {{ item.price|floatformat:2|intcomma }}
                         </div>
-                    </td>
-                    <td class="text-right">{{ order.currency }} {{ item.price|floatformat:2|intcomma }}</td>
-                    <td class="text-center">{{ item.quantity }}</td>
-                    <td class="text-right">{{ order.currency }} {{ item.total_price|floatformat:2|intcomma }}</td>
-                </tr>
-                {% endfor %}
+                    </div>
+                </td>
+                <td class="text-right">{{ order.currency }} {{ item.price|floatformat:2|intcomma }}</td>
+                <td class="text-center"><strong>{{ item.quantity }}</strong></td>
+                <td class="text-right"><strong>{{ order.currency }} {{ order.total|floatformat:2|intcomma
+                    }}</strong></td>
+            </tr>
+            {% endfor %}
             </tbody>
             <tfoot>
-                <tr>
-                    <td colspan="3" class="text-right" style="padding: 10px 15px;">Subtotal:</td>
-                    <td class="text-right" style="padding: 10px 15px;">{{ order.currency }} {{ order.total|floatformat:2|intcomma }}</td>
-                </tr>
-                <tr>
-                    <td colspan="3" class="text-right" style="padding: 10px 15px;">Shipping:</td>
-                    <td class="text-right" style="padding: 10px 15px;">{{ order.currency }} 0.00</td>
-                </tr>
-                <tr>
-                    <td colspan="3" class="text-right" style="padding: 10px 15px;">Tax:</td>
-                    <td class="text-right" style="padding: 10px 15px;">{{ order.currency }} 0.00</td>
-                </tr>
-                <tr class="total-row">
-                    <td colspan="3" class="text-right" style="padding: 15px; font-size: 1.2rem;">Total:</td>
-                    <td class="text-right" style="padding: 15px; font-size: 1.2rem;">{{ order.currency }} {{ order.total|floatformat:2|intcomma }}</td>
-                </tr>
+            <tr>
+                <td colspan="3" class="text-right">Subtotal:</td>
+                <td class="text-right">{{ order.currency }} {{ order.total|floatformat:2|intcomma }}</td>
+            </tr>
+            <tr>
+                <td colspan="3" class="text-right">Shipping:</td>
+                <td class="text-right">{{ order.currency }} 0.00</td>
+            </tr>
+            <tr>
+                <td colspan="3" class="text-right">Tax:</td>
+                <td class="text-right">{{ order.currency }} 0.00</td>
+            </tr>
+            <tr>
+                <td colspan="3" class="text-right"><strong>Total:</strong></td>
+                <td class="text-right"><strong>{{ order.currency }} {{ order.total|floatformat:2|intcomma }}</strong>
+                </td>
+            </tr>
             </tfoot>
         </table>
 
-        {% if order.status == 'PENDING' %}
+        {% if order.status == 'PENDING' and order.is_payable %}
         <div class="payment-required">
             <div class="payment-header">
                 <i class="fas fa-exclamation-triangle payment-icon"></i>
                 <h3 class="payment-title">Payment Required</h3>
             </div>
             <p class="payment-text">
-                Please complete your payment to process this order. Your items will be shipped once payment is confirmed.
+                Please complete your payment to process this order. Your items will be shipped once payment is
+                confirmed.
             </p>
             <a href="{% url 'orders:checkout' %}" class="payment-btn">
                 <i class="fas fa-lock"></i> Proceed to Payment
@@ -363,4 +514,5 @@
         {% endif %}
     </div>
 </div>
-{% endblock %}
+</body>
+</html>

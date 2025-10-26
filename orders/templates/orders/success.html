@@ -1,6 +1,137 @@
 {% extends 'store/base.html' %}
+{% load humanize %}
 
 {% block content %}
-<h1>Order Successful!</h1>
-<p>Your order has been processed successfully.</p>
+<style>
+    .success-container {
+        max-width: 700px;
+        margin: 60px auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        padding: 40px;
+        text-align: center;
+    }
+
+    .success-icon {
+        font-size: 4rem;
+        color: #16a34a;
+        margin-bottom: 20px;
+    }
+
+    .success-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 15px;
+    }
+
+    .success-text {
+        color: #475569;
+        margin-bottom: 25px;
+        font-size: 1.1rem;
+    }
+
+    .success-details {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 25px;
+        text-align: left;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    .detail-value {
+        color: #1e293b;
+        font-weight: 500;
+    }
+
+    .btn-group {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 30px;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 12px 25px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(to right, #3b82f6, #2563eb);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(to right, #2563eb, #1d4ed8);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        background: #f1f5f9;
+        color: #1e293b;
+    }
+
+    .btn-secondary:hover {
+        background: #e2e8f0;
+        transform: translateY(-2px);
+    }
+</style>
+
+<div class="success-container">
+    <div class="success-icon">
+        <i class="fas fa-check-circle"></i>
+    </div>
+
+    <h1 class="success-title">Order #{{ order.id }} Successful!</h1>
+    <p class="success-text">
+        Thank you for your purchase, {{ order.first_name }}!
+        Your payment has been received and your order is now being processed.
+    </p>
+
+    <div class="success-details">
+        <div class="detail-row">
+            <span class="detail-label">Order Total:</span>
+            <span class="detail-value">KES {{ order.total|intcomma }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Payment Method:</span>
+            <span class="detail-value">{{ order.get_payment_method_display|default:"N/A" }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Status:</span>
+            <span class="detail-value">{{ order.get_status_display }}</span>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-primary">
+            <i class="fas fa-receipt"></i> View Order Details
+        </a>
+        <a href="{% url 'store:product_list' %}" class="btn btn-secondary">
+            <i class="fas fa-shopping-bag"></i> Continue Shopping
+        </a>
+    </div>
+</div>
 {% endblock %}

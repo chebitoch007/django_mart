@@ -29,41 +29,7 @@ class OrderManager(models.Manager):
         # ✅ REMOVED prefetch_related - let views handle their own prefetching
         return OrderQuerySet(self.model, using=self._db).select_related('user')
 
-    def create_from_cart(self, cart, user, shipping_details):
-        with transaction.atomic():
-            order = self.create(
-                user=user,
-                **shipping_details,
-                currency=settings.DEFAULT_CURRENCY
-            )
 
-            items = []
-            order_total = 0
-            for cart_item in cart.items.select_related('product').all():
-                if cart_item.quantity > cart_item.product.stock:
-                    raise ValidationError(f"Insufficient stock for {cart_item.product.name}")
-
-                current_price = cart_item.product.get_display_price()
-                order_total += (current_price * cart_item.quantity)
-
-                items.append(OrderItem(
-                    order=order,
-                    product=cart_item.product,
-                    price=current_price,
-                    quantity=cart_item.quantity
-                ))
-
-                Product.objects.filter(pk=cart_item.product.pk).update(
-                    stock=F('stock') - cart_item.quantity
-                )
-
-            OrderItem.objects.bulk_create(items)
-
-            order.total = order_total
-            order.save(update_fields=['total'])
-
-            cart.items.all().delete()
-            return order
 
 
 class Order(models.Model):
@@ -244,12 +210,6 @@ class OrderItem(models.Model):
     def total_price(self):
         return self.price * self.quantity
 
-    def clean(self):
-        if self._state.adding:
-            if self.price != self.product.get_display_price():
-                raise ValidationError({'price': 'Price must match current product price'})
-            if self.quantity > self.product.stock:
-                raise ValidationError({'quantity': 'Quantity exceeds available stock'})
 
     def mark_as_processed(self, order_id, tracking, delivery):
         self.dropship_processed = True

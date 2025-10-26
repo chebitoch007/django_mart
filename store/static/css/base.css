@@ -1167,3 +1167,32 @@ payment-icon.paypal:hover {
     display: none;
   }
 }
+
+
+/* ===== PRODUCT IMAGES - NEVER LAZY LOAD ===== */
+.product-image {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+    /* Ensure images are never hidden by lazy loading */
+}
+
+/* Override any lazy loading styles */
+img.lazy:not(.product-image) {
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+img.lazy.loaded,
+img:not(.lazy) {
+    opacity: 1;
+}
+
+/* Cart images should also never be lazy */
+.cart-item img,
+.order-item img,
+.product-image,
+.product-cell img {
+    opacity: 1 !important;
+    visibility: visible !important;
+}

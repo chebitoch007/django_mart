@@ -142,29 +142,17 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         return context
 
     def _build_order_queryset(self):
-        # Build optimized queryset for order items with product images
+        # ✅ Don't use .only() - it's causing the image field to be deferred
         items_queryset = (
             OrderItem.objects
             .select_related('product')
-            .prefetch_related('product__additional_images')
-            .only(
-                'price', 'quantity',
-                'product__id', 'product__name', 'product__price', 'product__slug'
-            )
         )
 
-        # Build main order queryset
-        return (Order.objects
+        return (
+            Order.objects
             .select_related('user', 'payment')
             .prefetch_related(
                 Prefetch('items', queryset=items_queryset)
-            )
-            .only(
-                *self.ORDER_FIELDS,
-                *self.USER_FIELDS,
-                'payment__id',
-                'payment__status',
-                'payment__amount'
             )
         )
 
