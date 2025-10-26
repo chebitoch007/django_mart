@@ -1,4 +1,6 @@
 # users/models.py
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils import timezone
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.models import AbstractUser, BaseUserManager
@@ -12,6 +14,7 @@ from django.contrib.auth.hashers import make_password
 import uuid
 import re
 import logging
+from django_countries.fields import CountryField
 
 logger = logging.getLogger(__name__)
 
@@ -330,6 +333,8 @@ class Address(models.Model):
     ADDRESS_TYPES = (
         ('home', 'Home'),
         ('work', 'Work'),
+        ('shipping', 'Shipping'),
+        ('billing', 'Billing'),
         ('other', 'Other'),
     )
 
@@ -341,16 +346,16 @@ class Address(models.Model):
     nickname = models.CharField(_('nickname'), max_length=50, blank=True)
     address_type = models.CharField(
         _('address type'),
-        max_length=10,
+        max_length=20,
         choices=ADDRESS_TYPES,
-        default='home'
+        default='shipping'
     )
     full_name = models.CharField(_('full name'), max_length=100)
     street_address = models.CharField(_('street address'), max_length=255)
     city = models.CharField(_('city'), max_length=100)
     state = models.CharField(_('state/province'), max_length=100)
     postal_code = models.CharField(_('postal code'), max_length=20)
-    country = models.CharField(_('country'), max_length=50, default='Kenya')
+    country = CountryField(blank_label='(select country)', default='KE')  # for example Kenya default
     phone = models.CharField(
         _('phone number'),
         max_length=17,
@@ -407,3 +412,20 @@ class ActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.get_activity_type_display()} by {self.user} at {self.timestamp}"
+
+
+@receiver(post_save, sender=CustomUser)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    """
+    Ensure every user has a Profile. Called whenever a CustomUser is saved.
+    """
+    if created:
+        # create default profile for new users
+        Profile.objects.create(user=instance)
+    else:
+        # If user exists but profile missing (edge cases), create it
+        if not hasattr(instance, 'profile'):
+            Profile.objects.create(user=instance)
+        else:
+            # ensure profile touches last_updated if needed (optional)
+            instance.profile.save()

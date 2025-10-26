@@ -1,22 +1,23 @@
-{% extends "store/base.html" %}
 {% load static %}
-<link rel="stylesheet" href="{% static 'css/asai-forms.css' %}">
-
-{% block title %}Confirm Deletion - ASAI{% endblock %}
-
-{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirm Deletion - ASAI</title>
+    <link rel="stylesheet" href="{% static 'css/asai-forms.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="bg-light">
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-12 col-lg-6">
-
-            <!-- Warning Card -->
             <div class="asai-card asai-card-danger animate-scale-in">
                 <div class="asai-card-header-danger">
                     <i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion
                 </div>
                 <div class="asai-card-body text-center">
 
-                    <!-- Warning Message -->
                     <div class="deletion-warning mb-4">
                         <div class="warning-icon mb-3">
                             <i class="fas fa-trash-alt"></i>
@@ -27,14 +28,13 @@
                         </p>
                     </div>
 
-                    <!-- Address Preview -->
                     <div class="address-preview-box">
                         <div class="address-preview-label">
                             <i class="fas fa-map-marker-alt me-2"></i>Address to Delete
                         </div>
                         <div class="address-preview-content">
                             {% if object.nickname %}
-                            <div class="address-nickname">{{ object.nickname }}</div>
+                                <div class="address-nickname">{{ object.nickname }}</div>
                             {% endif %}
                             <strong>{{ object.full_name }}</strong><br>
                             {{ object.street_address }}
@@ -42,14 +42,13 @@
                             {{ object.city }}, {{ object.state }} {{ object.postal_code }}
                             {% if object.country %}<br>{{ object.country }}{% endif %}
                             {% if object.phone_number %}
-                            <div class="mt-2 text-muted">
-                                <i class="fas fa-phone me-1"></i>{{ object.phone_number }}
-                            </div>
+                                <div class="mt-2 text-muted">
+                                    <i class="fas fa-phone me-1"></i>{{ object.phone_number }}
+                                </div>
                             {% endif %}
                         </div>
                     </div>
 
-                    <!-- Deletion Form -->
                     <form method="post" class="mt-4">
                         {% csrf_token %}
                         <div class="asai-form-actions asai-form-actions-stacked">
@@ -62,7 +61,6 @@
                         </div>
                     </form>
 
-                    <!-- Additional Info -->
                     <div class="deletion-info mt-4">
                         <small class="text-muted">
                             <i class="fas fa-shield-alt me-1"></i>
@@ -74,4 +72,5 @@
         </div>
     </div>
 </div>
-{% endblock %}
+</body>
+</html>

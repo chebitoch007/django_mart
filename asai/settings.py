@@ -92,15 +92,16 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'db_cleaner',
     'django_vite',
-    'django_htmx', # <-- ADD THIS
+    'django_htmx',
     'crispy_bootstrap4',
+    'crispy_bootstrap5',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django_htmx.middleware.HtmxMiddleware', # <-- ADD THIS
+    'django_htmx.middleware.HtmxMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -170,6 +171,9 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
     BASE_DIR / 'cart/static',  # Include cart static files
     BASE_DIR / 'users/static', # Include users static files
+    #BASE_DIR / 'orders/static', # Include orders static files
+    BASE_DIR / 'orders' / 'static',
+    BASE_DIR / 'payment/static', # Include payment static files
     BASE_DIR / 'static/frontend',
 ]
 STATIC_URL = '/static/'
@@ -233,7 +237,6 @@ REQUIRED_FIELDS = ['first_name', 'last_name']  # Fields required when creating a
 
 # ================== Authentication URLs ==================
 LOGIN_URL = '/accounts/login/'
-#LOGIN_REDIRECT_URL = '/account/'
 LOGIN_REDIRECT_URL = 'store:product_list'  # Ensure this points to the account view
 LOGOUT_REDIRECT_URL = 'users:logout_success'
 
@@ -456,5 +459,7 @@ CURRENCY_CACHE_TIMEOUT_ERROR = 60 * 5  # 5 minutes for errors
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap4'
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
+
+
 
 BASE_URL='https://4cfd5a00596e.ngrok-free.app'

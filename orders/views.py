@@ -1,3 +1,5 @@
+# orders/views.py
+
 import logging
 from django.conf import settings
 from django.core.cache import cache
@@ -9,76 +11,103 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Prefetch
 from cart.utils import get_cart
-from asai import settings
 from payment.models import Payment
+from store.models import Product
 from .models import Order, OrderItem, CurrencyRate
 from django.contrib.auth.decorators import login_required
 from payment.utils import get_prioritized_payment_methods
 from core.utils import get_exchange_rate
-from django import forms
-
+from .forms import ShippingForm
+from .tasks import order_created_email
 
 logger = logging.getLogger(__name__)
 
 
-class ShippingForm(forms.Form):
-    first_name = forms.CharField(max_length=50)
-    last_name = forms.CharField(max_length=50)
-    email = forms.EmailField()
-    address = forms.CharField(max_length=250)
-    postal_code = forms.CharField(max_length=20)
-    city = forms.CharField(max_length=100)
-
-
+@login_required
 @transaction.atomic
 def create_order(request):
     cart = get_cart(request)
     if not cart.items.exists():
-        return redirect('cart:detail')
+        return redirect('cart:cart_detail')
 
     if request.method == 'POST':
         form = ShippingForm(request.POST)
         if form.is_valid():
-            shipping_details = form.cleaned_data
-
-            # Create order with shipping details
-            order = Order.objects.create(
-                user=request.user,
-                total_price=cart.total_price,
-                currency=request.session.get('currency', 'KES'),
-                **shipping_details
-            )
-
-            # Create order items
-            for cart_item in cart.items.all():
-                OrderItem.objects.create(
-                    order=order,
-                    product=cart_item.product,
-                    price=cart_item.product.price,
-                    quantity=cart_item.quantity
-                )
-
-            # Create payment for the order (SIMPLIFIED)
-            payment = Payment.objects.create(
-                order=order,
-                amount=cart.total_price,
-                status='PENDING'
-            )
-
-            # Link payment to order
-            order.order_payment = payment
+            order = form.save(commit=False)
+            if request.user.is_authenticated:
+                order.user = request.user
+            order.currency = settings.DEFAULT_CURRENCY
             order.save()
 
-            # Clear the cart
-            cart.items.all().delete()
+            order_total = 0
+            items_to_create = []
+            products_to_update = []
 
-            # Redirect to payment checkout
-            return redirect('orders:checkout', order_id=order.id)
+            try:
+                for cart_item in cart.items.select_related('product').all():
+                    if cart_item.quantity > cart_item.product.stock:
+                        form.add_error(None,
+                                       f"Insufficient stock for {cart_item.product.name}. Only {cart_item.product.stock} left.")
+                        raise transaction.TransactionManagementError()
+
+                    current_price = cart_item.product.get_display_price()
+                    order_total += (current_price * cart_item.quantity)
+
+                    items_to_create.append(OrderItem(
+                        order=order,
+                        product=cart_item.product,
+                        price=current_price,
+                        quantity=cart_item.quantity
+                    ))
+
+                    cart_item.product.stock -= cart_item.quantity
+                    products_to_update.append(cart_item.product)
+
+                OrderItem.objects.bulk_create(items_to_create)
+                Product.objects.bulk_update(products_to_update, ['stock'])
+
+                order.total = order_total
+                order.save(update_fields=['total'])
+
+                payment = Payment.objects.create(
+                    order=order,
+                    amount=order.total,
+                    currency=order.currency,
+                    original_amount=order.total,
+                    converted_amount=order.total,
+                    phone_number=order.phone,
+                    status='PENDING'
+                )
+
+                order.payment = payment
+                order.save(update_fields=['payment'])
+
+                cart.items.all().delete()
+                request.session['order_id'] = order.id
+
+                order_created_email.delay(order.id)
+
+                return redirect('orders:checkout')
+
+            except transaction.TransactionManagementError:
+                pass
+
     else:
-        form = ShippingForm()
+        if request.user.is_authenticated:
+            initial_data = {
+                'first_name': request.user.first_name,
+                'last_name': request.user.last_name,
+                'email': request.user.email,
+                'phone': getattr(request.user, 'phone_number', ''),
+            }
+            form = ShippingForm(initial=initial_data)
+        else:
+            form = ShippingForm()
 
-    return render(request, 'orders/shipping_form.html', {'form': form})
-
+    return render(request, 'orders/shipping_form.html', {
+        'form': form,
+        'cart': cart
+    })
 
 
 class OrderListView(LoginRequiredMixin, ListView):
@@ -87,12 +116,11 @@ class OrderListView(LoginRequiredMixin, ListView):
     context_object_name = 'orders'
     paginate_by = 10
 
-
     def get_queryset(self):
         return Order.objects.filter(
             user=self.request.user
         ).select_related('user').prefetch_related('items').only(
-            'id', 'created', 'status', 'currency', 'user__email'
+            'id', 'created', 'status', 'currency', 'total', 'user__email'
         ).order_by('-created')
 
 
@@ -103,48 +131,68 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
 
     ORDER_FIELDS = [
         'id', 'created', 'status', 'currency', 'payment_method',
-        'address', 'postal_code', 'city'
+        'address', 'postal_code', 'city', 'total', 'email',
+        'first_name', 'last_name', 'country'
     ]
     USER_FIELDS = ['user__first_name', 'user__last_name', 'user__email']
-    ITEM_FIELDS = [
-        'items__price', 'items__quantity',
-        'items__product__id', 'items__product__name',
-        'items__product__price'
-    ]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['payment'] = self.object.payment
+        context['payment'] = getattr(self.object, 'payment', None)
         return context
 
     def _build_order_queryset(self):
-        items_queryset = OrderItem.objects.select_related('product').only(
-            'price', 'quantity', 'product__id', 'product__name', 'product__price'
+        # Build optimized queryset for order items with product images
+        items_queryset = (
+            OrderItem.objects
+            .select_related('product')
+            .prefetch_related('product__additional_images')
+            .only(
+                'price', 'quantity',
+                'product__id', 'product__name', 'product__price', 'product__slug'
+            )
         )
 
+        # Build main order queryset
         return (Order.objects
-        .select_related('user')
-        .prefetch_related(
-            Prefetch('items', queryset=items_queryset)
+            .select_related('user', 'payment')
+            .prefetch_related(
+                Prefetch('items', queryset=items_queryset)
+            )
+            .only(
+                *self.ORDER_FIELDS,
+                *self.USER_FIELDS,
+                'payment__id',
+                'payment__status',
+                'payment__amount'
+            )
         )
-        .only(
-            *self.ORDER_FIELDS,
-            *self.USER_FIELDS
-        )
-        .filter(
-            pk=self.kwargs['pk'],
-            user=self.request.user
-        ))
 
-def get_object(self):
-    try:
-        return get_object_or_404(
-            self._build_order_queryset(),
-            pk=self.kwargs.get('pk')
-        )
-    except (ValueError, KeyError):
-        raise Http404("Invalid order ID")
+    def get_object(self, queryset=None):
+        pk = self.kwargs.get('pk')
+        if not pk:
+            raise Http404("Order ID not provided")
 
+        try:
+            pk = int(pk)
+        except (ValueError, TypeError):
+            logger.error(f"Invalid order ID format: {pk}")
+            raise Http404("Invalid order ID")
+
+        order = (
+            self._build_order_queryset()
+            .filter(pk=pk, user=self.request.user)
+            .first()
+        )
+
+        if not order:
+            logger.warning(
+                f"Order {pk} not found for user {self.request.user.id} "
+                f"(username: {self.request.user.username})"
+            )
+            raise Http404("Order not found or you don't have permission to view it")
+
+        return order
 
 
 @login_required
@@ -159,52 +207,50 @@ class OrderSuccessView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         order_id = self.kwargs.get("order_id")
-        context["order"] = get_object_or_404(Order, id=order_id)
+        context["order"] = get_object_or_404(Order, id=order_id, user=self.request.user)
         return context
 
 
-class CheckoutView(TemplateView):
+class CheckoutView(LoginRequiredMixin, TemplateView):
     template_name = 'orders/checkout.html'
 
     def get(self, request, *args, **kwargs):
-        order = self.get_order_from_session_or_cart(request)
+        order = self.get_order_from_session(request)
         if not order:
             request.session.pop('order_id', None)
             return redirect('cart:cart_detail')
         return render(request, self.template_name, self.get_context_data(order=order))
 
-    def get_order_from_session_or_cart(self, request):
+    def get_order_from_session(self, request):
         order_id = request.session.get('order_id')
-        if order_id:
-            try:
-                return Order.objects.get(id=order_id, user=request.user)
-            except Order.DoesNotExist:
-                request.session.pop('order_id', None)
+        if not order_id:
+            logger.warning("CheckoutView: No order_id in session. Redirecting to cart.")
+            return None
 
-        cart = get_cart(request)
-        if cart.items.exists():
-            order = Order.objects.create(
-                user=request.user if request.user.is_authenticated else None,
-                total=cart.total_price,
-                currency=settings.DEFAULT_CURRENCY,
-            )
-            request.session['order_id'] = order.id
+        try:
+            order = Order.objects.get(id=order_id, user=request.user)
+
+            if not order.is_payable:
+                logger.warning(f"CheckoutView: Order {order_id} is no longer payable.")
+                request.session.pop('order_id', None)
+                return None
+
             return order
-        return None
+        except Order.DoesNotExist:
+            logger.error(f"CheckoutView: Order {order_id} not found for user {request.user.id}")
+            request.session.pop('order_id', None)
+            return None
 
     def get_context_data(self, order, **kwargs):
         context = super().get_context_data(**kwargs)
         request = self.request
-        cart = get_cart(request)
         base_currency = settings.DEFAULT_CURRENCY
 
         context.update({
             'order': order,
-            'cart': cart,
             'paypal_loaded': True,
         })
 
-        # --- Payment Methods ---
         prioritized_methods = get_prioritized_payment_methods(request)
         selected_method = request.session.get(
             'selected_payment_method',
@@ -216,17 +262,18 @@ class CheckoutView(TemplateView):
             'selected_method': selected_method,
         })
 
-        # --- Payment ---
-        payment, _ = Payment.objects.get_or_create(
-            order=order,
-            defaults={'amount': order.total, 'currency': order.currency, 'status': 'PENDING'}
-        )
+        payment = getattr(order, 'payment', None)
+        if not payment:
+            payment, _ = Payment.objects.get_or_create(
+                order=order,
+                defaults={'amount': order.total, 'currency': order.currency, 'status': 'PENDING'}
+            )
+
         if payment.amount != order.total:
             payment.amount = order.total
             payment.save(update_fields=['amount'])
         context['payment'] = payment
 
-        # --- Currency options ---
         currency_options = []
         for code, name in settings.CURRENCIES:
             if code == base_currency:
@@ -262,23 +309,11 @@ class CheckoutView(TemplateView):
         return context
 
 
-
-
-def get_country_name(country_code):
-    # Implement country code to name conversion
-    country_map = {'KE': 'Kenya', 'US': 'United States', 'GB': 'United Kingdom'}
-    return country_map.get(country_code, country_code)
-
 @login_required
 @require_POST
 def update_payment_method(request):
     method = request.POST.get('method')
-    if method in ['paypal', 'mpesa']:  # Removed 'card' and 'airtel' options
+    if method in ['paypal', 'mpesa']:
         request.session['selected_payment_method'] = method
         return JsonResponse({'status': 'success'})
     return JsonResponse({'status': 'invalid method'}, status=400)
-
-
-
-
-

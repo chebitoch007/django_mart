@@ -1,5 +1,6 @@
-import json
+#cart/views.py
 
+import json
 from django.views.decorators.http import require_POST
 from django.db import transaction, IntegrityError
 from django.dispatch.dispatcher import logger
@@ -23,35 +24,15 @@ def cart_detail(request):
             item.quantity = item.product.stock
             item.save()
 
-    # Handle checkout request
+    # ✅ FIXED: Simplified checkout POST
+    # The cart's job isn't to create the order, just to lead to checkout.
+    # The 'orders' app will be responsible for reading the cart and creating the order.
     if request.method == 'POST' and 'checkout' in request.POST:
         if not cart.items.exists():
             return redirect('cart:cart_detail')
 
-        try:
-            # Create order for authenticated users or guests
-            order = Order.objects.create(
-                user=request.user if request.user.is_authenticated else None,
-                total=cart.total_price,
-                # Add default values for required fields
-                first_name='Guest' if not request.user.is_authenticated else request.user.first_name,
-                last_name='User' if not request.user.is_authenticated else request.user.last_name,
-                email=request.user.email if request.user.is_authenticated else 'guest@example.com',
-                address='To be provided' if not request.user.is_authenticated else '',
-                postal_code='00000',
-                city='N/A',
-                country='Kenya'
-            )
-            request.session['order_id'] = order.id
-            return redirect('orders:checkout')
-        except IntegrityError as e:
-            # Handle database errors gracefully
-            logger.error(f"Order creation failed: {str(e)}")
-            return render(request, 'cart/detail.html', {
-                'cart': cart,
-                'cart_has_stock_issues': cart_has_stock_issues,
-                'error_message': 'Could not process your order. Please try again or contact support.'
-            })
+        # Redirect to the checkout page. The orders app will handle the rest.
+        return redirect('orders:create_order')
 
     return render(request, 'cart/detail.html', {
         'cart': cart,
@@ -185,7 +166,8 @@ def cart_update(request, product_id):
             exceeded_stock = True
 
         if quantity <= 0:
-            cart.items.remove(item)
+            # ✅ FIXED: Changed cart.items.remove(item) to item.delete()
+            item.delete()
             removed_item = True
             response_data = {
                 'success': True,

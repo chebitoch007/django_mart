@@ -228,7 +228,7 @@
                         <span id="cart-total">KES {{ cart.total_price|intcomma }}</span>
                     </div>
 
-                    <form method="post" action="{% url 'cart:cart_detail' %}">
+                    <form method="post" action="{% url 'orders:create_order' %}">
                         {% csrf_token %}
                         <button type="submit" name="checkout" class="checkout-btn" {% if not cart.items.exists %}disabled{% endif %}>
                             Proceed to Checkout

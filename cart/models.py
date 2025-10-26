@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from store.models import Product
+
+
 
 User = get_user_model()
 
@@ -17,11 +20,15 @@ class Cart(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+
     class Meta:
+        # ✅ FIXED: Replaced incorrect constraint
         constraints = [
+            # Enforce session_key is unique *only* for guest carts (where user is null)
             models.UniqueConstraint(
-                fields=['user', 'session_key'],
-                name='unique_user_or_session'
+                fields=['session_key'],
+                condition=Q(user__isnull=True),
+                name='unique_session_key_if_user_is_null'
             )
         ]
 

@@ -60,14 +60,11 @@ def product_search(request):
     return redirect(url)
 
 
-
-
 class ProductSearchView(ListView):
     model = Product
     template_name = 'store/product/search.html'
     paginate_by = 16
     context_object_name = 'products'
-
 
     @method_decorator(cache_page(60 * 15))
     def dispatch(self, *args, **kwargs):
@@ -75,27 +72,71 @@ class ProductSearchView(ListView):
 
     def get_queryset(self):
         query = self.request.GET.get('q', '')
-        sort_key = self.request.GET.get('sort', 'newest')
+        # Default sort to 'relevance' for search results
+        sort_key = self.request.GET.get('sort', 'relevance')
 
-        products = Product.objects.all()
+        # 1. Start with base products
+        products = Product.objects.select_related(
+            'category', 'brand', 'supplier'
+        ).prefetch_related('additional_images')
+
+        # 2. Apply full-text search (annotates rank/similarity, filters by query)
         if query:
-            products = products.filter(
-                Q(name__icontains=query)
-                | Q(description__icontains=query)
-                | Q(category__name__icontains=query)
-            )
+            # This is the advanced search from store.utils.search
+            products = apply_search_filter(products, query)
+        else:
+            # No query, return no results for a search page
+            products = products.none()
 
-        return get_sorted_products(products, sort_key)
+        # 3. Apply standard filters (price, brand, category, etc.)
+        # This is from .utils.filters
+        products = apply_product_filters(self.request, products)
 
-
+        # 4. Apply sorting
+        # This is from .utils.sorting
+        # It will now correctly apply '-rank', '-similarity' by default
+        return get_sorted_products(products, sort_key, is_search=True)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['query'] = self.request.GET.get('q', '')
-        context['sort'] = self.request.GET.get('sort', 'newest')
-        context['sort_options'] = SORT_OPTIONS
-        return context
+        query = self.request.GET.get('q', '')
+        sort_key = self.request.GET.get('sort', 'relevance')
 
+        context['query'] = query
+        context['sort_by'] = sort_key
+        context['sort_options'] = SORT_OPTIONS
+
+        # ADDED: Facet counting and filter context (from product_list view)
+        paginator, page, queryset, is_paginated = self.paginate_queryset(
+            self.get_queryset(),
+            self.get_paginate_by(self.get_queryset())
+        )
+
+        product_ids = list(queryset.values_list('id', flat=True))
+
+        brands = Brand.objects.filter(
+            products__id__in=product_ids
+        ).annotate(
+            product_count=Count('products__id', distinct=True)
+        ).order_by('-product_count', 'name')
+
+        suppliers = Supplier.objects.filter(
+            products__id__in=product_ids
+        ).annotate(
+            product_count=Count('products__id', distinct=True)
+        ).order_by('-product_count', 'name')
+
+        context['brands'] = brands
+        context['suppliers'] = suppliers
+
+        # Pass filter values back to template
+        context['max_price'] = self.request.GET.get('max_price', '')
+        context['in_stock'] = self.request.GET.get('in_stock') == 'true'
+        context['min_rating'] = self.request.GET.get('min_rating', '')
+        context['selected_brand'] = self.request.GET.get('brand', '')
+        context['selected_supplier'] = self.request.GET.get('supplier', '')
+
+        return context
 
     def render_to_response(self, context, **response_kwargs):
         request = self.request
@@ -230,10 +271,14 @@ def product_list(request, category_slug=None):
 
     products = apply_product_filters(request, products)
 
-
     sort_key = request.GET.get('sort', 'newest')
     sort_option = SORT_OPTIONS.get(sort_key, SORT_OPTIONS['newest'])
-    products = get_sorted_products(products, sort_option['field'])
+
+    # ✅ --- CORRECTED LINE ---
+    # Pass the `sort_key` (e.g., 'newest') to the sorting function,
+    # not the `sort_option['field']` (e.g., '-created').
+    products = get_sorted_products(products, sort_key, is_search=False)
+    # --- END CORRECTION ---
 
     # Facet counting
     product_ids = list(products.values_list('id', flat=True))

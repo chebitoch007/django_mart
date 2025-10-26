@@ -63,6 +63,25 @@
                 {% endif %}
 
                 <!-- Form -->
+                {% if form.errors %}
+                <div class="bg-red-100 text-red-700 p-3 rounded mb-4">
+                    {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                    <p>{{ error|safe }}</p>
+                    {% endfor %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if form.non_field_errors %}
+                <div class="bg-red-100 text-red-700 p-3 rounded mb-4">
+                    {% for error in form.non_field_errors %}
+                    <p>{{ error|safe }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+
                 <form method="post" class="space-y-6">
                     {% csrf_token %}
 

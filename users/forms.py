@@ -101,13 +101,13 @@ class UserRegisterForm(UserCreationForm):
         super().__init__(*args, **kwargs)
         self.fields['password1'].help_text = self.password_help_text()
 
-        # Add Bootstrap classes
+        # Add consistent CSS classes
         for field_name in self.fields:
             if field_name not in ['accept_terms', 'marketing_optin']:
                 self.fields[field_name].widget.attrs.update({'class': 'form-control'})
 
         # Add reCAPTCHA if configured
-        if settings.RECAPTCHA_SITE_KEY:
+        if getattr(settings, "RECAPTCHA_SITE_KEY", None):
             self.fields['recaptcha'] = forms.CharField(
                 widget=forms.HiddenInput(),
                 required=False
@@ -130,8 +130,14 @@ class UserRegisterForm(UserCreationForm):
     def clean(self):
         cleaned_data = super().clean()
 
+        # Password mismatch fallback (for tests and safety)
+        password1 = cleaned_data.get("password1")
+        password2 = cleaned_data.get("password2")
+        if password1 and password2 and password1 != password2:
+            self.add_error('password2', ValidationError(_("Passwords don't match"), code='password_mismatch'))
+
         # reCAPTCHA validation
-        if settings.RECAPTCHA_SITE_KEY:
+        if getattr(settings, "RECAPTCHA_SITE_KEY", None):
             recaptcha_token = cleaned_data.get('recaptcha')
             if not _validate_recaptcha(recaptcha_token):
                 self.add_error(None, ValidationError(
@@ -154,55 +160,34 @@ class UserRegisterForm(UserCreationForm):
         password1 = self.cleaned_data.get("password1")
         password2 = self.cleaned_data.get("password2")
 
+        if not password1:
+            raise ValidationError(_("Please enter your password."), code='password_missing')
+
         if password1 and password2 and password1 != password2:
-            raise ValidationError(
-                _("Passwords don't match"),
-                code='password_mismatch'
-            )
+            raise ValidationError(_("Passwords don't match"), code='password_mismatch')
 
         # Custom password validation
         if len(password1) < 10:
-            raise ValidationError(
-                _("Password must be at least 10 characters long."),
-                code='password_too_short'
-            )
+            raise ValidationError(_("Password must be at least 10 characters long."), code='password_too_short')
 
         if not re.search(r'[A-Z]', password1):
-            raise ValidationError(
-                _("Password must contain at least one uppercase letter."),
-                code='password_no_upper'
-            )
+            raise ValidationError(_("Password must contain at least one uppercase letter."), code='password_no_upper')
 
         if not re.search(r'[a-z]', password1):
-            raise ValidationError(
-                _("Password must contain at least one lowercase letter."),
-                code='password_no_lower'
-            )
+            raise ValidationError(_("Password must contain at least one lowercase letter."), code='password_no_lower')
 
         if not re.search(r'[0-9]', password1):
-            raise ValidationError(
-                _("Password must contain at least one digit."),
-                code='password_no_digit'
-            )
+            raise ValidationError(_("Password must contain at least one digit."), code='password_no_digit')
 
         if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password1):
-            raise ValidationError(
-                _("Password must contain at least one special character."),
-                code='password_no_special'
-            )
+            raise ValidationError(_("Password must contain at least one special character."), code='password_no_special')
 
         # Check against common passwords
-        common_passwords = [
-            'password', '12345678', 'qwertyui', 'kenya123', 'nairobi'
-        ]
+        common_passwords = ['password', '12345678', 'qwertyui', 'kenya123', 'nairobi']
         if password1.lower() in common_passwords:
-            raise ValidationError(
-                _("This password is too common and insecure."),
-                code='password_common'
-            )
+            raise ValidationError(_("This password is too common and insecure."), code='password_common')
 
         return password2
-
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -210,23 +195,9 @@ class UserRegisterForm(UserCreationForm):
         user.email = self.cleaned_data['email'].lower().strip()
 
         if commit:
-            user.save()  # Save user without creating profile here
+            user.save()
         return user
 
-'''
-     def save(self, commit=True):
-        user = super().save(commit=False)
-        user.username = self.cleaned_data['email'].lower().strip()  # Assign email as username internally
-        user.email = self.cleaned_data['email'].lower().strip()  # ensure lowercase email consistency
-
-        if commit:
-            user.save()
-            # Create profile with marketing preference
-            Profile.objects.create(
-                user=user,
-                marketing_optin=self.cleaned_data['marketing_optin']
-            )
-        return user'''
 
 
 class ProfileUpdateForm(forms.ModelForm):
@@ -368,6 +339,14 @@ class AddressForm(forms.ModelForm):
         labels = {
             'is_default': _('Set as default shipping address'),
         }
+
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set address_type default to 'shipping'
+        if 'address_type' in self.fields:
+            self.fields['address_type'].initial = 'shipping'
+
 
 
 

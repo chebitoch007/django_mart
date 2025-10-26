@@ -1,41 +1,40 @@
-{% extends "store/base.html" %}
-{% load crispy_forms_filters %}
-{% load static %}
-<link rel="stylesheet" href="{% static 'css/asai-forms.css' %}">
-
-
-{% block title %}
-{% if 'add' in request.path %}
-Add New Address - ASAI
-{% else %}
-Update Address - ASAI
-{% endif %}
-{% endblock %}
-
-{% block content %}
+{% load crispy_forms_filters static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        {% if 'add' in request.path %}
+            Add New Address - ASAI
+        {% else %}
+            Update Address - ASAI
+        {% endif %}
+    </title>
+    <link rel="stylesheet" href="{% static 'css/asai-forms.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="bg-light">
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-12 col-lg-7">
-
-            <!-- Page Header -->
             <div class="asai-page-header mb-4">
                 <h1 class="asai-page-title">
                     {% if 'add' in request.path %}
-                    <i class="fas fa-plus-circle me-2"></i>Add New Address
+                        <i class="fas fa-plus-circle me-2"></i>Add New Address
                     {% else %}
-                    <i class="fas fa-edit me-2"></i>Update Address
+                        <i class="fas fa-edit me-2"></i>Update Address
                     {% endif %}
                 </h1>
                 <p class="asai-page-subtitle">
                     {% if 'add' in request.path %}
-                    Add a new delivery or billing address
+                        Add a new delivery or billing address
                     {% else %}
-                    Update your address information
+                        Update your address information
                     {% endif %}
                 </p>
             </div>
 
-            <!-- Address Form Card -->
             <div class="asai-card animate-fade-in">
                 <div class="asai-card-header">
                     <i class="fas fa-map-marker-alt me-2"></i>Address Details
@@ -44,77 +43,39 @@ Update Address - ASAI
                     <form method="post" class="asai-form">
                         {% csrf_token %}
 
-                        <!-- Address Nickname (Optional) -->
                         {% if form.nickname %}
-                        <div class="form-section">
-                            {{ form.nickname|as_crispy_field }}
-                            <small class="form-text text-muted">
-                                e.g., "Home", "Office", "Parents' House"
-                            </small>
-                        </div>
+                            <div class="form-section">
+                                {{ form.nickname|as_crispy_field }}
+                                <small class="form-text text-muted">e.g., "Home", "Office"</small>
+                            </div>
                         {% endif %}
-
-                        <!-- Full Name -->
-                        <div class="form-section">
-                            {{ form.full_name|as_crispy_field }}
-                        </div>
-
-                        <!-- Phone Number -->
+                        <div class="form-section">{{ form.full_name|as_crispy_field }}</div>
                         {% if form.phone_number %}
-                        <div class="form-section">
-                            {{ form.phone_number|as_crispy_field }}
-                        </div>
+                            <div class="form-section">{{ form.phone_number|as_crispy_field }}</div>
                         {% endif %}
-
-                        <!-- Street Address -->
-                        <div class="form-section">
-                            {{ form.street_address|as_crispy_field }}
-                        </div>
-
-                        <!-- Apartment/Unit (Optional) -->
+                        <div class="form-section">{{ form.street_address|as_crispy_field }}</div>
                         {% if form.apartment %}
-                        <div class="form-section">
-                            {{ form.apartment|as_crispy_field }}
-                        </div>
+                            <div class="form-section">{{ form.apartment|as_crispy_field }}</div>
                         {% endif %}
-
-                        <!-- City, State, Postal Code Group -->
                         <div class="form-group-inline">
-                            <div class="form-section flex-grow-2">
-                                {{ form.city|as_crispy_field }}
-                            </div>
-                            <div class="form-section flex-grow-1">
-                                {{ form.state|as_crispy_field }}
-                            </div>
+                            <div class="form-section flex-grow-2">{{ form.city|as_crispy_field }}</div>
+                            <div class="form-section flex-grow-1">{{ form.state|as_crispy_field }}</div>
                         </div>
-
-                        <div class="form-section">
-                            {{ form.postal_code|as_crispy_field }}
-                        </div>
-
-                        <!-- Country -->
+                        <div class="form-section">{{ form.postal_code|as_crispy_field }}</div>
                         {% if form.country %}
-                        <div class="form-section">
-                            {{ form.country|as_crispy_field }}
-                        </div>
+                            <div class="form-section">{{ form.country|as_crispy_field }}</div>
                         {% endif %}
-
-                        <!-- Default Address Checkbox -->
                         {% if form.is_default %}
-                        <div class="form-section mt-4 pt-3 border-top">
-                            <div class="form-check asai-checkbox">
-                                {{ form.is_default }}
-                                <label class="form-check-label fw-medium" for="{{ form.is_default.id_for_label }}">
-                                    Set as default address
-                                </label>
-                                <small class="form-text text-muted d-block mt-1">
-                                    This address will be pre-selected during checkout
-                                </small>
+                            <div class="form-section mt-4 pt-3 border-top">
+                                <div class="form-check asai-checkbox">
+                                    {{ form.is_default }}
+                                    <label class="form-check-label fw-medium" for="{{ form.is_default.id_for_label }}">
+                                        Set as default address
+                                    </label>
+                                </div>
                             </div>
-                        </div>
                         {% endif %}
 
-                        <!-- Action Buttons -->
                         <div class="asai-form-actions mt-4">
                             <button type="submit" class="asai-btn asai-btn-primary">
                                 <i class="fas fa-save me-2"></i>Save Address
@@ -127,7 +88,6 @@ Update Address - ASAI
                 </div>
             </div>
 
-            <!-- Help Text -->
             <div class="asai-help-banner mt-3 animate-fade-in" style="animation-delay: 0.1s;">
                 <i class="fas fa-info-circle me-2"></i>
                 <span>Make sure your address is complete and accurate for smooth delivery</span>
@@ -135,4 +95,5 @@ Update Address - ASAI
         </div>
     </div>
 </div>
-{% endblock %}
+</body>
+</html>

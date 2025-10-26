@@ -128,19 +128,7 @@
       </div>
 
 
-<div class="sort-section">
-  <h4>Sort By</h4>
-  <form method="get" id="sortForm">
-    <input type="hidden" name="q" value="{{ query }}">
-    <select name="sort" onchange="this.form.submit()" class="sort-dropdown">
-      {% for key, option in sort_options.items %}
-        <option value="{{ key }}" {% if key == sort %}selected{% endif %}>
-          <i class="fa {{ option.icon }}"></i> {{ option.label }}
-        </option>
-      {% endfor %}
-    </select>
-  </form>
-</div>
+
 
     </aside>
 

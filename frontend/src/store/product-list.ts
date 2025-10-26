@@ -7,25 +7,58 @@ export function initProductList(): void {
   const priceDisplay = document.getElementById('priceDisplay');
 
   // Mobile sidebar toggle (doesn't conflict with HTMX)
-  if (filterToggle && filterContent) {
-    filterToggle.addEventListener('click', () => {
-      const isHidden = filterContent.hasAttribute('hidden');
+  function setupFilterSidebar() {
+  const filterToggle = document.getElementById('filterToggle');
+  const filterContent = document.getElementById('filterContent');
 
-      if (isHidden) {
-        filterContent.removeAttribute('hidden');
-        filterToggle.setAttribute('aria-expanded', 'true');
-      } else {
+  if (!filterToggle || !filterContent) return;
+
+  const MOBILE_BREAKPOINT = 1024;
+
+  function updateSidebarVisibility() {
+    if (window.innerWidth >= MOBILE_BREAKPOINT) {
+      // Desktop view: show sidebar and hide toggle
+      filterContent.removeAttribute('hidden');
+      filterContent.classList.remove('slide-in');
+      filterToggle.style.display = 'none';
+    } else {
+      // Mobile view: hide sidebar and show toggle
+      if (!filterToggle.hasAttribute('aria-expanded') || filterToggle.getAttribute('aria-expanded') === 'false') {
         filterContent.setAttribute('hidden', '');
-        filterToggle.setAttribute('aria-expanded', 'false');
       }
-
-      const span = filterToggle.querySelector('span');
-      if (span) {
-        span.textContent = isHidden ? 'Hide Filters' : 'Show Filters';
-      }
-    });
+      filterToggle.style.display = 'flex';
+    }
   }
 
+  // Initial setup
+  updateSidebarVisibility();
+
+  // Update on resize
+  window.addEventListener('resize', StoreUtils.debounce(updateSidebarVisibility, 150));
+
+  // Toggle behavior for mobile
+  filterToggle.addEventListener('click', () => {
+    const isHidden = filterContent.hasAttribute('hidden');
+
+    if (isHidden) {
+      filterContent.removeAttribute('hidden');
+      filterContent.classList.add('slide-in');
+      filterToggle.setAttribute('aria-expanded', 'true');
+      document.body.classList.add('no-scroll'); // prevent background scroll
+    } else {
+      filterContent.classList.remove('slide-in');
+      setTimeout(() => filterContent.setAttribute('hidden', ''), 250); // after animation
+      filterToggle.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('no-scroll');
+    }
+
+    const span = filterToggle.querySelector('span');
+    if (span) span.textContent = isHidden ? 'Hide Filters' : 'Show Filters';
+  });
+}
+
+// Call it inside initProductList()
+setupFilterSidebar();
   // Live update price display (visual feedback only, HTMX handles submission)
   if (priceRange && priceDisplay) {
     priceRange.addEventListener('input', () => {

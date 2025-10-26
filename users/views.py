@@ -165,10 +165,12 @@ def register(request):
 # REPLACED ProfileUpdateView with a function-based view
 @login_required
 def profile_update_view(request):
+    # ensure profile exists
+    profile, created = Profile.objects.get_or_create(user=request.user)
+
     if request.method == 'POST':
-        # Pass instance for both forms
         user_form = UserProfileForm(request.POST, instance=request.user)
-        profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
+        profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=profile)
 
         if user_form.is_valid() and profile_form.is_valid():
             user_form.save()
@@ -179,7 +181,7 @@ def profile_update_view(request):
             messages.error(request, 'Please correct the error(s) below.')
     else:
         user_form = UserProfileForm(instance=request.user)
-        profile_form = ProfileUpdateForm(instance=request.user.profile)
+        profile_form = ProfileUpdateForm(instance=profile)
 
     context = {
         'user_form': user_form,
@@ -213,7 +215,7 @@ class AccountDeleteView(FormView):
         user.save()
 
         # Anonymize profile
-        profile = user.profile
+        profile, _ = Profile.objects.get_or_create(user=user)
         if profile.profile_image:
             profile.profile_image.delete(save=False)
         profile.bio = ''
@@ -330,12 +332,26 @@ class AddressCreateView(CreateView):
     success_url = reverse_lazy('users:account')
 
     def form_valid(self, form):
-        form.instance.user = self.request.user
+        address = form.save(commit=False)
+        address.user = self.request.user
+
+        # ✅ Auto-assign default address_type if not provided
+        if not address.address_type:
+            address.address_type = 'shipping'
+
+        # Handle default toggle
         if form.cleaned_data.get('is_default'):
-            # Unset other default addresses
             Address.objects.filter(user=self.request.user).update(is_default=False)
-        messages.success(self.request, 'Address added successfully')
-        return super().form_valid(form)
+            address.is_default = True
+
+        address.save()
+        messages.success(self.request, 'Address added successfully.')
+        return redirect(self.success_url)
+
+    def form_invalid(self, form):
+        print("DEBUG Address create errors:", form.errors.as_text())
+        messages.error(self.request, 'Please correct the errors below.')
+        return self.render_to_response(self.get_context_data(form=form))
 
 
 @method_decorator(login_required, name='dispatch')
@@ -349,25 +365,40 @@ class AddressUpdateView(UpdateView):
         return Address.objects.filter(user=self.request.user)
 
     def form_valid(self, form):
-        if form.cleaned_data.get('is_default'):
-            # Unset other default addresses
-            Address.objects.filter(user=self.request.user).exclude(pk=self.object.pk).update(is_default=False)
-        messages.success(self.request, 'Address updated successfully')
-        return super().form_valid(form)
+        address = form.save(commit=False)
 
+        # ✅ Auto-assign default address_type if not provided
+        if not address.address_type:
+            address.address_type = 'shipping'
+
+        if form.cleaned_data.get('is_default'):
+            Address.objects.filter(user=self.request.user).exclude(pk=address.pk).update(is_default=False)
+            address.is_default = True
+
+        address.save()
+        messages.success(self.request, 'Address updated successfully.')
+        return redirect(self.success_url)
+
+    def form_invalid(self, form):
+        print("DEBUG Address update errors:", form.errors.as_text())
+        messages.error(self.request, 'Please correct the errors below.')
+        return self.render_to_response(self.get_context_data(form=form))
 
 @method_decorator(login_required, name='dispatch')
 class AddressDeleteView(DeleteView):
     model = Address
-    success_url = reverse_lazy('users:account')
     template_name = 'users/address_confirm_delete.html'
+    success_url = reverse_lazy('users:account')
 
     def get_queryset(self):
         return Address.objects.filter(user=self.request.user)
 
     def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
         messages.success(request, 'Address deleted successfully')
-        return super().delete(request, *args, **kwargs)
+        return redirect(self.success_url)
+
 
 
 
@@ -385,7 +416,7 @@ def set_default_address(request, pk):
 @csrf_exempt
 def update_profile_image(request):
     if request.method == 'POST' and request.FILES.get('profile_image'):
-        profile = request.user.profile
+        profile, _ = Profile.objects.get_or_create(user=request.user)
         profile.profile_image = request.FILES['profile_image']
         profile.save()
         return JsonResponse({

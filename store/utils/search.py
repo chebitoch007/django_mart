@@ -2,14 +2,10 @@
 
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.contrib.postgres.search import TrigramSimilarity
-from django.db.models.functions import Greatest
-from django.db.models import Q
+from django.db.models.functions import Greatest, Cast
+from django.db.models import Q, TextField
 
-SEARCH_WEIGHTS = {
-    'A': 0.6,
-    'B': 0.3,
-    'C': 0.1,
-}
+SEARCH_WEIGHTS = [0.0, 0.1, 0.3, 0.6]
 RANK_THRESHOLD = 0.1
 TRIGRAM_THRESHOLD = 0.15
 
@@ -21,12 +17,13 @@ def apply_search_filter(queryset, query):
 
     search_query = SearchQuery(query, search_type='plain', config='english')
 
+    # ✅ FIX: Only use textual fields, and reference supplier/category names properly
     vector = (
         SearchVector('name', weight='A', config='english') +
         SearchVector('short_description', weight='B', config='english') +
         SearchVector('description', weight='B', config='english') +
         SearchVector('category__name', weight='C', config='english') +
-        SearchVector('supplier', weight='C', config='english')  # ✅ FIXED
+        SearchVector('supplier__name', weight='C', config='english')  # ✅ FIXED: supplier__name, not supplier
     )
 
     queryset = queryset.annotate(
@@ -36,7 +33,7 @@ def apply_search_filter(queryset, query):
             TrigramSimilarity('short_description', query),
             TrigramSimilarity('description', query),
             TrigramSimilarity('category__name', query),
-            TrigramSimilarity('supplier', query),  # ✅ FIXED
+            TrigramSimilarity('supplier__name', query),  # ✅ FIXED: supplier__name instead of supplier
         ),
     ).filter(
         Q(rank__gte=RANK_THRESHOLD) | Q(similarity__gte=TRIGRAM_THRESHOLD),

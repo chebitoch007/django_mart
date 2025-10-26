@@ -1009,9 +1009,8 @@
                 </div>
 
                 <div class="summary-content" id="summaryContent">
-                    <div class="order-items" id="orderItems">
-                        {% for item in cart.items.all %}
-                        <div class="order-item" data-price="{{ item.total_price }}">
+<div class="order-items" id="orderItems">
+                        {% for item in order.items.all %} <div class="order-item" data-price="{{ item.total_price }}">
                             <img src="{{ item.product.get_image_url }}" alt="{{ item.product.name }}" class="item-image">
                             <div class="item-info">
                                 <div class="item-name">{{ item.product.name }}</div>
@@ -1029,7 +1028,7 @@
                         <div class="summary-label">Subtotal</div>
                         <div class="summary-value">
                             <span class="currency-symbol">{{ default_currency_symbol|default:"$" }}</span>
-                            <span class="subtotal-amount">{{ cart.total_price|intcomma }}</span>
+                            <span class="subtotal-amount">{{ order.total|intcomma }}</span>
                         </div>
                     </div>
 
@@ -1037,7 +1036,7 @@
                         <div>Total</div>
                         <div>
                             <span class="currency-symbol">{{ default_currency_symbol|default:"Ksh" }}</span>
-                            <span class="total-amount">{{ cart.total_price|intcomma }}</span>
+                            <span class="total-amount">{{ order.total|intcomma }}</span>
                         </div>
                     </div>
                 </div>

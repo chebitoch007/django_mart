@@ -1,3 +1,5 @@
+#orders/constants.py
+
 PAYMENT_METHODS = (
     ('MPESA', 'M-Pesa'),
     ('PAYPAL', 'PayPal'),

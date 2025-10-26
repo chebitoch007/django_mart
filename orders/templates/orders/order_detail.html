@@ -1,5 +1,6 @@
 {% extends "store/base.html" %}
 {% load humanize %}
+{% load static %}
 
 {% block content %}
 <style>
@@ -173,13 +174,9 @@
     }
 
     .total-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 15px 0;
-        font-size: 1.2rem;
         font-weight: 700;
         color: #1e293b;
-        border-top: 1px solid #e2e8f0;
+        border-top: 2px solid #e2e8f0;
     }
 
     .payment-required {
@@ -249,11 +246,7 @@
         <div class="card-header">
             <h2 class="card-title">Order Summary</h2>
             <span class="status-badge {% if order.status == 'PAID' %}status-paid{% else %}status-pending{% endif %}">
-
-                {% if order.status == 'PAID' %}Paid
-
-                {% else %}Pending Payment{% endif %}
-
+                {{ order.get_status_display }}
             </span>
         </div>
 
@@ -266,27 +259,27 @@
 
                 <div class="info-group">
                     <div class="info-label">Customer</div>
-                    <div class="info-value">{{ order.user.get_full_name }}</div>
+                    <div class="info-value">{{ order.get_full_name }}</div>
                 </div>
 
                 <div class="info-group">
                     <div class="info-label">Email</div>
-                    <div class="info-value">{{ order.user.email }}</div>
+                    <div class="info-value">{{ order.email }}</div>
                 </div>
             </div>
 
             <div>
                 <div class="info-group">
                     <div class="info-label">Payment Method</div>
-                    <div class="info-value">{{ order.order_payment_method|default:"Mobile Money" }}</div>
+                    <div class="info-value">{{ order.get_payment_method_display|default:"Not specified" }}</div>
                 </div>
 
                 <div class="info-group">
                     <div class="info-label">Shipping Address</div>
                     <div class="info-value">
-                        {{ order.shipping_address.street }}<br>
-                        {{ order.shipping_address.city }}, {{ order.shipping_address.postal_code }}<br>
-                        {{ order.shipping_address.country }}
+                        {{ order.address }}<br>
+                        {{ order.city }}, {{ order.postal_code }}<br>
+                        {{ order.country }}
                     </div>
                 </div>
             </div>
@@ -305,42 +298,54 @@
             <tbody>
                 {% for item in order.items.all %}
                 <tr>
-                    <td>
-                        <div class="product-cell">
-                            <img
-                                src="{{ item.product.get_image_url }}"
-                                alt="{{ item.product.name }}"
-                                class="product-image">
-                            <div class="product-name">{{ item.product.name }}</div>
+                    <td class="product-cell">
+                        <div>
+                            {% with first_image=item.product.additional_images.first %}
+                                {% if first_image and first_image.image %}
+                                    <img src="{{ first_image.image.url }}" alt="{{ item.product.name }}" class="product-image">
+                                {% elif item.product.image %}
+                                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="product-image">
+                                {% else %}
+                                    <img src="{% static 'img/no-image.png' %}" alt="No image" class="product-image">
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                        <div>
+                            <div class="product-name">
+                                <a href="{% url 'store:product_detail' item.product.slug %}" class="text-blue-600 hover:underline">
+                                    {{ item.product.name }}
+                                </a>
+                            </div>
+                            <div style="font-size: 0.875rem; color: #64748b;">
+                                {{ item.quantity }} × {{ order.currency }} {{ item.price|floatformat:2|intcomma }}
+                            </div>
                         </div>
                     </td>
-                    <td class="text-right">KES {{ item.price|floatformat:2|intcomma }}</td>
-
+                    <td class="text-right">{{ order.currency }} {{ item.price|floatformat:2|intcomma }}</td>
                     <td class="text-center">{{ item.quantity }}</td>
-                    <td class="text-right">KES {{ item.get_cost|intcomma }}</td>
+                    <td class="text-right">{{ order.currency }} {{ item.total_price|floatformat:2|intcomma }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="3" class="text-right">Subtotal:</td>
-                    <td class="text-right">KES {{ order.get_total_cost|intcomma }}</td>
+                    <td colspan="3" class="text-right" style="padding: 10px 15px;">Subtotal:</td>
+                    <td class="text-right" style="padding: 10px 15px;">{{ order.currency }} {{ order.total|floatformat:2|intcomma }}</td>
                 </tr>
                 <tr>
-                    <td colspan="3" class="text-right">Shipping:</td>
-                    <td class="text-right">KES 0.00</td>
+                    <td colspan="3" class="text-right" style="padding: 10px 15px;">Shipping:</td>
+                    <td class="text-right" style="padding: 10px 15px;">{{ order.currency }} 0.00</td>
                 </tr>
                 <tr>
-                    <td colspan="3" class="text-right">Tax:</td>
-                    <td class="text-right">KES 0.00</td>
+                    <td colspan="3" class="text-right" style="padding: 10px 15px;">Tax:</td>
+                    <td class="text-right" style="padding: 10px 15px;">{{ order.currency }} 0.00</td>
                 </tr>
-                <tr>
-                    <td colspan="3" class="text-right">Total:</td>
-                    <td class="text-right">KES {{ order.get_total_cost|intcomma }}</td>
+                <tr class="total-row">
+                    <td colspan="3" class="text-right" style="padding: 15px; font-size: 1.2rem;">Total:</td>
+                    <td class="text-right" style="padding: 15px; font-size: 1.2rem;">{{ order.currency }} {{ order.total|floatformat:2|intcomma }}</td>
                 </tr>
             </tfoot>
         </table>
-
 
         {% if order.status == 'PENDING' %}
         <div class="payment-required">
@@ -351,15 +356,11 @@
             <p class="payment-text">
                 Please complete your payment to process this order. Your items will be shipped once payment is confirmed.
             </p>
-            <form method="post" action="{% url 'payment:process_payment' order.id %}">
-                {% csrf_token %}
-                <button type="submit" class="payment-btn">
-                    <i class="fas fa-lock"></i> Proceed to Payment
-                </button>
-            </form>
+            <a href="{% url 'orders:checkout' %}" class="payment-btn">
+                <i class="fas fa-lock"></i> Proceed to Payment
+            </a>
         </div>
         {% endif %}
-
     </div>
 </div>
 {% endblock %}

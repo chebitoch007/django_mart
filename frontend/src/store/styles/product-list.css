@@ -769,3 +769,47 @@
 .sort-option i {
   color: inherit;
 }
+
+
+.filter-sidebar {
+  transition: transform 0.25s ease-in-out;
+}
+
+@media (max-width: 1023px) {
+  .filter-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 80%;
+    max-width: 320px;
+    background: #fff;
+    transform: translateX(-100%);
+    z-index: 50;
+    overflow-y: auto;
+  }
+
+  .filter-sidebar.slide-in {
+    transform: translateX(0);
+  }
+
+  body.no-scroll {
+    overflow: hidden;
+  }
+
+  .filter-toggle {
+    display: flex;
+  }
+}
+
+@media (min-width: 1024px) {
+  .filter-sidebar {
+    position: static;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .filter-toggle {
+    display: none !important;
+  }
+}

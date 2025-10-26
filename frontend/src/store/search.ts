@@ -27,15 +27,7 @@ function initSearchFilters(): void {
   const inStockCheckbox = document.getElementById('inStock') as HTMLInputElement;
   const sortSelect = document.getElementById('sortSelect') as HTMLSelectElement;
 
-  // Mobile filter toggle
-  if (filterToggle && filterContent) {
-    filterToggle.addEventListener('click', () => {
-      filterContent.classList.toggle('expanded');
-      filterToggle.innerHTML = filterContent.classList.contains('expanded') ?
-        '<i class="fas fa-times"></i> Hide Filters' :
-        '<i class="fas fa-filter"></i> Show Filters';
-    });
-  }
+
 
   // Real-time price filter with debounce
   if (priceRange && priceDisplay) {

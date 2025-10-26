@@ -1,4 +1,7 @@
-from celery.utils.time import timezone
+#orders/models.py
+
+from django_countries.fields import CountryField
+from django.utils import timezone
 from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator
@@ -23,7 +26,8 @@ class OrderQuerySet(models.QuerySet):
 
 class OrderManager(models.Manager):
     def get_queryset(self):
-        return OrderQuerySet(self.model, using=self._db).select_related('user').prefetch_related('items__product')
+        # ✅ REMOVED prefetch_related - let views handle their own prefetching
+        return OrderQuerySet(self.model, using=self._db).select_related('user')
 
     def create_from_cart(self, cart, user, shipping_details):
         with transaction.atomic():
@@ -34,14 +38,18 @@ class OrderManager(models.Manager):
             )
 
             items = []
+            order_total = 0
             for cart_item in cart.items.select_related('product').all():
                 if cart_item.quantity > cart_item.product.stock:
                     raise ValidationError(f"Insufficient stock for {cart_item.product.name}")
 
+                current_price = cart_item.product.get_display_price()
+                order_total += (current_price * cart_item.quantity)
+
                 items.append(OrderItem(
                     order=order,
                     product=cart_item.product,
-                    price=cart_item.product.price,
+                    price=current_price,
                     quantity=cart_item.quantity
                 ))
 
@@ -50,6 +58,10 @@ class OrderManager(models.Manager):
                 )
 
             OrderItem.objects.bulk_create(items)
+
+            order.total = order_total
+            order.save(update_fields=['total'])
+
             cart.items.all().delete()
             return order
 
@@ -59,7 +71,7 @@ class Order(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='orders',
-        null=True,  # Allow null for guest orders
+        null=True,
         blank=True
     )
     first_name = models.CharField(max_length=50)
@@ -68,7 +80,7 @@ class Order(models.Model):
     address = models.CharField(max_length=250)
     postal_code = models.CharField(max_length=20)
     state = models.CharField(max_length=100, blank=True)
-    country = models.CharField(max_length=100, default='Kenya')
+    country = CountryField(blank_label='(select country)', default='KE')
     city = models.CharField(max_length=100)
     phone = models.CharField(max_length=20, blank=True)
     created = models.DateTimeField(auto_now_add=True, db_index=True)
@@ -120,7 +132,6 @@ class Order(models.Model):
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"
 
-
     @property
     def total_cost(self):
         return self.items.aggregate(
@@ -169,8 +180,6 @@ class Order(models.Model):
             if original.payment and original.payment.status != 'PENDING':
                 raise PermissionError("Order has already been processed")
         super().save(*args, **kwargs)
-
-
 
     def clean(self):
         if self.pk:
@@ -237,7 +246,7 @@ class OrderItem(models.Model):
 
     def clean(self):
         if self._state.adding:
-            if self.price != self.product.price:
+            if self.price != self.product.get_display_price():
                 raise ValidationError({'price': 'Price must match current product price'})
             if self.quantity > self.product.stock:
                 raise ValidationError({'quantity': 'Quantity exceeds available stock'})
@@ -259,26 +268,12 @@ class OrderItem(models.Model):
         if not self._state.adding:
             original = OrderItem.objects.get(pk=self.pk)
 
-            # Prevent any price change
             if self.price != original.price:
-                # Only allow price change if it's a dropship product
                 if not self.product.is_dropship:
                     raise ValidationError("Cannot modify price of existing item")
 
         super().save(*args, **kwargs)
-'''
-class CurrencyRate(models.Model):
-    base_currency = models.CharField(max_length=3)
-    target_currency = models.CharField(max_length=3)
-    rate = models.DecimalField(max_digits=10, decimal_places=6)
-    last_updated = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        unique_together = ('base_currency', 'target_currency')
-
-    def __str__(self):
-        return f"{self.base_currency}/{self.target_currency}: {self.rate}"
-'''
 
 class CurrencyRate(models.Model):
     base_currency = models.CharField(max_length=3, choices=settings.CURRENCIES)
