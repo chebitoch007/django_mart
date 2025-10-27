@@ -349,6 +349,11 @@ class Review(models.Model):
     updated = models.DateTimeField(auto_now=True)
     approved = models.BooleanField(default=False)
     helpful_count = models.PositiveIntegerField(default=0)
+    helpful_voters = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name='helpful_reviews',
+        blank=True
+    )
 
     class Meta:
         ordering = ('-created',)

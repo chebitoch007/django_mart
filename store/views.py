@@ -1,4 +1,6 @@
 # store/views.py - FIXED VERSION
+from functools import wraps
+from django.contrib.auth.views import redirect_to_login
 from store.utils.search import apply_search_filter
 from django.core.serializers.json import DjangoJSONEncoder
 from .utils.sorting import get_sorted_products
@@ -41,6 +43,19 @@ SUGGESTION_THRESHOLD = 0.15
 TRENDING_CACHE_KEY = 'trending_products'
 TRENDING_CACHE_TIMEOUT = 3600  # seconds
 
+def ajax_login_required(view_func):
+    """Custom decorator to return JSON 401 for AJAX requests instead of redirecting."""
+    @wraps(view_func)
+    def wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse(
+                    {'success': False, 'message': 'You need to log in to vote helpful reviews.'},
+                    status=401
+                )
+            return redirect_to_login(request.get_full_path())
+        return view_func(request, *args, **kwargs)
+    return wrapped_view
 
 # ----- Search Views ----- #
 @require_GET
@@ -333,12 +348,18 @@ def product_list(request, category_slug=None):
     return render(request, 'store/product/list.html', context)
 
 
+
+
 def product_detail(request, slug):
-    product = get_object_or_404(Product.objects.select_related('category', 'brand', 'supplier').prefetch_related(
-        Prefetch('additional_images', queryset=ProductImage.objects.all().only('image', 'color')),
-        Prefetch('reviews', queryset=Review.objects.filter(approved=True).select_related('user')),
-        'variants'
-    ), slug=slug, available=True)
+    product = get_object_or_404(
+        Product.objects.select_related('category', 'brand', 'supplier').prefetch_related(
+            Prefetch('additional_images', queryset=ProductImage.objects.all().only('image', 'color')),
+            Prefetch('reviews', queryset=Review.objects.filter(approved=True).select_related('user')),
+            'variants'
+        ),
+        slug=slug,
+        available=True
+    )
 
     discount_percentage = product.get_discount_percentage() if product.discount_price else 0
     related_products = Product.objects.filter(
@@ -355,12 +376,10 @@ def product_detail(request, slug):
         except Exception:
             logger.warning(f"Could not generate affiliate link for {product.slug}")
 
-    variants_data = list(product.variants.all().values(
-        'id', 'size', 'color', 'price', 'quantity'
-    ))
-
+    variants_data = list(product.variants.all().values('id', 'size', 'color', 'price', 'quantity'))
     variants_by_color = {}
     variants_by_size = {}
+
     for v in variants_data:
         if v['color']:
             variants_by_color.setdefault(v['color'], []).append(v)
@@ -384,14 +403,31 @@ def product_detail(request, slug):
 
 
 @require_POST
-@login_required
+@ajax_login_required
 def mark_review_helpful(request, review_id):
     review = get_object_or_404(Review, id=review_id, approved=True)
-    review.helpful_count = F('helpful_count') + 1
-    review.save(update_fields=['helpful_count'])
-    review.refresh_from_db()
-    return JsonResponse({'success': True, 'new_count': review.helpful_count})
 
+    if request.user in review.helpful_voters.all():
+        review.helpful_voters.remove(request.user)
+        review.helpful_count = F('helpful_count') - 1
+        review.save(update_fields=['helpful_count'])
+        review.refresh_from_db()
+        return JsonResponse({'success': True, 'unvoted': True, 'new_count': review.helpful_count})
+    else:
+        review.helpful_voters.add(request.user)
+        review.helpful_count = F('helpful_count') + 1
+        review.save(update_fields=['helpful_count'])
+        review.refresh_from_db()
+        return JsonResponse({'success': True, 'voted': True, 'new_count': review.helpful_count})
+
+
+@require_POST
+@ajax_login_required
+def delete_review(request, review_id):
+    review = get_object_or_404(Review, id=review_id, user=request.user)
+    review.delete()
+    messages.success(request, 'Your review was deleted successfully.')
+    return JsonResponse({'success': True})
 
 @require_POST
 def stock_notification(request):

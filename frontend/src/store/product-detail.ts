@@ -514,28 +514,34 @@ function initReviewFormToggle(): void {
 // ========================================
 // Review Filtering and Sorting
 // ========================================
-
+/**
+ * Reviews initialization: filter, sort, and hook up helpful/delete buttons.
+ */
 function initReviews(): void {
-  const filter = document.getElementById('review-filter') as HTMLSelectElement;
-  const sort = document.getElementById('review-sort') as HTMLSelectElement;
-  const list = document.querySelector('.reviews-list');
+  const filter = document.getElementById('review-filter') as HTMLSelectElement | null;
+  const sort = document.getElementById('review-sort') as HTMLSelectElement | null;
+  const list = document.querySelector('.reviews-list') as HTMLElement | null;
 
-  if (!list) return;
+  if (!list) {
+    // No reviews on page
+    return;
+  }
 
+  // Filter + sort implementation (exposed so other parts can re-run it)
   function filterAndSort(): void {
-    const filterValue = filter.value;
-    const sortValue = sort.value;
-    const reviews = Array.from(list.querySelectorAll('.review-item')) as HTMLElement[];
+    const filterValue = filter?.value ?? 'all';
+    const sortValue = sort?.value ?? 'newest';
+    const reviews = Array.from(list.querySelectorAll<HTMLElement>('.review-item'));
 
     // 1. Filter reviews
     reviews.forEach(review => {
-      const rating = review.dataset.rating;
+      const rating = review.dataset.rating ?? '';
       const shouldShow = filterValue === 'all' || rating === filterValue;
       review.style.display = shouldShow ? 'block' : 'none';
-
-      // Add fade animation
       if (shouldShow) {
         review.style.animation = 'fadeIn 0.3s ease';
+      } else {
+        review.style.animation = '';
       }
     });
 
@@ -543,12 +549,12 @@ function initReviews(): void {
     const visibleReviews = reviews.filter(r => r.style.display !== 'none');
 
     visibleReviews.sort((a, b) => {
-      const aDate = new Date(a.dataset.date || 0).getTime();
-      const bDate = new Date(b.dataset.date || 0).getTime();
-      const aRating = parseInt(a.dataset.rating || '0');
-      const bRating = parseInt(b.dataset.rating || '0');
-      const aHelpful = parseInt(a.dataset.helpful || '0');
-      const bHelpful = parseInt(b.dataset.helpful || '0');
+      const aDate = new Date(a.dataset.date ?? '').getTime();
+      const bDate = new Date(b.dataset.date ?? '').getTime();
+      const aRating = parseInt(a.dataset.rating ?? '0', 10);
+      const bRating = parseInt(b.dataset.rating ?? '0', 10);
+      const aHelpful = parseInt(a.dataset.helpful ?? '0', 10);
+      const bHelpful = parseInt(b.dataset.helpful ?? '0', 10);
 
       switch (sortValue) {
         case 'newest': return bDate - aDate;
@@ -560,74 +566,173 @@ function initReviews(): void {
       }
     });
 
-    // Re-append in sorted order
+    // Re-append in sorted order (this preserves existing nodes)
     visibleReviews.forEach(review => list.appendChild(review));
   }
 
+  // Bind controls
   filter?.addEventListener('change', filterAndSort);
   sort?.addEventListener('change', filterAndSort);
 
-  // Helpful button handlers
+  // Run initially
+  filterAndSort();
+
+  // Helpful and delete buttons setup
   initHelpfulButtons();
+  initDeleteReviewButtons();
+
+  // Expose the filterAndSort function to global (optional) so other parts can call it
+  // (window as any)._productDetail_filterAndSort = filterAndSort;
 }
 
 /**
- * Initialize "Helpful" vote buttons on reviews
+ * Initialize "Helpful" vote buttons on reviews — toggles vote/unvote.
+ * Also updates the review's data-helpful attribute and helpful-count display.
  */
 function initHelpfulButtons(): void {
-  document.querySelectorAll('.helpful-btn').forEach(btn => {
+  const buttons = document.querySelectorAll<HTMLButtonElement>('.helpful-btn');
+
+  buttons.forEach(btn => {
+    const reviewId = btn.dataset.reviewId;
+    const url = btn.dataset.url;
+    if (!reviewId || !url) return;
+
+    const initiallyVoted = btn.dataset.voted === 'true';
+    if (initiallyVoted) btn.classList.add('voted');
+
     btn.addEventListener('click', async (e) => {
       e.preventDefault();
 
-      if (btn.classList.contains('voted')) {
-        showNotification('You already voted this review as helpful', 'error');
-        return;
-      }
+      // prevent double-clicks
+      if (btn.dataset.busy === 'true') return;
+      btn.dataset.busy = 'true';
+      btn.setAttribute('aria-disabled', 'true');
+      btn.disabled = true;
 
-      const url = (btn as HTMLElement).dataset.url;
-      if (!url) return;
+      const countEl = btn.querySelector<HTMLElement>('.helpful-count');
+      const reviewItem = btn.closest<HTMLElement>('.review-item');
 
       try {
         const response = await fetch(url, {
           method: 'POST',
           headers: {
             'X-CSRFToken': getCsrfToken(),
-            'X-Requested-With': 'XMLHttpRequest'
-          }
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+          credentials: 'same-origin',
         });
+
+        // Handle not logged in (401 or 403)
+        if (response.status === 401 || response.status === 403) {
+          showNotification('You need to log in to vote helpful reviews.', 'error');
+          return;
+        }
+
+        if (!response.ok) {
+          const text = await response.text().catch(() => null);
+          showNotification('Could not register vote. Please try again.', 'error');
+          console.warn('Helpful vote failed', response.status, text);
+          return;
+        }
 
         const data = await response.json();
 
         if (data.success) {
-          btn.classList.add('voted');
-          const countEl = btn.querySelector('.helpful-count');
-          if (countEl) {
-            countEl.textContent = `(${data.new_count})`;
+          const newCount = typeof data.new_count !== 'undefined' ? parseInt(data.new_count, 10) : null;
+
+          if (newCount !== null && countEl) {
+            countEl.textContent = `(${newCount})`;
           }
 
-          // Update data attribute for sorting
-          const reviewItem = btn.closest('.review-item') as HTMLElement;
-          if (reviewItem) {
-            reviewItem.dataset.helpful = data.new_count;
+          if (reviewItem && newCount !== null) {
+            reviewItem.dataset.helpful = String(newCount);
           }
 
-          showNotification('Thank you for your feedback!', 'success');
+          if (data.voted) {
+            btn.classList.add('voted');
+            btn.dataset.voted = 'true';
+            btn.setAttribute('aria-pressed', 'true');
+            showNotification('Marked as helpful', 'success');
+          } else if (data.unvoted) {
+            btn.classList.remove('voted');
+            btn.dataset.voted = 'false';
+            btn.setAttribute('aria-pressed', 'false');
+            showNotification('Removed helpful vote', 'success');
+          }
 
-            // Animate the button
-            (btn as HTMLElement).style.transform = 'scale(1.1)';
-            setTimeout(() => {
-                (btn as HTMLElement).style.transform = 'scale(1)';
-                }, 200);
-
+          (btn as HTMLElement).style.transform = 'scale(1.05)';
+          setTimeout(() => (btn as HTMLElement).style.transform = 'scale(1)', 180);
         } else {
           showNotification(data.message || 'Unable to vote', 'error');
         }
-      } catch (error) {
+      } catch (err) {
+        console.error('Helpful vote error', err);
         showNotification('An error occurred. Please try again.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.dataset.busy = 'false';
+        btn.removeAttribute('aria-disabled');
       }
     });
   });
 }
+
+/**
+ * Initialize delete buttons for reviews (only shown to review owner).
+ */
+function initDeleteReviewButtons(): void {
+  document.querySelectorAll<HTMLButtonElement>('.delete-review-btn').forEach(btn => {
+    const reviewId = btn.dataset.reviewId;
+    if (!reviewId) return;
+
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const ok = confirm('Delete your review? This cannot be undone.');
+      if (!ok) return;
+
+      // Disable while deleting
+      btn.disabled = true;
+      btn.dataset.busy = 'true';
+
+      try {
+        // endpoint must match your urls.py pattern
+        const response = await fetch(`/reviews/${reviewId}/delete/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': getCsrfToken(),
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+          },
+          credentials: 'same-origin',
+        });
+
+        if (!response.ok) {
+          showNotification('Could not delete review. Please try again.', 'error');
+          return;
+        }
+
+        const data = await response.json();
+        if (data.success) {
+          // remove review from DOM and show toast
+          const reviewItem = btn.closest<HTMLElement>('.review-item');
+          if (reviewItem) reviewItem.remove();
+
+          showNotification('Review deleted', 'success');
+        } else {
+          showNotification(data.message || 'Unable to delete review', 'error');
+        }
+      } catch (err) {
+        console.error('Delete review error', err);
+        showNotification('Network error. Try again later.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.dataset.busy = 'false';
+      }
+    });
+  });
+}
+
 
 // ========================================
 // Stock Notifications

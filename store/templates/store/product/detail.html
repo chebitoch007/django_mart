@@ -226,6 +226,8 @@
                     </div>
                 </div>
 
+                <div id="review-feedback" class="review-feedback"></div>
+
                 <div class="review-controls">
                     <div class="control-group">
                         <label for="review-filter" class="control-label">Filter</label>
@@ -263,15 +265,15 @@
                         <div class="form-group">
                             <label class="form-label">Your Rating</label>
                             <div class="rating-input">
-                                <input type="radio" name="rating" value="5" id="star5">
+                                <input type="radio" name="rating" value="5" id="star5" aria-label="5 stars">
                                 <label for="star5"><i class="fas fa-star"></i></label>
-                                <input type="radio" name="rating" value="4" id="star4">
+                                <input type="radio" name="rating" value="4" id="star4" aria-label="4 stars">
                                 <label for="star4"><i class="fas fa-star"></i></label>
-                                <input type="radio" name="rating" value="3" id="star3">
+                                <input type="radio" name="rating" value="3" id="star3" aria-label="3 stars">
                                 <label for="star3"><i class="fas fa-star"></i></label>
-                                <input type="radio" name="rating" value="2" id="star2">
+                                <input type="radio" name="rating" value="2" id="star2" aria-label="2 stars">
                                 <label for="star2"><i class="fas fa-star"></i></label>
-                                <input type="radio" name="rating" value="1" id="star1">
+                                <input type="radio" name="rating" value="1" id="star1" aria-label="1 stars">
                                 <label for="star1"><i class="fas fa-star"></i></label>
                             </div>
                         </div>
@@ -303,19 +305,18 @@
                 </div>
                 {% endif %}
 
-                {% if product.reviews.all %}
+                {% if product.reviews.count %}
                 <div class="reviews-list">
                     {% for review in product.reviews.all %}
                     <div class="review-item"
                          data-rating="{{ review.rating }}"
-                         data-date="{{ review.created|date:" c
-                    " }}"
+                    data-date="{{ review.created|date:'c' }}"
                     data-helpful="{{ review.helpful_count|default:0 }}">
 
                     <div class="review-header">
                         <div class="user-avatar">{{ review.user.username|slice:":1"|upper }}</div>
                         <div class="user-info">
-                            <div class="user-name">{{ review.user.username }}</div>
+                            <div class="user-name">{{ review.user.get_full_name|default:review.user.username }}</div>
                             <div class="review-meta">
                                 <div class="review-rating">
                                     {% for i in "12345" %}
@@ -334,16 +335,26 @@
                     <h4 class="review-title">{{ review.title }}</h4>
                     <p class="review-content">{{ review.comment }}</p>
 
-                    <div class="review-actions">
-                        <button class="helpful-btn"
-                                data-review-id="{{ review.id }}"
-                                data-url="{% url 'store:mark_review_helpful' review.id %}"
-                                aria-label="Mark review as helpful">
-                            <i class="fas fa-thumbs-up"></i>
-                            <span>Helpful</span>
-                            <span class="helpful-count">({{ review.helpful_count|default:0 }})</span>
-                        </button>
-                    </div>
+<div class="review-actions">
+  <button
+    class="helpful-btn {% if request.user in review.helpful_voters.all %}voted{% endif %}"
+    data-review-id="{{ review.id }}"
+    data-url="{% url 'store:mark_review_helpful' review.id %}"
+    data-voted="{% if request.user in review.helpful_voters.all %}true{% else %}false{% endif %}"
+    aria-pressed="{% if request.user in review.helpful_voters.all %}true{% else %}false{% endif %}"
+    aria-label="Mark review as helpful">
+    <i class="fas fa-thumbs-up" aria-hidden="true"></i>
+    <span class="helpful-label">Helpful</span>
+    <span class="helpful-count">({{ review.helpful_count|default:0 }})</span>
+  </button>
+
+  {% if review.user == request.user %}
+    <button class="delete-review-btn" data-review-id="{{ review.id }}" aria-label="Delete your review">
+      <i class="fas fa-trash-alt"></i> Delete
+    </button>
+  {% endif %}
+</div>
+
                 </div>
                 {% endfor %}
             </div>

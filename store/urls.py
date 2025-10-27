@@ -36,5 +36,6 @@ urlpatterns = [
     path('dashboard/products/delete/<slug:slug>/', delete_product, name='delete_product'),
     path('dashboard/import/', views.import_products, name='import_products'),
     path('review/<int:review_id>/helpful/', views.mark_review_helpful, name='mark_review_helpful'),
+    path('reviews/<int:review_id>/delete/', views.delete_review, name='delete_review'),
     path('notifications/stock/', views.stock_notification, name='stock_notification'),
 ]
