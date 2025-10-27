@@ -5,20 +5,7 @@ from orders.constants import CURRENCY_CHOICES, ORDER_STATUS_CHOICES
 from paypal.standard.ipn.models import PayPalIPN
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
-
-
-class PayPalPayment(models.Model):
-    order = models.ForeignKey('orders.Order', on_delete=models.CASCADE)
-    ipn = models.ForeignKey(PayPalIPN, on_delete=models.CASCADE, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"PayPal Payment for Order #{self.order.id}"
-
-    class Meta:
-        unique_together = ('order',)  # One PayPal payment per order
+from orders.models import Order
 
 
 class Payment(models.Model):
@@ -27,8 +14,12 @@ class Payment(models.Model):
         ('MPESA', 'M-Pesa'),
         ('PAYPAL', 'PayPal'),
     )
+    order = models.OneToOneField(
+        Order,
+        on_delete=models.CASCADE,
+        related_name='payment'  # Use a simple related_name
+    )
 
-    order = models.ForeignKey('orders.Order', on_delete=models.CASCADE, related_name='payment_records')
     provider = models.CharField(
         max_length=20,
         choices=PROVIDER_CHOICES,
@@ -63,7 +54,6 @@ class Payment(models.Model):
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)  # <-- unpack correctly
-        self.raw_callback = None
 
     def __str__(self):
         return f"{self.provider} Payment - {self.status}"
@@ -90,10 +80,3 @@ class Payment(models.Model):
                 raise ValidationError(
                     f"An active {self.provider} payment already exists for this order"
                 )
-
-@receiver(post_save, sender=Payment)
-def clear_cart_on_payment_success(sender, instance, **kwargs):
-    """Clear cart when payment is marked as completed"""
-    if instance.status == 'COMPLETED' and instance.order:
-        from payment.cart_utils import clear_cart_after_payment
-        clear_cart_after_payment(instance.order)

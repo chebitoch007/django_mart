@@ -95,6 +95,7 @@ INSTALLED_APPS = [
     'django_htmx',
     'crispy_bootstrap4',
     'crispy_bootstrap5',
+    'django_vite_plugin',
 ]
 
 MIDDLEWARE = [
@@ -182,6 +183,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 # ================== Vite Configuration ==================
+"""
 VITE_APP_DIR = BASE_DIR / 'frontend'  # Correct path to your Vite app
 
 VITE_WS_CLIENT_URL = "http://localhost:5173"
@@ -193,6 +195,13 @@ DJANGO_VITE = {
         "static_url_prefix": "/static/frontend/",
     }
 }
+"""
+
+# Path to your manifest.json
+DJANGO_VITE_MANIFEST_PATH = BASE_DIR / "static" / "frontend" / "manifest.json"
+
+# Path to your static files (where Vite builds to)
+DJANGO_VITE_ASSETS_PATH = BASE_DIR / "static" / "frontend"
 
 # Media files (Cloudflare R2)
 if env('USE_CLOUDFLARE_R2', default=False):
@@ -440,4 +449,4 @@ CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 
 
-BASE_URL='https://4cfd5a00596e.ngrok-free.app'
+BASE_URL='https://1664fbf96541.ngrok-free.app'

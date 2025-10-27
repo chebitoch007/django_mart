@@ -1,16 +1,24 @@
+# store/templatetags/vite_tags.py
 import json
 import os
 from django import template
 from django.conf import settings
 from django.templatetags.static import static
+from django.utils.safestring import mark_safe
 
 register = template.Library()
 
+
 # Load Vite manifest only once
 def load_manifest():
-    manifest_path = os.path.join(settings.BASE_DIR, "static", "frontend", ".vite", "manifest.json")
-    with open(manifest_path, "r") as f:
-        return json.load(f)
+    manifest_path = os.path.join(settings.BASE_DIR, "static", "frontend", "manifest.json")
+    try:
+        with open(manifest_path, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # Return empty dict if manifest doesn't exist (useful during development)
+        return {}
+
 
 MANIFEST = load_manifest()
 
@@ -18,12 +26,26 @@ MANIFEST = load_manifest()
 @register.simple_tag
 def vite_asset(asset_name):
     """
-    Returns the correct hashed asset path from manifest.json
+    Returns the correct hashed asset path with script tag from manifest.json
     """
     try:
-        hashed_name = MANIFEST[asset_name]["file"]
-        return static(f"frontend/{hashed_name}")
+        entry = MANIFEST[asset_name]
+        hashed_name = entry["file"]
+
+        # Build HTML output
+        html_parts = []
+
+        # Add CSS files if they exist
+        if "css" in entry:
+            for css_file in entry["css"]:
+                html_parts.append(f'<link rel="stylesheet" href="{static("frontend/" + css_file)}">')
+
+        # Add the JavaScript file
+        html_parts.append(f'<script type="module" src="{static("frontend/" + hashed_name)}"></script>')
+
+        return mark_safe('\n'.join(html_parts))
     except KeyError:
+        print(f"Warning: Asset '{asset_name}' not found in manifest")
         return ""
 
 
@@ -39,4 +61,4 @@ def vite_css(asset_name):
             tags += f'<link rel="stylesheet" href="{static("frontend/" + css)}">\n'
     except KeyError:
         pass
-    return tags
+    return mark_safe(tags)

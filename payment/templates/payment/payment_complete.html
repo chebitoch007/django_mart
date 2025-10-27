@@ -1,3 +1,5 @@
+<!-- payment/templates/payment/payment_complete.html -->
+
 {% extends "store/base.html" %}
 {% block content %}
 <div class="container py-5">
@@ -15,7 +17,7 @@
                     <dt class="col-sm-4">Order ID</dt>
                     <dd class="col-sm-8">{{ order.id }}</dd>
                     <dt class="col-sm-4">Amount Paid</dt>
-                    <dd class="col-sm-8">{{ order.order_payment.amount }} {{ order.order_payment.currency }}</dd>
+                    <dd class="col-sm-8">{{ order.amount }} {{ order.order_payment.currency }}</dd>
                     <dt class="col-sm-4">Payment Method</dt>
                     <dd class="col-sm-8">{{ order.order_payment.get_method_display }}</dd>
                     <dt class="col-sm-4">Transaction ID</dt>

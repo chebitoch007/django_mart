@@ -1,12 +1,12 @@
-import { initializeMpesa } from './payment-methods/mpesa.js';
-import { initializePayPal, cleanupPayPal } from './payment-methods/paypal.js';
+import { initializeMpesa } from './mpesa.js';
+import { initializePayPal, cleanupPayPal } from './paypal.js';
 import {
   validatePhoneNumber,
   formatCurrency,
   saveFormState,
   restoreFormState,
   updateServerPaymentMethod
-} from './utils/utils.js';
+} from './utils.js';
 import {
   showPaymentStatus,
   showPaymentError,
@@ -19,8 +19,8 @@ import {
   hideCurrencyTooltip,
   showInputError,
   clearInputError
-} from './ui/ui.js';
-import { PaymentConfig, PaymentState, PaymentElements, PaymentMethod } from './types/payment.js';
+} from './ui.js';
+import { PaymentConfig, PaymentState, PaymentElements, PaymentMethod } from '@/payments/types/payment.js';
 
 export class PaymentSystem {
   private config: PaymentConfig;
@@ -208,11 +208,7 @@ export class PaymentSystem {
       this.state.paypalInitialized = false;
       showCurrencyTooltip('paypal', currency, this.elements.currencyTooltip, this.elements.tooltipText);
 
-      if (!this.isPaypalCurrencySupported(currency) && currency !== 'USD') {
-        setTimeout(() => this.switchPaymentMethod('mpesa'), 1000);
-      } else {
-        setTimeout(() => initializePayPal(this), 500);
-      }
+      setTimeout(() => initializePayPal(this), 500);
     }
 
     saveFormState({

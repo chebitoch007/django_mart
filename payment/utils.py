@@ -1,6 +1,7 @@
 #payment/utils.py
 
 from django.core.cache import cache
+from django.urls import reverse
 from django.utils import timezone
 from decimal import Decimal, ROUND_HALF_UP
 import time
@@ -312,12 +313,10 @@ def initiate_mpesa_payment(amount, phone_number, order_id):
 
 
         # ✅ FIXED: Use the correct callback URL with trailing slash
-        callback_url = f"{settings.BASE_URL}/payment/mpesa/callback/"
-        if settings.MPESA_CALLBACK_URL:
-            callback_url = settings.MPESA_CALLBACK_URL
-            # Ensure it has trailing slash
-            if not callback_url.endswith('/'):
-                callback_url += '/'
+        callback_url = f"{settings.BASE_URL}{reverse('payment:mpesa_webhook')}"
+        if not callback_url.endswith('/'):
+            callback_url += '/'
+
 
 
         payload = {

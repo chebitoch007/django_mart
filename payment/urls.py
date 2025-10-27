@@ -10,7 +10,6 @@ urlpatterns = [
     # M-Pesa URLs
     path('webhook/mpesa/', views.payment_webhook, {'provider': 'MPESA'}, name='mpesa_webhook'),
     path('mpesa-status/', views.mpesa_status, name='mpesa_status'),
-    path('mpesa/callback/', views.mpesa_callback, name='mpesa_callback'),  # ✅ FIXED: Added trailing slash
     path('retry-mpesa/<int:payment_id>/', views.retry_mpesa_payment, name='retry_mpesa_payment'),
 
     # PayPal URLs
@@ -22,7 +21,6 @@ urlpatterns = [
     # Other URLs
     path('initiate/', views.initiate_payment, name='initiate_payment'),
     path('process/<int:order_id>/', views.process_payment, name='process_payment'),
-    path('paypal/checkout/<int:order_id>/', views.paypal_checkout, name='paypal_checkout'),
     path('paypal/return/<int:order_id>/', views.paypal_payment_return, name='paypal_return'),
     path('paypal/cancel/<int:order_id>/', views.paypal_payment_cancel, name='paypal_cancel'),
 ]

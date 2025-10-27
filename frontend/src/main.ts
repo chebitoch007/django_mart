@@ -1,3 +1,5 @@
+// frontend/src/main.ts
+
 // Import styles and assets
 import './style.css';
 import javascriptLogo from './javascript.svg';
@@ -5,7 +7,6 @@ import viteLogo from '/vite.svg';
 
 // Import functions and scripts
 import { setupCounter } from './counter';
-import './js/payments';
 
 // Safely select the app container
 const app = document.querySelector<HTMLDivElement>('#app');

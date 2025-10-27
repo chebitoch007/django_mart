@@ -6,30 +6,23 @@ export default defineConfig({
   root: '.',
   base: '/static/frontend/',
 
-  publicDir: 'public',
-
   build: {
     outDir: '../static/frontend',
-    assetsDir: 'assets',
-    manifest: true,
+    assetsDir: '',
+    manifest: 'manifest.json',  // Changed from true to specify filename
     emptyOutDir: true,
 
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'src/main.ts'),
-        store: resolve(__dirname, 'src/store/main.ts'),
-        // Remove payments entry since it's built separately
-        payments: resolve(__dirname, 'src/js/payments.js'),
-        cart: resolve(__dirname, 'src/cart/cart-detail.ts'),
+        'src/main': resolve(__dirname, 'src/main.ts'),
+        'src/store/main': resolve(__dirname, 'src/store/main.ts'),
+        'src/payments/payments': resolve(__dirname, 'src/payments/payments.ts'),
+        'src/cart/cart-detail': resolve(__dirname, 'src/cart/cart-detail.ts'),
       },
       output: {
-        entryFileNames: 'js/[name]-[hash].js',
-        chunkFileNames: 'js/[name]-[hash].js',
-        assetFileNames: ({ name }) => {
-          const ext = name.split('.').pop();
-          if (ext === 'css') return 'css/[name]-[hash].[ext]';
-          return 'assets/[name]-[hash].[ext]';
-        },
+        entryFileNames: 'js/[name].[hash].js',
+        chunkFileNames: 'js/[name].[hash].js',
+        assetFileNames: 'css/[name].[hash].[ext]',
       },
     },
   },
@@ -50,6 +43,7 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
       '@store': resolve(__dirname, 'src/store'),
       '@cart': resolve(__dirname, 'src/cart'),
+      '@payments': resolve(__dirname, 'src/payments'),
     },
   },
 });

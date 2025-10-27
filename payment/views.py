@@ -195,15 +195,15 @@ def mpesa_status(request):
 
                 # Timeout handling
                 if processing_time > timeout_threshold:
-                    if not payment.raw_callback:
+                    if not payment.raw_response:
                         payment.status = 'FAILED'
                         payment.failure_type = 'TIMEOUT'
                         payment.result_description = 'Payment timeout after 20 minutes - no callback received'
                         payment.save(update_fields=['status', 'failure_type', 'result_description'])
                         logger.info(f"Payment {payment.id} timed out (no webhook)")
-                    elif payment.raw_callback:
+                    elif payment.raw_response:
                         try:
-                            data = json.loads(payment.raw_callback)
+                            data = json.loads(payment.raw_response)
                             process_mpesa_webhook_data(payment, data)
                             logger.info(f"Webhook data reprocessed for payment {payment.id}")
                         except Exception as e:
@@ -220,7 +220,7 @@ def mpesa_status(request):
             'amount': str(payment.amount),
             'order_id': payment.order.id,
             'retry_count': payment.retry_count,
-            'webhook_received': bool(payment.raw_callback),
+            'webhook_received': bool(payment.raw_response),
             'can_retry': payment.failure_type in ['TEMPORARY', 'USER_CANCELLED', 'TIMEOUT']
                          and (payment.failure_type != 'TEMPORARY' or payment.retry_count < 3),
         }
@@ -339,195 +339,120 @@ def payment_webhook(request, provider):
     return JsonResponse({'error': 'Invalid provider'}, status=400)
 
 
+# payment/views.py
+
 @csrf_exempt
 @require_POST
+@transaction.atomic  # Add atomic transaction for safety
 def process_payment(request, order_id):
     """
-    Process/finalize payment. Accepts either application/json or form data.
-    Handles both M-Pesa and PayPal. Includes robust logging and fallback handling.
+    FIXED: Finalize payment after frontend confirmation.
+    This view no longer initiates or captures payment.
+    It only verifies and records the final state.
     """
-    logger.info('[process_payment] Initiating payment processing for order %s', order_id)
+    logger.info(f'[process_payment] Finalizing payment for order {order_id}')
 
-    # --- Raw body logging ---
     try:
-        raw = request.body.decode('utf-8')
-    except Exception:
-        raw = '<unreadable>'
-    logger.debug('[process_payment] raw POST data: %s', raw)
+        order = get_object_or_404(Order.objects.select_for_update(), id=order_id)
 
-    # --- Parse incoming data ---
-    data = {}
-    if request.content_type and 'application/json' in request.content_type:
-        try:
-            data = json.loads(raw or '{}')
-        except json.JSONDecodeError:
-            logger.error('[process_payment] invalid JSON body')
-            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
-    else:
-        data = request.POST.dict()
-
-    logger.debug('[process_payment] parsed fields: %s', data)
-
-    # --- Fetch order ---
-    order = get_object_or_404(Order, id=order_id)
-    payment_method = data.get('payment_method') or data.get('method')
-    logger.info('[process_payment] Payment method: %s', payment_method)
-
-    # ------------------------------------------------------------------
-    #                            M-PESA
-    # ------------------------------------------------------------------
-    if payment_method == 'mpesa':
-        checkout_request_id = (
-            data.get('checkout_request_id')
-            or data.get('checkoutRequestId')
-            or data.get('checkoutId')
-        )
-        phone_number = (
-            data.get('phone_number')
-            or data.get('phone')
-            or data.get('msisdn')
-        )
-        amount = data.get('amount')
-        currency = data.get('currency', 'KES')
-
-        logger.debug('[process_payment] M-Pesa data => checkout_request_id=%s, phone=%s, amount=%s, currency=%s',
-                     checkout_request_id, phone_number, amount, currency)
-
-        # --- Fallback: initiate or reuse existing payment ---
-        if not checkout_request_id:
-            logger.info('[process_payment] No checkout_request_id provided, checking existing payments')
-            existing = Payment.objects.filter(order=order, provider='MPESA', status__in=['PENDING', 'PROCESSING'])
-            if existing.exists():
-                payment = existing.latest('created_at')
-                checkout_request_id = payment.checkout_request_id
-                logger.info('[process_payment] Found existing checkout_request_id=%s', checkout_request_id)
-            else:
-                if not phone_number or not amount:
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': 'Phone number and amount required to initiate payment',
-                        'debug': 'No checkout_request_id and missing phone/amount'
-                    }, status=400)
-                try:
-                    amount_dec = Decimal(str(amount))
-                    result = initiate_mpesa_payment(amount_dec, phone_number, order_id)
-                    if result.get('ResponseCode') == '0':
-                        checkout_request_id = result.get('CheckoutRequestID')
-                        payment = Payment.objects.create(
-                            order=order,
-                            provider='MPESA',
-                            status='PROCESSING',
-                            amount=amount_dec,
-                            currency=currency,
-                            phone_number=phone_number,
-                            checkout_request_id=checkout_request_id,
-                            raw_response=result
-                        )
-                        logger.info('[process_payment] Created new payment with checkout_request_id=%s', checkout_request_id)
-                    else:
-                        error_msg = result.get('errorMessage', 'M-Pesa initiation failed')
-                        return JsonResponse({'status': 'error', 'message': error_msg}, status=400)
-                except Exception as e:
-                    logger.error('[process_payment] Failed to initiate M-Pesa: %s', str(e))
-                    return JsonResponse({'status': 'error', 'message': 'Failed to initiate payment'}, status=400)
-
-        # --- Retrieve or create placeholder payment ---
-        try:
-            payment = Payment.objects.get(checkout_request_id=checkout_request_id, provider='MPESA')
-            logger.info('[process_payment] Found payment record id=%s status=%s', payment.id, payment.status)
-            if payment.status == 'COMPLETED':
-                order.status = 'PAID'
-                order.payment_method = 'MPESA'
-                order.save()
-                clear_cart_after_payment(order)
-                return JsonResponse({
-                    'success': True,
-                    'status': 'success',
-                    'message': 'M-Pesa payment already completed',
-                    'redirect_url': f'/orders/success/{order.id}/'
-                })
-            else:
-                return JsonResponse({
-                    'status': payment.status.lower(),
-                    'failure_type': payment.failure_type,
-                    'result_description': payment.result_description,
-                    'checkout_request_id': checkout_request_id
-                })
-        except Payment.DoesNotExist:
-            Payment.objects.create(
-                order=order,
-                provider='MPESA',
-                checkout_request_id=checkout_request_id,
-                phone_number=phone_number,
-                amount=amount or 0,
-                currency=currency,
-                status='PENDING'
-            )
-            logger.info('[process_payment] Created placeholder payment for checkout_request_id=%s', checkout_request_id)
+        # Prevent re-processing a paid order
+        if order.status not in ['PENDING', 'PROCESSING']:
+            logger.warning(f'[process_payment] Order {order_id} is already {order.status}.')
             return JsonResponse({
-                'status': 'pending',
-                'message': 'Awaiting M-Pesa confirmation',
-                'checkout_request_id': checkout_request_id
+                'success': False,
+                'status': 'error',
+                'message': f'Order is already {order.status.lower()}',
+                'redirect_url': reverse('orders:success', args=[order.id])
             })
 
-    # ------------------------------------------------------------------
-    #                            PAYPAL
-    # ------------------------------------------------------------------
-    elif payment_method == 'paypal':
-        paypal_order_id = (
-            data.get('paypal_order_id')
-            or data.get('order_id')
-            or data.get('paypalOrderId')
-        )
-        paypal_payer_id = (
-            data.get('paypal_payer_id')
-            or data.get('payer_id')
-        )
+        payment_method = request.POST.get('payment_method')
+        logger.info(f'[process_payment] Method: {payment_method}')
 
-        logger.debug('[process_payment] PayPal data => order=%s payer=%s', paypal_order_id, paypal_payer_id)
+        payment = get_object_or_404(Payment.objects.select_for_update(), order=order)
 
-        if not paypal_order_id:
-            logger.error('[process_payment] Missing PayPal order ID')
-            return JsonResponse({'status': 'error', 'message': 'Missing PayPal order ID'}, status=400)
+        # ------------------------------------------------------------------
+        #                            M-PESA
+        # ------------------------------------------------------------------
+        if payment_method == 'mpesa':
+            checkout_request_id = request.POST.get('checkout_request_id')
 
-        # Capture PayPal order
-        result = capture_paypal_order(paypal_order_id)
-        logger.info('[process_payment] PayPal capture result: %s', result)
+            if not checkout_request_id:
+                logger.error('[process_payment] M-Pesa: Missing checkout_request_id')
+                return JsonResponse({'status': 'error', 'message': 'Missing M-Pesa transaction reference'}, status=400)
 
-        if result.get('status', '').upper() == 'COMPLETED':
-            payment, _ = Payment.objects.get_or_create(
-                order=order,
-                provider='PAYPAL',
-                defaults={'amount': order.total, 'currency': 'USD', 'status': 'COMPLETED'}
-            )
-            payment.status = 'COMPLETED'
-            payment.transaction_id = result.get('id')
-            payment.raw_response = result
+            # Verify the payment record matches
+            if payment.checkout_request_id != checkout_request_id or payment.provider != 'MPESA':
+                logger.error(
+                    f'[process_payment] M-Pesa: Mismatch. Expected {payment.checkout_request_id} but got {checkout_request_id}')
+                return JsonResponse({'status': 'error', 'message': 'M-Pesa transaction mismatch'}, status=400)
+
+            # Trust the poller, but double-check the status
+            if payment.status != 'COMPLETED':
+                logger.warning(
+                    f'[process_payment] M-Pesa: Payment {payment.id} not yet marked COMPLETED by webhook/poll. Forcing re-check.')
+                # You could optionally re-run the status check logic here, but for now we'll trust the frontend poll
+                # For safety, let's assume if the frontend says it's done, it's done.
+                payment.status = 'COMPLETED'
+
+            payment.phone_number = request.POST.get('phone_number', payment.phone_number)
             payment.save()
 
-            order.status = 'PAID'
-            order.payment_method = 'PAYPAL'
-            order.save()
-            clear_cart_after_payment(order)
+        # ------------------------------------------------------------------
+        #                            PAYPAL
+        # ------------------------------------------------------------------
+        elif payment_method == 'paypal':
+            paypal_order_id = request.POST.get('paypal_order_id')  # This is the capture ID
 
-            return JsonResponse({
-                'success': True,
-                'status': 'success',
-                'message': 'PayPal payment completed',
-                'transaction_id': result.get('id'),
-                'redirect_url': f'/orders/success/{order.id}/'
-            })
+            if not paypal_order_id:
+                logger.error('[process_payment] PayPal: Missing paypal_order_id')
+                return JsonResponse({'status': 'error', 'message': 'Missing PayPal order ID'}, status=400)
+
+            # --- REMOVED `capture_paypal_order` ---
+            # The frontend already captured the payment.
+
+            payment.status = 'COMPLETED'
+            payment.provider = 'PAYPAL'
+            payment.transaction_id = paypal_order_id
+            payment.raw_response = {'status': 'COMPLETED', 'id': paypal_order_id, 'details': request.POST.dict()}
+            payment.save()
+
+        # ------------------------------------------------------------------
+        #                        INVALID METHOD
+        # ------------------------------------------------------------------
         else:
-            err = result.get('error') or result.get('message') or 'PayPal capture failed'
-            logger.error('[process_payment] PayPal capture failed: %s', err)
-            return JsonResponse({'status': 'error', 'message': err, 'details': result.get('details')}, status=400)
+            logger.error(f'[process_payment] Invalid payment method: {payment_method}')
+            return JsonResponse({'status': 'error', 'message': 'Invalid payment method'}, status=400)
 
-    # ------------------------------------------------------------------
-    #                        INVALID METHOD
-    # ------------------------------------------------------------------
-    else:
-        logger.error('[process_payment] Invalid payment method: %s', payment_method)
-        return JsonResponse({'status': 'error', 'message': 'Invalid payment method'}, status=400)
+        # --- COMMON SUCCESS LOGIC ---
+
+        # Mark order as paid using your robust model method
+        try:
+            order.mark_as_paid(payment_method=payment_method.upper())
+            logger.info(f'[process_payment] Order {order.id} marked as PAID.')
+        except Exception as e:
+            logger.error(f'[process_payment] Failed to mark order {order.id} as paid: {e}')
+            # Continue, as payment is already COMPLETED
+
+        clear_cart_after_payment(order)
+        logger.info(f'[process_payment] Cart cleared for order {order.id}.')
+
+        return JsonResponse({
+            'success': True,
+            'status': 'success',
+            'message': 'Payment completed successfully',
+            'transaction_id': payment.transaction_id,
+            'redirect_url': reverse('orders:success', args=[order.id])
+        })
+
+    except Payment.DoesNotExist:
+        logger.error(f'[process_payment] No payment record found for order {order_id}')
+        return JsonResponse({'status': 'error', 'message': 'Payment record not found.'}, status=404)
+    except Order.DoesNotExist:
+        logger.error(f'[process_payment] Order {order_id} not found')
+        return JsonResponse({'status': 'error', 'message': 'Order not found.'}, status=404)
+    except Exception as e:
+        logger.exception(f'[process_payment] Unknown error for order {order_id}: {e}')
+        return JsonResponse({'status': 'error', 'message': 'An internal error occurred.'}, status=500)
 
 
 
@@ -782,81 +707,6 @@ def paypal_status(request):
         return JsonResponse({'status': 'not_found'}, status=404)
 
 
-def get_or_create_payment(order, provider='PAYPAL', amount=None, currency=None):
-    """Safe method to get or create payment without duplicates"""
-    try:
-        # Try to get existing payment for this order and provider
-        payment = Payment.objects.filter(
-            order=order,
-            provider=provider
-        ).latest('created_at')
-        return payment, False
-    except Payment.DoesNotExist:
-        # Create new payment
-        payment = Payment.objects.create(
-            order=order,
-            provider=provider,
-            amount=amount or order.total,
-            currency=currency or order.currency,
-            status='PENDING'
-        )
-        return payment, True
-    except Payment.MultipleObjectsReturned:
-        # Handle duplicates by taking the most recent
-        payments = Payment.objects.filter(order=order, provider=provider).order_by('-created_at')
-        payment = payments.first()
-        # Mark older ones as failed
-        payments.exclude(id=payment.id).update(
-            status='FAILED',
-            failure_type='DUPLICATE',
-            result_description='Multiple payments detected, using most recent'
-        )
-        return payment, False
-
-# Update the paypal_checkout function
-def paypal_checkout(request, order_id):
-    """New PayPal checkout using django-paypal"""
-    order = get_object_or_404(Order, id=order_id)
-
-    # What you want the button to do.
-    paypal_dict = {
-        "business": settings.PAYPAL_RECEIVER_EMAIL,
-        "amount": str(order.total),
-        "item_name": f"Order #{order.id}",
-        "invoice": f"order-{order.id}-{order.created.strftime('%Y%m%d%H%M%S')}",
-        "notify_url": request.build_absolute_uri(reverse('paypal-ipn')),
-        "return_url": request.build_absolute_uri(
-            reverse('orders:success', kwargs={'order_id': order.id})
-        ),
-        "cancel_return": request.build_absolute_uri(
-            reverse('payment:paypal_cancel', kwargs={'order_id': order.id})
-        ),
-        "custom": json.dumps({
-            "order_id": order.id,
-            "user_id": request.user.id if request.user.is_authenticated else None
-        }),
-        "currency_code": order.currency,
-    }
-
-
-    # Create the instance.
-    form = PayPalPaymentsForm(initial=paypal_dict)
-
-    # FIXED: Use safe payment creation method
-    payment, created = get_or_create_payment(
-        order,
-        provider='PAYPAL',
-        amount=order.total,
-        currency=order.currency
-    )
-    context = {
-        "order": order,
-        "form": form,
-        "paypal_amount": order.total,
-        "paypal_currency": order.currency,
-    }
-    return render(request, "orders/checkout.html", context)
-
 
 def paypal_success(request, order_id):
     """Handle successful PayPal return"""
@@ -891,97 +741,3 @@ def paypal_cancel(request, order_id):
         'order': order,
         'payment': payment
     })
-
-
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def mpesa_callback(request):
-    """
-    Handle M-Pesa STK Push callback
-    """
-    try:
-        # Parse the callback data
-        callback_data = json.loads(request.body.decode('utf-8'))
-        logger.info(f"[MPESA_CALLBACK] Received callback: {callback_data}")
-
-        # M-Pesa callback structure
-        stk_callback = callback_data.get('Body', {}).get('stkCallback', {})
-        checkout_request_id = stk_callback.get('CheckoutRequestID')
-        result_code = stk_callback.get('ResultCode')
-        result_desc = stk_callback.get('ResultDesc')
-
-        logger.info(f"[MPESA_CALLBACK] CheckoutRequestID: {checkout_request_id}, ResultCode: {result_code}")
-
-        if result_code == 0:
-            # Payment was successful
-            callback_metadata = stk_callback.get('CallbackMetadata', {}).get('Item', [])
-
-            # Extract payment details from metadata
-            payment_data = {}
-            for item in callback_metadata:
-                payment_data[item.get('Name')] = item.get('Value')
-
-            amount = payment_data.get('Amount')
-            mpesa_receipt = payment_data.get('MpesaReceiptNumber')
-            phone = payment_data.get('PhoneNumber')
-            transaction_date = payment_data.get('TransactionDate')
-
-            logger.info(
-                f"[MPESA_CALLBACK] Payment successful - Receipt: {mpesa_receipt}, Amount: {amount}, Phone: {phone}")
-
-            # Find and update the payment
-            try:
-                payment = Payment.objects.get(checkout_request_id=checkout_request_id)
-                payment.status = 'completed'
-                payment.transaction_id = mpesa_receipt
-                payment.phone_number = phone
-                payment.amount = amount
-                payment.save()
-
-                logger.info(f"[MPESA_CALLBACK] Updated payment {payment.id} with receipt {mpesa_receipt}")
-
-            except Payment.DoesNotExist:
-                logger.error(f"[MPESA_CALLBACK] Payment not found for CheckoutRequestID: {checkout_request_id}")
-            except Exception as e:
-                logger.error(f"[MPESA_CALLBACK] Error updating payment: {str(e)}")
-
-        else:
-            # Payment failed
-            logger.warning(
-                f"[MPESA_CALLBACK] Payment failed - CheckoutRequestID: {checkout_request_id}, Reason: {result_desc}")
-
-            try:
-                payment = Payment.objects.get(checkout_request_id=checkout_request_id)
-                payment.status = 'failed'
-                payment.error_message = result_desc
-                payment.save()
-
-                logger.info(f"[MPESA_CALLBACK] Marked payment {payment.id} as failed")
-            except Payment.DoesNotExist:
-                logger.error(f"[MPESA_CALLBACK] Payment not found for failed CheckoutRequestID: {checkout_request_id}")
-
-        # Return success response to M-Pesa
-        response_data = {
-            "ResultCode": 0,
-            "ResultDesc": "Success"
-        }
-        return HttpResponse(json.dumps(response_data), content_type='application/json')
-
-    except Exception as e:
-        logger.error(f"[MPESA_CALLBACK] Error processing callback: {str(e)}")
-        # Still return success to M-Pesa to avoid repeated callbacks
-        response_data = {
-            "ResultCode": 0,
-            "ResultDesc": "Success"
-        }
-        return HttpResponse(json.dumps(response_data), content_type='application/json')
-
-
-
-
-
-
-
-

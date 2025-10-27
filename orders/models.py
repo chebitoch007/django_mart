@@ -67,13 +67,6 @@ class Order(models.Model):
         choices=PAYMENT_METHODS,
         db_index=True
     )
-    payment = models.OneToOneField(
-        'payment.Payment',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='order_relation'
-    )
     total = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -141,14 +134,16 @@ class Order(models.Model):
     def save(self, *args, **kwargs):
         if self.pk:
             original = Order.objects.select_related('payment').get(pk=self.pk)
-            if original.payment and original.payment.status != 'PENDING':
+            # ✅ Safely check if 'payment' exists before accessing its status
+            if hasattr(original, 'payment') and original.payment.status != 'PENDING':
                 raise PermissionError("Order has already been processed")
         super().save(*args, **kwargs)
 
     def clean(self):
         if self.pk:
             original = Order.objects.select_related('payment').get(pk=self.pk)
-            if original.payment and original.payment.status != 'PENDING':
+            # ✅ Also apply the same safe check here
+            if hasattr(original, 'payment') and original.payment.status != 'PENDING':
                 raise ValidationError("Cannot modify a paid or processing order")
 
     def process_dropship_orders(self):

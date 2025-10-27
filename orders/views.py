@@ -79,8 +79,6 @@ def create_order(request):
                     status='PENDING'
                 )
 
-                order.payment = payment
-                order.save(update_fields=['payment'])
 
                 cart.items.all().delete()
                 request.session['order_id'] = order.id

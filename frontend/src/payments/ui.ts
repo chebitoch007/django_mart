@@ -1,5 +1,5 @@
-import { PaymentMethod, PaymentStatusType, ProcessingStage } from '../types/payment.js';
-import { getMethodDisplayName, isPaypalCurrencySupported } from '../utils/utils.js';
+import { PaymentMethod, PaymentStatusType, ProcessingStage } from '@/payments/types/payment.js';
+import { getMethodDisplayName, isPaypalCurrencySupported } from './utils.js';
 
 // Processing stages for different payment methods
 const processingStages: Record<PaymentMethod, ProcessingStage[]> = {

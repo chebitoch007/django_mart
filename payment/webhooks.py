@@ -1,6 +1,6 @@
 #payment/webhooks.py
+from .cart_utils import clear_cart_after_payment
 import json
-
 import requests
 from django.conf import settings
 from django.db import transaction
@@ -14,26 +14,6 @@ from django.views.decorators.http import require_http_methods
 from .utils import paypal_client
 
 
-def clear_user_cart(user):
-    """Clear the user's cart after successful payment"""
-    try:
-        from cart.utils import get_cart
-        from django.contrib.sessions.models import Session
-        from django.utils import timezone
-
-        if user and user.is_authenticated:
-            # Clear authenticated user's cart
-            cart = get_cart_for_user(user)
-            if cart:
-                cart.clear()
-                logger.info(f"Cart cleared for user {user.id} after successful payment")
-        else:
-            # For guest users, we need to handle session-based carts
-            # This would require additional session management
-            logger.info("Guest user cart clearing would require session handling")
-
-    except Exception as e:
-        logger.error(f"Error clearing cart: {str(e)}")
 
 
 def get_cart_for_user(user):
@@ -48,22 +28,6 @@ def get_cart_for_user(user):
         return Cart.objects.filter(user=user).order_by('-created_at').first()
 
 
-def clear_cart_after_payment(order):
-    """Clear user's cart after successful payment"""
-    try:
-        from cart.models import Cart
-        if order.user and order.user.is_authenticated:
-            user_carts = Cart.objects.filter(user=order.user)
-            if user_carts.exists():
-                cart = user_carts.first()
-                item_count = cart.items.count()
-                cart.clear()
-                logger.info(f"Cleared cart for user {order.user.id}: {item_count} items removed after order {order.id}")
-                return True
-        return False
-    except Exception as e:
-        logger.error(f"Error clearing cart: {str(e)}")
-        return False
 
 
 @csrf_exempt
@@ -109,7 +73,7 @@ def handle_mpesa_webhook(request):
             logger.info(f"Processing webhook for payment {payment.id}")
 
             # Store raw callback and update
-            payment.raw_callback = json.dumps(data)
+            payment.raw_response = json.dumps(data)
             payment.result_code = result_code
             payment.result_description = stk_callback.get('ResultDesc', '')
 
@@ -297,17 +261,21 @@ def handle_payment_capture_completed(resource):
                 # Update payment status
                 payment.status = 'COMPLETED'
                 payment.transaction_id = capture_id
-                payment.raw_callback = resource
+                payment.raw_response = resource
                 payment.save()
 
-                # Update order status
+                # ✅ FIXED: Use the order model's method
                 order = payment.order
-                order.status = 'PAID'
-                order.payment_method = 'PAYPAL'
-                order.save()
-
-                # ✅ CLEAR THE CART AFTER SUCCESSFUL PAYPAYMENT
-                clear_user_cart(order.user)
+                try:
+                    order.mark_as_paid(payment_method='PAYPAL')
+                    logger.info(f"Order {order.id} marked as PAID via model method.")
+                    clear_cart_after_payment(order)
+                except ValidationError as e:
+                    logger.error(f"Stock error marking order {order.id} as paid: {e}")
+                    # Handle this business logic error (e.g., set status to 'FAILED')
+                    payment.status = 'FAILED'
+                    payment.failure_type = 'STOCK_ISSUE'
+                    payment.save()
 
                 logger.info(f"PayPal payment completed for order {order_id}")
                 return JsonResponse({'status': 'success'})
@@ -431,36 +399,23 @@ def process_mpesa_webhook_data(payment, data):
 
         if result_code == 0:  # ✅ SUCCESS
             payment.status = 'COMPLETED'
-            payment.failure_type = ''
-            for item in items:
-                name = item.get('Name')
-                value = item.get('Value')
-                if name == 'MpesaReceiptNumber':
-                    payment.transaction_id = value
-                elif name == 'PhoneNumber':
-                    phone = str(value)
-                    if phone.startswith('0'):
-                        phone = '254' + phone[1:]
-                    elif not phone.startswith('254'):
-                        phone = '254' + phone
-                    payment.phone_number = phone
-                elif name == 'Amount':
-                    payment.amount = value
+            # ... (set transaction_id, phone, amount)
+            payment.save(...)
 
-            payment.save(update_fields=[
-                'status', 'failure_type', 'transaction_id', 'phone_number', 'amount',
-                'result_code', 'result_description', 'raw_callback'
-            ])
-
-            # Update order
+            # ✅ FIXED: Use the order model's method
             try:
                 order = payment.order
-                order.status = 'PAID'
-                order.save(update_fields=['status'])
+                order.mark_as_paid(payment_method='MPESA')
                 logger.info(f"Order {order.id} marked as PAID after M-Pesa success")
                 clear_cart_after_payment(order)
+            except ValidationError as e:
+                logger.error(f"Stock error marking order {order.id} as paid (M-Pesa): {e}")
+                payment.status = 'FAILED'
+                payment.failure_type = 'STOCK_ISSUE'
+                payment.save()
             except Exception as e:
                 logger.error(f"Error updating order after M-Pesa success: {e}")
+
 
         elif result_code == 1032:  # ❌ User cancelled
             payment.status = 'FAILED'

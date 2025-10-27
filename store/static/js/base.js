@@ -1,464 +1,638 @@
-// Enhanced cart update functionality
-document.addEventListener('DOMContentLoaded', function() {
-    // Function to update cart count in multiple locations
-    function updateCartCount(count) {
-        const cartCountElements = ['cart-count', 'mobile-cart-count'];
-        cartCountElements.forEach(elementId => {
-            const element = document.getElementById(elementId);
-            if (element) {
-                element.textContent = count;
-                // Add animation effect
-                element.style.transform = 'scale(1.2)';
-                setTimeout(() => {
-                    element.style.transform = 'scale(1)';
-                }, 200);
-            }
-        });
-        localStorage.setItem('lastCartUpdate', new Date().getTime().toString());
-    }
+// Enhanced Responsive JavaScript for Base Template
 
-    // Enhanced cart update events
-    document.body.addEventListener('cartUpdated', function(event) {
-        if (event.detail && event.detail.cart_total_items !== undefined) {
-            updateCartCount(event.detail.cart_total_items);
+// ===== VIEWPORT AND DEVICE DETECTION =====
+const DeviceDetector = {
+  isMobile: () => window.innerWidth <= 768,
+  isTablet: () => window.innerWidth > 768 && window.innerWidth <= 1024,
+  isDesktop: () => window.innerWidth > 1024,
+  isTouchDevice: () => 'ontouchstart' in window || navigator.maxTouchPoints > 0,
 
-            // Show success notification
-            showNotification('Item added to cart!', 'success');
-
-            if (typeof localStorage !== 'undefined') {
-                localStorage.setItem('cartUpdated', JSON.stringify({
-                    cart_total_items: event.detail.cart_total_items,
-                    timestamp: new Date().getTime()
-                }));
-            }
-        }
-    });
-
-    // Cross-tab cart synchronization
-    window.addEventListener('storage', function(event) {
-        if (event.key === 'cartUpdated' && event.newValue) {
-            try {
-                const cartData = JSON.parse(event.newValue);
-                if (cartData.cart_total_items !== undefined) {
-                    updateCartCount(cartData.cart_total_items);
-                }
-            } catch (e) {
-                console.error('Error parsing cart data:', e);
-            }
-        }
-    });
-
-    // Refresh cart data if recently updated
-    if (typeof localStorage !== 'undefined') {
-        const lastCartUpdate = localStorage.getItem('lastCartUpdate');
-        const now = new Date().getTime();
-
-        if (lastCartUpdate && (now - parseInt(lastCartUpdate)) < 300000) {
-            if (typeof htmx !== 'undefined') {
-                htmx.ajax('GET', '/cart/total/', {
-                    target: '#cart-count',
-                    swap: 'innerHTML'
-                });
-            }
-        }
-    }
-});
-
-// Enhanced back to top functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const backToTopButton = document.getElementById('back-to-top');
-
-    if (backToTopButton) {
-        window.addEventListener('scroll', function() {
-            if (window.pageYOffset > 300) {
-                backToTopButton.classList.add('visible');
-            } else {
-                backToTopButton.classList.remove('visible');
-            }
-        });
-
-        backToTopButton.addEventListener('click', function() {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-    }
-});
-
-// Enhanced search category dropdown
-document.addEventListener('DOMContentLoaded', function() {
-    const categoryToggle = document.getElementById('categoryToggle');
-    const categoryDropdown = document.getElementById('categoryDropdown');
-    const categoryItems = document.querySelectorAll('.category-item, .category-header');
-    const selectedCategoryText = document.getElementById('selectedCategoryText');
-    const selectedCategoryInput = document.getElementById('selectedCategory');
-
-    if (categoryToggle && categoryDropdown) {
-        // Toggle dropdown with proper aria attributes
-        categoryToggle.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const isOpen = categoryDropdown.classList.contains('show');
-
-            categoryDropdown.classList.toggle('show');
-            categoryToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!categoryToggle.contains(e.target) && !categoryDropdown.contains(e.target)) {
-                categoryDropdown.classList.remove('show');
-                categoryToggle.setAttribute('aria-expanded', 'false');
-            }
-        });
-
-        // Handle category selection
-        categoryItems.forEach(item => {
-            item.addEventListener('click', function(e) {
-                e.stopPropagation();
-                const categorySlug = this.getAttribute('data-category-slug');
-
-                if (categorySlug !== null && !this.classList.contains('category-header')) {
-                    selectedCategoryInput.value = categorySlug;
-                    selectedCategoryText.textContent = this.textContent.trim();
-                    categoryDropdown.classList.remove('show');
-                    categoryToggle.setAttribute('aria-expanded', 'false');
-                }
-
-                // Toggle subcategories for category headers
-                if (this.classList.contains('category-header')) {
-                    this.classList.toggle('active');
-                    const isExpanded = this.classList.contains('active');
-                    this.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
-                }
-            });
-
-            // Keyboard navigation support
-            item.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    this.click();
-                }
-            });
-        });
-    }
-});
-
-// Newsletter form enhancement
-document.addEventListener('DOMContentLoaded', function() {
-    const newsletterForm = document.getElementById('newsletter-form');
-    const feedbackDiv = document.getElementById('newsletter-feedback');
-
-    if (newsletterForm && feedbackDiv) {
-        newsletterForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const formData = new FormData(this);
-            const submitButton = this.querySelector('.newsletter-button');
-            const originalText = submitButton.textContent;
-
-            // Show loading state
-            submitButton.textContent = 'Subscribing...';
-            submitButton.disabled = true;
-
-            fetch(this.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showFeedback('Thank you for subscribing!', 'success');
-                    this.reset();
-                } else {
-                    showFeedback(data.message || 'Subscription failed. Please try again.', 'error');
-                }
-            })
-            .catch(error => {
-                showFeedback('An error occurred. Please try again later.', 'error');
-            })
-            .finally(() => {
-                submitButton.textContent = originalText;
-                submitButton.disabled = false;
-            });
-        });
-    }
-
-    function showFeedback(message, type) {
-        feedbackDiv.textContent = message;
-        feedbackDiv.className = `newsletter-feedback ${type} show`;
-
-        setTimeout(() => {
-            feedbackDiv.classList.remove('show');
-        }, 5000);
-    }
-});
-
-// Enhanced notification system
-function showNotification(message, type = 'info', duration = 3000) {
-    const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium transform translate-x-full transition-transform duration-300`;
-
-    switch(type) {
-        case 'success':
-            notification.classList.add('bg-green-500');
-            break;
-        case 'error':
-            notification.classList.add('bg-red-500');
-            break;
-        case 'warning':
-            notification.classList.add('bg-yellow-500');
-            break;
-        default:
-            notification.classList.add('bg-blue-500');
-    }
-
-    notification.textContent = message;
-    document.body.appendChild(notification);
-
-    // Animate in
-    setTimeout(() => {
-        notification.classList.remove('translate-x-full');
-    }, 100);
-
-    // Animate out and remove
-    setTimeout(() => {
-        notification.classList.add('translate-x-full');
-        setTimeout(() => {
-            document.body.removeChild(notification);
-        }, 300);
-    }, duration);
-}
-
-// Enhanced scroll animations
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
+  getBreakpoint: () => {
+    const width = window.innerWidth;
+    if (width <= 480) return 'xs';
+    if (width <= 640) return 'sm';
+    if (width <= 768) return 'md';
+    if (width <= 1024) return 'lg';
+    return 'xl';
+  }
 };
 
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('fadeInUp');
-            observer.unobserve(entry.target);
-        }
+// ===== RESPONSIVE NAVIGATION =====
+class ResponsiveNav {
+  constructor() {
+    this.nav = document.querySelector('.amazon-nav');
+    this.mobileMenu = document.getElementById('mobile-menu');
+    this.menuToggle = document.getElementById('mobile-menu-toggle');
+    this.lastScrollTop = 0;
+    this.scrollThreshold = 100;
+
+    this.init();
+  }
+
+  init() {
+    this.bindEvents();
+    this.handleResize();
+  }
+
+  bindEvents() {
+    // Mobile menu toggle
+    if (this.menuToggle) {
+      this.menuToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleMobileMenu();
+      });
+    }
+
+    // Close menu on outside click
+    document.addEventListener('click', (e) => {
+      if (this.mobileMenu &&
+          this.mobileMenu.classList.contains('active') &&
+          !this.mobileMenu.contains(e.target) &&
+          !this.menuToggle?.contains(e.target)) {
+        this.closeMobileMenu();
+      }
     });
-}, observerOptions);
 
-// Observe elements for animation
-document.addEventListener('DOMContentLoaded', function() {
-    const animateElements = document.querySelectorAll('.hero-content, .product-card, .footer-column');
-    animateElements.forEach(el => observer.observe(el));
-});
+    // Close menu on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.mobileMenu?.classList.contains('active')) {
+        this.closeMobileMenu();
+        this.menuToggle?.focus();
+      }
+    });
 
-// Enhanced accessibility - focus management
-document.addEventListener('keydown', function(e) {
-    // Escape key closes dropdowns
-    if (e.key === 'Escape') {
-        const openDropdowns = document.querySelectorAll('.show');
-        openDropdowns.forEach(dropdown => {
-            dropdown.classList.remove('show');
-            const trigger = document.querySelector(`[aria-controls="${dropdown.id}"]`);
-            if (trigger) {
-                trigger.setAttribute('aria-expanded', 'false');
-                trigger.focus();
-            }
+    // Responsive scroll behavior
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          this.handleScroll();
+          ticking = false;
         });
+        ticking = true;
+      }
+    });
 
-        // Close mobile menu
-        const mobileMenu = document.getElementById('mobile-menu');
-        const menuToggle = document.getElementById('mobile-menu-toggle');
-        if (mobileMenu && mobileMenu.classList.contains('active')) {
-            mobileMenu.classList.remove('active');
-            mobileMenu.setAttribute('aria-hidden', 'true');
-            menuToggle.setAttribute('aria-expanded', 'false');
-        }
+    // Handle window resize
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => this.handleResize(), 250);
+    });
+  }
+
+  toggleMobileMenu() {
+    if (!this.mobileMenu) return;
+
+    const isActive = this.mobileMenu.classList.toggle('active');
+    this.menuToggle?.setAttribute('aria-expanded', isActive.toString());
+    this.mobileMenu.setAttribute('aria-hidden', (!isActive).toString());
+
+    // Prevent body scroll when menu is open
+    document.body.style.overflow = isActive ? 'hidden' : '';
+
+    // Focus management
+    if (isActive) {
+      const firstLink = this.mobileMenu.querySelector('a');
+      firstLink?.focus();
     }
+  }
+
+  closeMobileMenu() {
+    if (!this.mobileMenu) return;
+
+    this.mobileMenu.classList.remove('active');
+    this.menuToggle?.setAttribute('aria-expanded', 'false');
+    this.mobileMenu.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  handleScroll() {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+    // Add scrolled class for styling
+    if (scrollTop > 50) {
+      this.nav?.classList.add('scrolled');
+    } else {
+      this.nav?.classList.remove('scrolled');
+    }
+
+    // Hide/show nav on mobile when scrolling
+    if (DeviceDetector.isMobile()) {
+      if (scrollTop > this.lastScrollTop && scrollTop > this.scrollThreshold) {
+        // Scrolling down
+        this.nav?.classList.add('nav-hidden');
+      } else {
+        // Scrolling up
+        this.nav?.classList.remove('nav-hidden');
+      }
+    }
+
+    this.lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+  }
+
+  handleResize() {
+    // Close mobile menu on resize to desktop
+    if (DeviceDetector.isDesktop() && this.mobileMenu?.classList.contains('active')) {
+      this.closeMobileMenu();
+    }
+
+    // Update body class for CSS targeting
+    document.body.className = document.body.className.replace(/breakpoint-\w+/, '');
+    document.body.classList.add(`breakpoint-${DeviceDetector.getBreakpoint()}`);
+  }
+}
+
+// ===== ENHANCED CART FUNCTIONALITY =====
+document.addEventListener('DOMContentLoaded', function() {
+  function updateCartCount(count) {
+    const cartCountElements = document.querySelectorAll('.cart-count, #cart-count, #mobile-cart-count');
+
+    cartCountElements.forEach(element => {
+      if (element) {
+        element.textContent = count;
+
+        // Add pulse animation
+        element.classList.add('pulse-animation');
+        setTimeout(() => {
+          element.classList.remove('pulse-animation');
+        }, 600);
+      }
+    });
+
+    // Store in localStorage for cross-tab sync
+    try {
+      localStorage.setItem('lastCartUpdate', Date.now().toString());
+      localStorage.setItem('cartCount', count.toString());
+    } catch (e) {
+      console.warn('localStorage not available:', e);
+    }
+  }
+
+  // Listen for cart update events
+  document.body.addEventListener('cartUpdated', function(event) {
+    if (event.detail?.cart_total_items !== undefined) {
+      updateCartCount(event.detail.cart_total_items);
+      showNotification('Item added to cart!', 'success');
+    }
+  });
+
+  // Cross-tab synchronization
+  window.addEventListener('storage', function(event) {
+    if (event.key === 'cartCount' && event.newValue) {
+      const count = parseInt(event.newValue, 10);
+      if (!isNaN(count)) {
+        updateCartCount(count);
+      }
+    }
+  });
 });
 
-// [ --- UPDATED LAZY LOADING LOGIC --- ]
+// ===== ENHANCED SEARCH FUNCTIONALITY =====
+class SearchEnhancer {
+  constructor() {
+    this.searchBar = document.getElementById('search-bar');
+    this.searchInput = this.searchBar?.querySelector('input[name="q"]');
+    this.searchSuggestions = document.getElementById('search-suggestions');
+    this.selectedIndex = -1;
 
-// Selectors for images that should NEVER be lazy-loaded
-const EAGER_SELECTORS = [
-    '.product-image',
-    '.cart-item img',
-    '.order-item img',
-    '.product-cell img',
-    '.items-table img',
-    '.order-detail-container img',
-    'img[data-no-lazy]',
-    'img.eager-loaded'
-];
-const EAGER_SELECTOR_STRING = EAGER_SELECTORS.join(', ');
-
-// 1. Run protective code FIRST - IMMEDIATELY upon script load
-(function() {
-    const protectCriticalImages = () => {
-        try {
-            document.querySelectorAll(EAGER_SELECTOR_STRING).forEach(img => {
-                // Remove lazy class
-                if (img.classList.contains('lazy')) {
-                    console.log('Protecting critical image from lazy-loader:', img);
-                    img.classList.remove('lazy');
-                }
-
-                // Force eager loading
-                img.loading = 'eager';
-
-                // If data-src exists, move it to src immediately
-                if (img.dataset.src && !img.src) {
-                    img.src = img.dataset.src;
-                    delete img.dataset.src; // Remove to prevent re-processing
-                    console.log('Restored hijacked image src:', img.src);
-                }
-
-                // Ensure visibility
-                img.style.opacity = '1';
-                img.style.visibility = 'visible';
-                img.style.display = 'block';
-
-                // Mark as protected
-                img.classList.add('eager-loaded');
-                img.setAttribute('data-no-lazy', 'true');
-            });
-        } catch (e) {
-            console.error('Error in eager-loading protective script:', e);
-        }
-    };
-
-    // Run immediately
-    protectCriticalImages();
-
-    // Run on DOMContentLoaded
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', protectCriticalImages);
+    if (this.searchInput) {
+      this.init();
     }
+  }
 
-    // Run after a short delay to catch any late-loading elements
-    setTimeout(protectCriticalImages, 100);
-    setTimeout(protectCriticalImages, 500);
+  init() {
+    this.bindEvents();
+  }
+
+  bindEvents() {
+    // Show/hide suggestions
+    this.searchInput.addEventListener('focus', () => {
+      if (this.searchSuggestions?.children.length > 0) {
+        this.searchSuggestions.style.display = 'block';
+      }
+    });
+
+    // Close suggestions on click outside
+    document.addEventListener('click', (e) => {
+      if (!this.searchBar?.contains(e.target)) {
+        this.hideSuggestions();
+      }
+    });
+
+    // Keyboard navigation
+    this.searchInput.addEventListener('keydown', (e) => {
+      this.handleKeyboard(e);
+    });
+
+    // HTMX events
+    document.body.addEventListener('htmx:afterSwap', (e) => {
+      if (e.detail.target === this.searchSuggestions) {
+        const items = this.searchSuggestions.querySelectorAll('.suggestion-item');
+        if (items.length > 0) {
+          this.searchSuggestions.style.display = 'block';
+          this.selectedIndex = -1;
+        } else {
+          this.hideSuggestions();
+        }
+      }
+    });
+  }
+
+  handleKeyboard(e) {
+    const items = this.searchSuggestions?.querySelectorAll('.suggestion-item');
+    if (!items || items.length === 0) return;
+
+    switch(e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        this.selectedIndex = Math.min(this.selectedIndex + 1, items.length - 1);
+        this.updateSelection(items);
+        break;
+
+      case 'ArrowUp':
+        e.preventDefault();
+        this.selectedIndex = Math.max(this.selectedIndex - 1, -1);
+        this.updateSelection(items);
+        break;
+
+      case 'Enter':
+        if (this.selectedIndex >= 0) {
+          e.preventDefault();
+          items[this.selectedIndex].click();
+        }
+        break;
+
+      case 'Escape':
+        this.hideSuggestions();
+        break;
+    }
+  }
+
+  updateSelection(items) {
+    items.forEach((item, index) => {
+      if (index === this.selectedIndex) {
+        item.classList.add('highlighted');
+        item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      } else {
+        item.classList.remove('highlighted');
+      }
+    });
+
+    // Update input value for preview
+    if (this.selectedIndex >= 0) {
+      const selectedText = items[this.selectedIndex].textContent.trim();
+      this.searchInput.value = selectedText;
+    }
+  }
+
+  hideSuggestions() {
+    if (this.searchSuggestions) {
+      this.searchSuggestions.style.display = 'none';
+      this.selectedIndex = -1;
+    }
+  }
+}
+
+// ===== BACK TO TOP BUTTON =====
+class BackToTop {
+  constructor() {
+    this.button = document.getElementById('back-to-top');
+    this.threshold = 300;
+
+    if (this.button) {
+      this.init();
+    }
+  }
+
+  init() {
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          this.handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    });
+
+    this.button.addEventListener('click', () => {
+      this.scrollToTop();
+    });
+  }
+
+  handleScroll() {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+    if (scrollTop > this.threshold) {
+      this.button.classList.add('visible');
+    } else {
+      this.button.classList.remove('visible');
+    }
+  }
+
+  scrollToTop() {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }
+}
+
+// ===== NOTIFICATION SYSTEM =====
+function showNotification(message, type = 'info', duration = 3000) {
+  // Remove existing notifications
+  document.querySelectorAll('.toast-notification').forEach(n => n.remove());
+
+  const notification = document.createElement('div');
+  notification.className = `toast-notification toast-${type}`;
+  notification.setAttribute('role', 'alert');
+  notification.setAttribute('aria-live', 'assertive');
+
+  // Icon based on type
+  const icons = {
+    success: 'fa-check-circle',
+    error: 'fa-exclamation-circle',
+    warning: 'fa-exclamation-triangle',
+    info: 'fa-info-circle'
+  };
+
+  notification.innerHTML = `
+    <i class="fas ${icons[type] || icons.info}"></i>
+    <span>${message}</span>
+    <button class="toast-close" aria-label="Close notification">
+      <i class="fas fa-times"></i>
+    </button>
+  `;
+
+  document.body.appendChild(notification);
+
+  // Position based on device
+  if (DeviceDetector.isMobile()) {
+    notification.style.bottom = '80px'; // Above mobile cart button
+  }
+
+  // Animate in
+  requestAnimationFrame(() => {
+    notification.classList.add('show');
+  });
+
+  // Close button
+  const closeBtn = notification.querySelector('.toast-close');
+  closeBtn.addEventListener('click', () => removeNotification(notification));
+
+  // Auto-remove
+  setTimeout(() => removeNotification(notification), duration);
+}
+
+function removeNotification(notification) {
+  notification.classList.remove('show');
+  notification.classList.add('hide');
+
+  setTimeout(() => {
+    notification.remove();
+  }, 300);
+}
+
+// ===== NEWSLETTER FORM =====
+document.addEventListener('DOMContentLoaded', function() {
+  const newsletterForm = document.getElementById('newsletter-form');
+  const feedbackDiv = document.getElementById('newsletter-feedback');
+
+  if (newsletterForm && feedbackDiv) {
+    newsletterForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(this);
+      const submitButton = this.querySelector('.newsletter-button');
+      const originalText = submitButton.textContent;
+
+      submitButton.textContent = 'Subscribing...';
+      submitButton.disabled = true;
+
+      fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showFeedback('Thank you for subscribing!', 'success');
+          this.reset();
+        } else {
+          showFeedback(data.message || 'Subscription failed. Please try again.', 'error');
+        }
+      })
+      .catch(error => {
+        showFeedback('An error occurred. Please try again later.', 'error');
+      })
+      .finally(() => {
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+      });
+    });
+  }
+
+  function showFeedback(message, type) {
+    feedbackDiv.textContent = message;
+    feedbackDiv.className = `newsletter-feedback ${type} show`;
+
+    setTimeout(() => {
+      feedbackDiv.classList.remove('show');
+    }, 5000);
+  }
+});
+
+// ===== LAZY LOADING PROTECTION FOR CRITICAL IMAGES =====
+const EAGER_SELECTORS = [
+  '.product-image',
+  '.cart-item img',
+  '.order-item img',
+  '.product-cell img',
+  '.items-table img',
+  '.order-detail-container img',
+  'img[data-no-lazy]',
+  'img.eager-loaded'
+];
+
+(function protectCriticalImages() {
+  const protect = () => {
+    document.querySelectorAll(EAGER_SELECTORS.join(', ')).forEach(img => {
+      img.classList.remove('lazy');
+      img.loading = 'eager';
+
+      if (img.dataset.src && !img.src) {
+        img.src = img.dataset.src;
+        delete img.dataset.src;
+      }
+
+      img.style.opacity = '1';
+      img.style.visibility = 'visible';
+      img.classList.add('eager-loaded');
+      img.setAttribute('data-no-lazy', 'true');
+    });
+  };
+
+  protect();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', protect);
+  }
+  setTimeout(protect, 100);
 })();
 
-// 2. Setup IntersectionObserver for actual lazy loading (only for non-critical images)
-if ('IntersectionObserver' in window) {
-    const imageObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const img = entry.target;
-
-                // Double-check this isn't a critical image
-                if (img.hasAttribute('data-no-lazy') || img.classList.contains('eager-loaded')) {
-                    imageObserver.unobserve(img);
-                    return;
-                }
-
-                // Process only if it has data-src and hasn't been loaded
-                if (img.dataset.src && !img.classList.contains('loaded')) {
-                    img.src = img.dataset.src;
-                    img.classList.remove('lazy');
-                    img.classList.add('loaded');
-                    console.log('Lazy-loaded image:', img);
-                }
-                imageObserver.unobserve(img);
-            }
-        });
-    });
-
-    // 3. Observe ONLY images that are .lazy[data-src] AND are NOT critical images
-    const setupLazyLoading = () => {
-        try {
-            // Build a selector that excludes all critical images
-            const notSelector = EAGER_SELECTORS.map(sel => `:not(${sel})`).join('');
-            const lazySelector = `img.lazy[data-src]${notSelector}`;
-
-            const imagesToObserve = document.querySelectorAll(lazySelector);
-            console.log(`Found ${imagesToObserve.length} images to lazy-load (excluding critical images).`);
-
-            imagesToObserve.forEach(img => {
-                // Skip if marked as critical
-                if (img.hasAttribute('data-no-lazy') || img.classList.contains('eager-loaded')) {
-                    return;
-                }
-                imageObserver.observe(img);
-            });
-        } catch (e) {
-            console.error('Error in lazy-loading observer setup:', e);
-        }
-    };
-
-    // Setup lazy loading after DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupLazyLoading);
-    } else {
-        setupLazyLoading();
+// ===== PERFORMANCE MONITORING =====
+class PerformanceMonitor {
+  static logPageLoad() {
+    if ('performance' in window) {
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          const perfData = performance.getEntriesByType('navigation')[0];
+          console.log('Performance Metrics:', {
+            domContentLoaded: Math.round(perfData.domContentLoadedEventEnd - perfData.domContentLoadedEventStart),
+            loadComplete: Math.round(perfData.loadEventEnd - perfData.loadEventStart),
+            totalTime: Math.round(perfData.loadEventEnd - perfData.fetchStart)
+          });
+        }, 0);
+      });
     }
+  }
+
+  static observeResourceTiming() {
+    if ('PerformanceObserver' in window) {
+      const observer = new PerformanceObserver((list) => {
+        list.getEntries().forEach((entry) => {
+          if (entry.duration > 1000) {
+            console.warn('Slow resource:', entry.name, Math.round(entry.duration) + 'ms');
+          }
+        });
+      });
+
+      observer.observe({ entryTypes: ['resource'] });
+    }
+  }
 }
 
-// 4. Watch for dynamically added images
-const imageProtectionObserver = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-        mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === 1) { // Element node
-                const element = node;
+// ===== ACCESSIBILITY ENHANCEMENTS =====
+class AccessibilityEnhancer {
+  static init() {
+    this.setupFocusVisibility();
+    this.setupSkipLinks();
+    this.announceRouteChanges();
+  }
 
-                // Check if the node itself is a critical image
-                if (element.matches && element.matches(EAGER_SELECTOR_STRING)) {
-                    const img = element;
-                    img.classList.remove('lazy');
-                    img.loading = 'eager';
-                    if (img.dataset.src) {
-                        img.src = img.dataset.src;
-                        delete img.dataset.src;
-                    }
-                    img.classList.add('eager-loaded');
-                    img.setAttribute('data-no-lazy', 'true');
-                }
+  static setupFocusVisibility() {
+    let isUsingKeyboard = false;
 
-                // Check for critical images within the node
-                if (element.querySelectorAll) {
-                    const criticalImages = element.querySelectorAll(EAGER_SELECTOR_STRING);
-                    criticalImages.forEach(img => {
-                        img.classList.remove('lazy');
-                        img.loading = 'eager';
-                        if (img.dataset.src) {
-                            img.src = img.dataset.src;
-                            delete img.dataset.src;
-                        }
-                        img.classList.add('eager-loaded');
-                        img.setAttribute('data-no-lazy', 'true');
-                    });
-                }
-            }
-        });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        isUsingKeyboard = true;
+        document.body.classList.add('using-keyboard');
+      }
     });
+
+    document.addEventListener('mousedown', () => {
+      isUsingKeyboard = false;
+      document.body.classList.remove('using-keyboard');
+    });
+  }
+
+  static setupSkipLinks() {
+    const skipLink = document.createElement('a');
+    skipLink.href = '#main-content';
+    skipLink.className = 'skip-link';
+    skipLink.textContent = 'Skip to main content';
+    skipLink.style.cssText = `
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: var(--color-primary);
+      color: white;
+      padding: 8px 16px;
+      text-decoration: none;
+      z-index: 1000;
+      transition: top 0.3s;
+    `;
+
+    skipLink.addEventListener('focus', () => {
+      skipLink.style.top = '0';
+    });
+
+    skipLink.addEventListener('blur', () => {
+      skipLink.style.top = '-40px';
+    });
+
+    document.body.insertBefore(skipLink, document.body.firstChild);
+  }
+
+  static announceRouteChanges() {
+    const announcer = document.createElement('div');
+    announcer.setAttribute('role', 'status');
+    announcer.setAttribute('aria-live', 'polite');
+    announcer.setAttribute('aria-atomic', 'true');
+    announcer.className = 'sr-only';
+    announcer.style.cssText = `
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    `;
+    document.body.appendChild(announcer);
+
+    // Announce HTMX swaps
+    document.body.addEventListener('htmx:afterSwap', (e) => {
+      announcer.textContent = 'Content updated';
+      setTimeout(() => {
+        announcer.textContent = '';
+      }, 1000);
+    });
+  }
+}
+
+// ===== INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', () => {
+  // Initialize all components
+  new ResponsiveNav();
+  new SearchEnhancer();
+  new BackToTop();
+  AccessibilityEnhancer.init();
+
+  // Enable performance monitoring in development
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    PerformanceMonitor.logPageLoad();
+    PerformanceMonitor.observeResourceTiming();
+  }
+
+  // Add device class to body
+  document.body.classList.add(`device-${DeviceDetector.getBreakpoint()}`);
+  document.body.classList.add(DeviceDetector.isTouchDevice() ? 'touch-device' : 'no-touch');
+
+  console.log('🚀 Responsive base scripts initialized');
 });
 
-// Start observing
-if (document.body) {
-    imageProtectionObserver.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
+// ===== GLOBAL UTILITIES =====
+window.toggleMobileMenu = function() {
+  const event = new CustomEvent('toggleMobileMenu');
+  document.dispatchEvent(event);
+};
+
+window.showNotification = showNotification;
+
+// Export for module usage
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    DeviceDetector,
+    ResponsiveNav,
+    SearchEnhancer,
+    BackToTop,
+    showNotification
+  };
 }
-// Responsive Navigation Toggle
-function toggleMobileMenu() {
-    const menu = document.getElementById('mobile-menu');
-    const toggle = document.getElementById('mobile-menu-toggle');
-
-    if (!menu || !toggle) return;
-
-    const isActive = menu.classList.toggle('active');
-    toggle.setAttribute('aria-expanded', isActive);
-    menu.setAttribute('aria-hidden', !isActive);
-}
-
-// Close mobile menu when clicking outside
-document.addEventListener('click', (e) => {
-    const menu = document.getElementById('mobile-menu');
-    const toggle = document.getElementById('mobile-menu-toggle');
-
-    if (menu && toggle && !menu.contains(e.target) && !toggle.contains(e.target)) {
-        menu.classList.remove('active');
-        toggle.setAttribute('aria-expanded', 'false');
-    }
-});

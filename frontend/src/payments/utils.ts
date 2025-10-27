@@ -1,4 +1,4 @@
-import { PaymentMethod } from '../types/payment.js';
+import { PaymentMethod } from '@/payments/types/payment.js';
 
 // Phone number validation
 export function validatePhoneNumber(phoneNumber: string): string | false {

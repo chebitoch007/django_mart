@@ -1,7 +1,7 @@
-<!-- orders/templates/orders/checkout.html -->
 {% extends "store/base.html" %}
-{% load humanize static %}
-{% block extra_head_scripts %}
+{% load humanize static vite_tags %}
+
+{% block extra_scripts %}
 <script>
   window.paymentConfig = {
     urls: {
@@ -23,11 +23,10 @@
 {% endif %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
-<!-- Use the non-module version for now to avoid import issues -->
-<script type="module" src="{% static 'js/payments.js' %}"></script>
-
+{% vite_asset 'src/payments/payments.ts' %}
 
 {% endblock %}
+
 {% block content %}
 <style>
     /* Enhanced Checkout Page Styles */
@@ -1053,6 +1052,6 @@
         <p class="modal-text" id="modalText">Please wait while we complete your transaction</p>
     </div>
 </div>
-{% endblock %}
 
+{% endblock %}
 

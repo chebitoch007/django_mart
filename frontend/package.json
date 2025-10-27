@@ -17,9 +17,6 @@
     "@types/node": "^20.10.0",
     "rollup-plugin-visualizer": "^6.0.4",
     "typescript": "^5.3.3",
-    "vite": "^7.1.7"
-  },
-  "dependencies": {
-    "django-vite-plugin": "^4.1.2"
+    "vite": "^7.1.12"
   }
 }

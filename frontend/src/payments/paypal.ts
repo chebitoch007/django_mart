@@ -1,14 +1,16 @@
 // paypal.ts
-import { formatCurrency, isPaypalCurrencySupported } from '../utils/utils.js';
+import { formatCurrency, isPaypalCurrencySupported } from './utils.js';
 import {
   startProcessingAnimation,
   stopProcessingAnimation,
   showPayPalStatus,
   showPayPalError,
-  clearPayPalStatus
-} from '../ui/ui.js';
-import { PaymentSystem } from '../payments.js';
-import { PaymentResponse, PayPalButtons } from '../types/payment.js';
+  clearPayPalStatus,
+  setSubmitButtonState,
+  showPaymentError
+} from './ui.js';
+import { PaymentSystem } from './payments.js';
+import { PaymentResponse, PayPalButtons } from '@/payments/types/payment.js';
 
 let paypalButtons: PayPalButtons | null = null;
 
@@ -246,27 +248,22 @@ function submitPaymentForm(formData: FormData, paymentSystem: PaymentSystem): vo
 
   function handlePaymentError(error: any): void {
     stopProcessingAnimation(elements.processingModal);
+
+    // ✅ USE IMPORTED FUNCTION
     setSubmitButtonState(false, elements.paymentSubmitButton);
 
     if (error.json) {
       error.json().then((errorData: PaymentResponse) => {
+        // ✅ USE IMPORTED FUNCTION
         showPaymentError(errorData.error_message || 'Unexpected error occurred', elements.paymentErrors);
       }).catch(() => {
+        // ✅ USE IMPORTED FUNCTION
         showPaymentError('Network error. Please check your connection.', elements.paymentErrors);
       });
     } else {
+      // ✅ USE IMPORTED FUNCTION
       showPaymentError('Network error. Please check your connection.', elements.paymentErrors);
     }
   }
-}
 
-function setSubmitButtonState(loading: boolean, button: HTMLButtonElement): void {
-  button.classList.toggle('loading', loading);
-  button.disabled = loading;
-}
-
-function showPaymentError(message: string, container: HTMLElement): void {
-  const span = container.querySelector('span');
-  if (span) span.textContent = message;
-  container.style.display = 'flex';
 }
