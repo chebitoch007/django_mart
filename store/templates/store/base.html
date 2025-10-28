@@ -145,7 +145,7 @@
     <!-- Bottom Row -->
     <div class="nav-bottom-row">
         <!-- Enhanced Mobile Hamburger Menu -->
-        <div class="hamburger-menu" onclick="toggleMobileMenu()" aria-label="Open mobile menu"
+        <div class="hamburger-menu" aria-label="Open mobile menu"
              aria-expanded="false" id="mobile-menu-toggle">
             <i class="fas fa-bars mr-2" aria-hidden="true"></i>
             <span>All</span>
@@ -155,8 +155,7 @@
             <a href="{% url 'store:product_list' %}" class="nav-link-item premium-hover">All</a>
             <a href="{% url 'store:product_list' %}?on_sale=true" class="nav-link-item premium-hover">Today's Deals</a>
             <a href="{% url 'store:product_list' %}?sort=-created" class="nav-link-item premium-hover">New Releases</a>
-            <a href="{% url 'store:product_list' %}?sort=-review_count" class="nav-link-item premium-hover">Best
-                Sellers</a>
+            <a href="{% url 'store:product_list' %}?sort=-review_count" class="nav-link-item premium-hover">Best Sellers</a>
             {% for category in top_level_categories|slice:":3" %}
             <a href="{{ category.get_absolute_url }}" class="nav-link-item premium-hover">{{ category.name }}</a>
             {% endfor %}

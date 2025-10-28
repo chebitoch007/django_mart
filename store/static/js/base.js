@@ -169,13 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Listen for cart update events
-  document.body.addEventListener('cartUpdated', function(event) {
-    if (event.detail?.cart_total_items !== undefined) {
-      updateCartCount(event.detail.cart_total_items);
-      showNotification('Item added to cart!', 'success');
-    }
-  });
+
 
   // Cross-tab synchronization
   window.addEventListener('storage', function(event) {
@@ -195,6 +189,7 @@ class SearchEnhancer {
     this.searchInput = this.searchBar?.querySelector('input[name="q"]');
     this.searchSuggestions = document.getElementById('search-suggestions');
     this.selectedIndex = -1;
+    this.originalQuery = ''; // <-- ADD THIS LINE
 
     if (this.searchInput) {
       this.init();
@@ -237,6 +232,13 @@ class SearchEnhancer {
         }
       }
     });
+    // <-- ADD THIS LISTENER -->
+    this.searchInput.addEventListener('input', () => {
+      // Store what the user is typing
+      this.originalQuery = this.searchInput.value;
+      this.selectedIndex = -1; // Reset selection on new typing
+    });
+    // <-- END OF ADDITION -->
   }
 
   handleKeyboard(e) {
@@ -263,9 +265,10 @@ class SearchEnhancer {
         }
         break;
 
-      case 'Escape':
-        this.hideSuggestions();
-        break;
+        case 'Escape':
+            this.searchInput.value = this.originalQuery; // Restore original text
+            this.hideSuggestions();
+            break;
     }
   }
 
@@ -280,10 +283,13 @@ class SearchEnhancer {
     });
 
     // Update input value for preview
-    if (this.selectedIndex >= 0) {
-      const selectedText = items[this.selectedIndex].textContent.trim();
-      this.searchInput.value = selectedText;
-    }
+      if (this.selectedIndex >= 0) {
+          const selectedText = items[this.selectedIndex].textContent.trim();
+          this.searchInput.value = selectedText;
+      } else {
+          // User arrowed up past the first item
+          this.searchInput.value = this.originalQuery;
+      }
   }
 
   hideSuggestions() {

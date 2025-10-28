@@ -1,5 +1,12 @@
 // Enhanced Store Utilities with more functionality
 
+// Declare the global showNotification function from base.js
+declare function showNotification(
+  message: string,
+  type?: 'info' | 'success' | 'warning' | 'error',
+  duration?: number
+): void;
+
 // Import types
 interface ApiResponse<T> {
   success: boolean;
@@ -287,12 +294,6 @@ export class CartManager {
     // HTMX cart updates
     document.body.addEventListener('htmx:afterRequest', this.handleCartUpdate.bind(this) as EventListener);
 
-    // Custom events
-    document.addEventListener('cart:updated', ((event: CartUpdateEvent) => {
-      this.updateCartCount(event.detail.cart_total_items);
-      this.showNotification(event.detail.message, event.detail.success ? 'success' : 'error');
-    }) as EventListener);
-
     // Wishlist events
     document.addEventListener('wishlist:toggle', ((event: WishlistEvent) => {
       this.toggleWishlist(event.detail.product);
@@ -307,15 +308,18 @@ export class CartManager {
     if (form && customEvent.detail && customEvent.detail.xhr.status === 200) {
       try {
         const response = JSON.parse(customEvent.detail.xhr.responseText);
-        if (response.success) {
-          this.updateCartCount(response.cart_total_items);
-          this.showNotification(response.message, 'success');
 
-          // Dispatch custom event for analytics
-          this.dispatchCartEvent('add', response.cart_item);
+
+        if (response.success) {
+            this.updateCartCount(response.cart_total_items);
+            showNotification(response.message, 'success');
+
+            // Dispatch custom event for analytics
+            this.dispatchCartEvent('add', response.cart_item);
         } else {
-          this.showNotification(response.message, 'error');
+            showNotification(response.message, 'error');
         }
+
       } catch (e) {
         console.error('Error parsing cart response:', e);
         this.showNotification('Item added to cart', 'success');
@@ -342,14 +346,14 @@ export class CartManager {
   }
 
   // Wishlist functionality
-  public toggleWishlist(product: any): void {
-    if (this.wishlist.has(product.id)) {
-      this.wishlist.delete(product.id);
-      this.showNotification('Removed from wishlist', 'info');
-    } else {
-      this.wishlist.add(product.id);
-      this.showNotification('Added to wishlist', 'success');
-    }
+    public toggleWishlist(product: any): void {
+      if (this.wishlist.has(product.id)) {
+        this.wishlist.delete(product.id);
+        showNotification('Removed from wishlist', 'info');
+      } else {
+          this.wishlist.add(product.id);
+          showNotification('Added to wishlist', 'success');
+      }
 
     this.saveWishlist();
     this.updateWishlistUI();
@@ -391,36 +395,7 @@ export class CartManager {
     });
   }
 
-  // Enhanced notifications
-  private showNotification(message: string, type: 'success' | 'error' | 'info' | 'warning'): void {
-    // Remove existing notifications
-    document.querySelectorAll('.toast').forEach(toast => toast.remove());
 
-    const toast = StoreUtils.createElement('div', {
-      className: `toast ${type}`,
-      role: 'alert',
-      'aria-live': 'assertive'
-    }, [message]);
-
-    document.body.appendChild(toast);
-
-    // Add close button
-    const closeBtn = StoreUtils.createElement('button', {
-      className: 'toast-close',
-      'aria-label': 'Close notification'
-    }, ['×']);
-
-    closeBtn.addEventListener('click', () => this.removeNotification(toast));
-    toast.appendChild(closeBtn);
-
-    // Auto-remove after delay
-    setTimeout(() => this.removeNotification(toast), 5000);
-  }
-
-  private removeNotification(toast: HTMLElement): void {
-    toast.style.animation = 'fadeOut 0.3s forwards';
-    toast.addEventListener('animationend', () => toast.remove());
-  }
 
   // Analytics events
   private dispatchCartEvent(action: string, item?: any): void {
@@ -447,19 +422,19 @@ export class CartManager {
         'X-Requested-With': 'XMLHttpRequest'
       }
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        this.updateCartCount(data.cart_total_items);
-        this.showNotification(data.message, 'success');
-      } else {
-        this.showNotification(data.message, 'error');
-      }
-    })
-    .catch(error => {
-      console.error('Quick add failed:', error);
-      this.showNotification('Failed to add item to cart', 'error');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                this.updateCartCount(data.cart_total_items);
+                showNotification(data.message, 'success');
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Quick add failed:', error);
+            showNotification('Failed to add item to cart', 'error');
+        });
   }
 }
 

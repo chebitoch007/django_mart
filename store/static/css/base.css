@@ -1503,6 +1503,13 @@ body {
   .nav-links {
     display: none;
   }
+  /* --- ADD THIS RULE --- */
+  .mobile-menu {
+    display: block;
+  }
+  /* --------------------- */
+
+
 
   .nav-bottom-row {
     padding: var(--spacing-sm);
@@ -1516,6 +1523,22 @@ body {
   .mobile-cart-btn {
     display: flex;
   }
+
+  /* --- ADD THESE RULES --- */
+  .back-to-top.visible {
+    /* Move up to avoid overlapping the mobile cart button.
+      ~56px (cart btn height) + ~20px (cart btn bottom) + 10px (spacing)
+    */
+    bottom: 85px;
+  }
+
+  /* Adjust for iPhone "safe area" insets (the home bar) */
+  @supports (padding: max(0px)) {
+    .back-to-top.visible {
+      bottom: calc(max(env(safe-area-inset-bottom), 20px) + 65px);
+    }
+  }
+  /* --- END OF ADDED RULES --- */
 
   /* Adjust navigation spacing */
   .nav-right {
