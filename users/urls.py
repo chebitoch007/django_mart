@@ -1,5 +1,5 @@
 # users/urls.py
-from .views import session_keepalive, CustomPasswordResetView
+from .views import session_keepalive, CustomPasswordResetView, CustomPasswordResetConfirmView # Import new view
 from django.contrib.auth import views as auth_views
 from . import views
 from .views import (
@@ -75,12 +75,11 @@ urlpatterns = [
          ),
          name='password_reset_done'),
 
+    # --- UPDATED THIS PATH ---
     path('password-reset-confirm/<uidb64>/<token>/',
-         auth_views.PasswordResetConfirmView.as_view(
-             template_name='users/password_reset_confirm.html',
-             success_url='/accounts/password-reset-complete/'  # Changed to /accounts/
-         ),
+         CustomPasswordResetConfirmView.as_view(), # Use our new hardened view
          name='password_reset_confirm'),
+    # --- END UPDATE ---
 
     path('password-reset-complete/',
          auth_views.PasswordResetCompleteView.as_view(

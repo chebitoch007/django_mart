@@ -1,4 +1,15 @@
 # users/views.py
+
+from django.contrib.auth.tokens import default_token_generator
+from django.contrib.sessions.models import Session
+from django.utils import timezone
+
+import logging  # For logging
+from django.conf import settings  # For ALLOWED_HOSTS
+from django.contrib.auth import update_session_auth_hash  # For session invalidation
+from django.utils.decorators import method_decorator
+from django_ratelimit.decorators import ratelimit # For rate limiting
+
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.views import PasswordResetView as AuthPasswordResetView
 from django.contrib.auth.forms import PasswordResetForm
@@ -11,6 +22,7 @@ from django.contrib.auth import logout as auth_logout, logout
 from django.urls import reverse
 import uuid
 from decimal import Decimal
+
 from .models import ActivityLog
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -25,10 +37,23 @@ from orders.models import Order
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.views import PasswordChangeView, LoginView
 from django.views.generic import TemplateView, UpdateView, CreateView, DeleteView, FormView
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.http import JsonResponse
 from django.db.models import Sum, Count
+
+# Setup logger
+logger = logging.getLogger(__name__)
+
+
+def get_client_ip(request):
+    """Helper to get the client's IP address."""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
 
 class CustomLoginView(LoginView):
     template_name = 'users/login.html'
@@ -92,7 +117,6 @@ class CustomLogoutView(View):
         return x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
 
 
-
 class LogoutSuccessView(TemplateView):
     template_name = 'users/logout_success.html'
     http_method_names = ['get']  # Only allow GET requests
@@ -119,6 +143,7 @@ class LogoutSuccessView(TemplateView):
         response['Expires'] = '0'
 
         return response
+
 
 def register(request):
     if request.method == 'POST':
@@ -241,87 +266,122 @@ class CustomPasswordChangeView(PasswordChangeView):
         return super().form_valid(form)
 
 
+# --- HARDENED PASSWORD RESET VIEWS ---
+
+@method_decorator(ratelimit(key='ip', rate='5/h', block=True), name='dispatch')  # Rate limit by IP
 class CustomPasswordResetView(AuthPasswordResetView):
     template_name = 'users/password_reset.html'
     email_template_name = 'users/password_reset_email.html'
     subject_template_name = 'users/password_reset_subject.txt'
-    success_url = '/accounts/password-reset/done/'
+    success_url = reverse_lazy('users:password_reset_done')
 
     def form_valid(self, form):
-        # Store the email in session before sending
         email = form.cleaned_data['email']
         self.request.session['password_reset_email'] = email
-        print(f"Storing email in session: {email}")
-        return super().form_valid(form)
+        logger.debug("Storing email in session for resend: %s", email)
+
+        domain = get_safe_domain(self.request)
+
+        opts = {
+            'use_https': self.request.is_secure(),
+            #'domain_override': domain,
+            'email_template_name': self.email_template_name,
+            'subject_template_name': self.subject_template_name,
+            'request': self.request,
+            # Use the default token generator explicitly
+            'token_generator': default_token_generator,
+            # Use configured DEFAULT_FROM_EMAIL if provided
+            'from_email': getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+        }
+
+        # send email
+        form.save(**opts)
+
+        return redirect(self.get_success_url())
 
 
-@csrf_exempt
-def resend_password_reset_email(request):
-    if request.method == 'POST':
+
+@method_decorator(ratelimit(key='ip', rate='10/h', block=True), name='dispatch')  # Rate limit by IP
+class CustomPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+    template_name = 'users/password_reset_confirm.html'
+    success_url = reverse_lazy('users:password_reset_complete')
+
+    def form_valid(self, form):
+        # Save the new password; returns the user instance in Django's implementation
+        user = form.save()
+
+        # Log the event
         try:
-            # Try to get email from request body first
-            email = None
-            if request.body:
-                try:
-                    data = json.loads(request.body)
-                    email = data.get('email')
-                except json.JSONDecodeError:
-                    pass
-
-            # If no email in request, try session
-            if not email:
-                email = request.session.get('password_reset_email')
-                print(f"Using email from session: {email}")
-
-            if email:
-                form = PasswordResetForm({'email': email})
-                if form.is_valid():
-                    # Use the same options as the original password reset
-                    opts = {
-                        'use_https': request.is_secure(),
-                        'token_generator': auth_views.PasswordResetView.token_generator,
-                        'from_email': None,
-                        'email_template_name': 'users/password_reset_email.html',
-                        'subject_template_name': 'users/password_reset_subject.txt',
-                        'request': request,
-                        'html_email_template_name': None,
-                        'extra_email_context': None,
-                    }
-                    form.save(**opts)
-
-                    # Store the email in session for future resend requests
-                    request.session['password_reset_email'] = email
-                    print(f"Password reset email resent to: {email}")
-
-                    return JsonResponse({
-                        'success': True,
-                        'message': 'Password reset email has been resent successfully.'
-                    })
-                else:
-                    print(f"Form invalid for email: {email}")
-                    return JsonResponse({
-                        'success': False,
-                        'message': 'Invalid email address.'
-                    })
-            else:
-                print("No email found in request or session")
-                return JsonResponse({
-                    'success': False,
-                    'message': 'No email address found. Please request a new password reset.'
-                })
-
+            ActivityLog.objects.create(
+                user=user,
+                activity_type='password_reset',
+                ip_address=get_client_ip(self.request),
+                user_agent=self.request.META.get('HTTP_USER_AGENT', '')
+            )
+            logger.info("Password reset logged for %s", user.email)
         except Exception as e:
-            print(f"Error in resend_password_reset_email: {str(e)}")
-            return JsonResponse({
-                'success': False,
-                'message': 'An error occurred. Please try again.'
-            })
+            logger.exception("Failed to log password reset: %s", e)
 
-    return JsonResponse({
-        'success': False,
-        'message': 'Invalid request method.'
-    })
+        # Invalidate ALL sessions for this user, including other devices
+        delete_all_user_sessions(user)
 
+        # Optionally, create a fresh session for this request user if you want them
+        # to be automatically logged in after reset: auth_login(self.request, user)
+        # But for security, you may prefer to require user to log in manually. Adjust as needed.
+
+        messages.success(self.request, "Your password has been successfully reset.")
+        return redirect(self.get_success_url())
+
+
+# --- END HARDENED VIEWS ---
+
+
+@csrf_protect
+@ratelimit(key='ip', rate='5/h', block=True)
+def resend_password_reset_email(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid request method.'}, status=405)
+
+    try:
+        data = {}
+        if request.body:
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                # If it's form data, use POST
+                data = request.POST.dict()
+
+        email = data.get('email') or request.session.get('password_reset_email')
+        logger.debug("Resend password reset using email: %s", email)
+
+        if not email:
+            return JsonResponse({'success': False, 'message': 'No email address found.'}, status=400)
+
+        form = PasswordResetForm({'email': email})
+        if not form.is_valid():
+            logger.debug("PasswordResetForm invalid for email: %s", email)
+            return JsonResponse({'success': False, 'message': 'Invalid email address.'}, status=400)
+
+        domain = get_safe_domain(request)
+
+        opts = {
+            'use_https': request.is_secure(),
+            #'domain_override': domain,
+            'token_generator': default_token_generator,
+            'from_email': getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+            'email_template_name': 'users/password_reset_email.html',
+            'subject_template_name': 'users/password_reset_subject.txt',
+            'request': request,
+        }
+
+        form.save(**opts)
+        request.session['password_reset_email'] = email
+        logger.info("Password reset email resent to: %s", email)
+        return JsonResponse({'success': True, 'message': 'Password reset email has been resent successfully.'})
+
+    except Exception as e:
+        logger.exception("Error in resend_password_reset_email: %s", e)
+        return JsonResponse({'success': False, 'message': 'An error occurred. Please try again.'}, status=500)
 
 
 @method_decorator(login_required, name='dispatch')
@@ -384,6 +444,7 @@ class AddressUpdateView(UpdateView):
         messages.error(self.request, 'Please correct the errors below.')
         return self.render_to_response(self.get_context_data(form=form))
 
+
 @method_decorator(login_required, name='dispatch')
 class AddressDeleteView(DeleteView):
     model = Address
@@ -398,8 +459,6 @@ class AddressDeleteView(DeleteView):
         self.object.delete()
         messages.success(request, 'Address deleted successfully')
         return redirect(self.success_url)
-
-
 
 
 @login_required(login_url='/accounts/login/')
@@ -475,7 +534,7 @@ class AccountView(TemplateView):
         avg_order = total_spent / order_count if order_count > 0 else Decimal('0.00')
 
         context.update({
-            'addresses': addresses, # ADDED
+            'addresses': addresses,  # ADDED
             'orders': orders,
             'total_spent': total_spent,
             'last_order': last_order.created if last_order else None,
@@ -493,3 +552,41 @@ def session_keepalive(request):
         request.session.modified = True
         return HttpResponse(status=204)
     return HttpResponse(status=400)
+
+
+
+def get_safe_domain(request):
+    """
+    Return a safe domain (with port if applicable) for password reset URLs.
+    """
+    host = request.get_host()  # e.g. 'localhost:8000'
+    allowed = set(settings.ALLOWED_HOSTS or [])
+
+    if url_has_allowed_host_and_scheme(
+        url=host, allowed_hosts=allowed, require_https=request.is_secure()
+    ):
+        return host
+
+    if settings.ALLOWED_HOSTS:
+        first = settings.ALLOWED_HOSTS[0]
+        if first and first != '*':
+            return first
+
+    # Final fallback — include port if running in dev
+    return 'localhost:8000'
+
+
+def delete_all_user_sessions(user):
+    """
+    Invalidate all sessions for a user by scanning Session objects and deleting those
+    that contain the user's _auth_user_id in session_data.
+    """
+    try:
+        sessions = Session.objects.filter(expire_date__gte=timezone.now())
+        user_pk_str = str(user.pk)
+        for s in sessions:
+            data = s.get_decoded()
+            if data.get('_auth_user_id') == user_pk_str:
+                s.delete()
+    except Exception as e:
+        logger.exception("Error deleting user sessions: %s", e)

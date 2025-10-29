@@ -367,6 +367,10 @@ if EMAIL_BACKEND == 'django.core.mail.backends.smtp.EmailBackend':
     EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
     DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@yourdomain.com')
 
+# Token expiry (seconds). Django default is 259200 (3 days) in recent versions; set explicit if desired:
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 24   # 24 hours
+
+
 # ================== Logging Configuration ==================
 LOGGING = {
     'version': 1,
