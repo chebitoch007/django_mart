@@ -2,7 +2,7 @@ import uuid
 
 from django.contrib import admin
 from payment.models import Payment
-from .models import Order, OrderItem, CurrencyRate
+from .models import Order, OrderItem
 
 
 class StatusFilter(admin.SimpleListFilter):
@@ -89,17 +89,14 @@ class OrderAdmin(admin.ModelAdmin):
         return super().has_change_permission(request, obj)
 
 '''
-@admin.register(CurrencyRate)
-class CurrencyRateAdmin(admin.ModelAdmin):
-    list_display = ['base_currency', 'target_currency', 'rate', 'last_updated']
-    search_fields = ['base_currency', 'target_currency']
-    readonly_fields = ['last_updated']
+
+
 
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
-    readonly_fields = ('product', 'price', 'quantity', 'dropship_processed')
+    readonly_fields = ('product', 'price', 'quantity',)
     fields = ('product', 'price', 'quantity', 'dropship_processed', 'tracking_number', 'estimated_delivery')
 
     def has_add_permission(self, request, obj=None):

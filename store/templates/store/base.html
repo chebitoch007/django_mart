@@ -1,6 +1,6 @@
 <!-- store/templates/store/base.html -->
 
-{% load static vite_tags django_vite %}
+{% load static vite_tags django_vite currency_tags %}
 
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
@@ -108,6 +108,11 @@
                  role="listbox"
                  aria-labelledby="search-form">
             </div>
+        </div>
+
+
+        <div class="currency-selector-container">
+            {% currency_selector %}
         </div>
 
         <!-- Enhanced Right Navigation -->

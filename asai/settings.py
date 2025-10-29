@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'django_countries',
     'mptt',
+    'djmoney',
     'store.apps.StoreConfig',
     'cart.apps.CartConfig',
     'users.apps.UsersConfig',
@@ -279,25 +280,54 @@ PAYPAL_API_URL = (
 TRUSTED_IPS = [ip.strip() for ip in env("TRUSTED_IPS", default="127.0.0.1").split(",")]
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 
-# Currency Settings
-CURRENCIES = (
-    ('USD', 'US Dollar'),
-    ('EUR', 'Euro'),
-    ('GBP', 'British Pound'),
-    ('KES', 'Kenyan Shilling'),
-    ('UGX', 'Ugandan Shilling'),
-    ('TZS', 'Tanzanian Shilling'),
-)
 
+# ------------------------------
+# ✅ Unified Currency Configuration
+# ------------------------------
+
+# List of available currencies (simple list/tuple of codes)
+CURRENCIES = ('USD', 'EUR', 'GBP', 'KES', 'UGX', 'TZS')
+
+# Django Money integration
+DJANGO_MONEY_CURRENCIES = CURRENCIES
+DJMONEY_CURRENCIES = CURRENCIES
+
+DEFAULT_CURRENCY = env('DEFAULT_CURRENCY', default='KES')
+DJMONEY_DEFAULT_CURRENCY = DEFAULT_CURRENCY
+
+# Human-readable names for templates / selectors
+CURRENCY_NAMES = {
+    'USD': 'US Dollar',
+    'EUR': 'Euro',
+    'GBP': 'British Pound',
+    'KES': 'Kenyan Shilling',
+    'UGX': 'Ugandan Shilling',
+    'TZS': 'Tanzanian Shilling',
+}
+
+# Symbols for display
 CURRENCY_SYMBOLS = {
     'USD': '$',
     'EUR': '€',
     'GBP': '£',
     'KES': 'KSh',
     'UGX': 'USh',
-    'TZS': 'TSh'
+    'TZS': 'TSh',
 }
-DEFAULT_CURRENCY = env('DEFAULT_CURRENCY', default='KES')
+
+# Optional: formatting options
+CURRENCY_FORMATS = {
+    'KES': {'format': 'KSh{amount:.2f}', 'decimal_places': 2},
+    'UGX': {'format': 'USh{amount:.0f}', 'decimal_places': 0},
+    'TZS': {'format': 'TSh{amount:.0f}', 'decimal_places': 0},
+    'USD': {'format': '${amount:.2f}', 'decimal_places': 2},
+    'EUR': {'format': '€{amount:.2f}', 'decimal_places': 2},
+}
+
+
+OPENEXCHANGERATES_APP_ID = env('OPENEXCHANGERATES_APP_ID', default='')
+
+
 
 # Encryption settings
 FIELD_ENCRYPTION_KEY = env.str(
@@ -449,4 +479,5 @@ CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 
 
-BASE_URL='https://1664fbf96541.ngrok-free.app'
+
+BASE_URL='https://47512f0d27bc.ngrok-free.app'

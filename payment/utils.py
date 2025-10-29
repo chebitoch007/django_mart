@@ -4,6 +4,7 @@ from django.core.cache import cache
 from django.urls import reverse
 from django.utils import timezone
 from decimal import Decimal, ROUND_HALF_UP
+from djmoney.money import Money
 import time
 from datetime import datetime
 import base64
@@ -14,6 +15,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# -----------------------------
+# PAYPAL CLIENT
+# -----------------------------
 class PayPalClient:
     """High-end PayPal API client with connection pooling and retry logic"""
 
@@ -80,7 +84,6 @@ class PayPalClient:
             )
 
             if response.status_code == 401 and retry_count < self.max_retries:
-                # Token might be expired, clear cache and retry
                 cache_key = f'paypal_access_token_{self.client_id}'
                 cache.delete(cache_key)
                 return self._make_request(method, endpoint, data, retry_count + 1)
@@ -102,32 +105,36 @@ class PayPalClient:
 paypal_client = PayPalClient()
 
 
+# -----------------------------
+# PAYPAL INTEGRATION
+# -----------------------------
 def create_paypal_order(amount, currency, order_id, request=None):
-    """Create a PayPal order with enhanced error handling, validation, and fraud detection."""
+    """Create a PayPal order, supporting both Money and numeric types"""
     try:
-        # --- Input Validation ---
+        # --- Normalize amount ---
+        if isinstance(amount, Money):
+            currency = amount.currency.code
+            amount = amount.amount
+
         if not isinstance(amount, (Decimal, float, int)):
-            raise ValueError("Amount must be numeric")
+            raise ValueError("Amount must be numeric or a Money object")
+
         if amount <= 0:
             raise ValueError("Amount must be positive")
 
         # Format amount to 2 decimal places
-        amount_decimal = Decimal(str(amount)).quantize(
-            Decimal('0.01'), rounding=ROUND_HALF_UP
-        )
+        amount_decimal = Decimal(str(amount)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
-        # --- Currency Validation ---
+        # --- Validate currency ---
         if not is_paypal_currency_supported(currency):
             logger.warning(f"Unsupported currency {currency}, defaulting to USD.")
             currency = 'USD'
-            # Optionally: convert to USD here if you have exchange logic
 
-        # --- Fraud Detection: Get User IP ---
+        # --- User IP for fraud detection ---
         user_ip = None
         if request:
             user_ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0] or request.META.get('REMOTE_ADDR')
 
-        # --- PayPal Order Payload ---
         payload = {
             "intent": "CAPTURE",
             "purchase_units": [{
@@ -165,50 +172,31 @@ def create_paypal_order(amount, currency, order_id, request=None):
             }
         }
 
-        # --- Add optional fraud detection data ---
         if user_ip:
             payload['application_context']['payer'] = {'ip_address': user_ip}
 
-        logger.info(f"Creating PayPal order for {amount_decimal} {currency}, order: {order_id}")
-
-        # --- Make PayPal API Request ---
         result = paypal_client._make_request('POST', '/v2/checkout/orders', payload)
-
         logger.info(f"PayPal order created successfully: {result.get('id')}")
         return result
 
-    except ValueError as e:
-        logger.error(f"PayPal order validation error: {e}")
-        return {'error': 'Invalid payment parameters', 'details': str(e)}
     except Exception as e:
         logger.exception(f"PayPal order creation failed: {e}")
         return {'error': 'Failed to create payment order', 'details': str(e)}
 
 
-
 def capture_paypal_order(order_id):
-    """Capture a PayPal payment after user approval"""
     try:
-        result = paypal_client._make_request(
-            'POST',
-            f'/v2/checkout/orders/{order_id}/capture'
-        )
-
+        result = paypal_client._make_request('POST', f'/v2/checkout/orders/{order_id}/capture')
         logger.info(f"PayPal order captured: {order_id}")
         return result
-
     except Exception as e:
         logger.error(f"PayPal capture failed for {order_id}: {str(e)}")
         return {'error': 'Payment capture failed', 'details': str(e)}
 
 
 def get_paypal_order_details(order_id):
-    """Get detailed information about a PayPal order"""
     try:
-        result = paypal_client._make_request(
-            'GET',
-            f'/v2/checkout/orders/{order_id}'
-        )
+        result = paypal_client._make_request('GET', f'/v2/checkout/orders/{order_id}')
         return result
     except Exception as e:
         logger.error(f"Failed to get PayPal order details: {str(e)}")
@@ -216,50 +204,37 @@ def get_paypal_order_details(order_id):
 
 
 def is_paypal_currency_supported(currency):
-    """Check if currency is supported by PayPal with enhanced list"""
-    supported_currencies = {
+    """Check if currency is supported by PayPal"""
+    supported = {
         'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'HKD', 'SGD',
         'SEK', 'DKK', 'PLN', 'NOK', 'HUF', 'CZK', 'ILS', 'MXN', 'NZD',
         'BRL', 'PHP', 'TWD', 'THB', 'TRY', 'RUB', 'CNY', 'INR', 'MYR'
     }
-    return currency.upper() in supported_currencies
+    return currency.upper() in supported
 
 
-
-
-def get_paypal_access_token():
-    """Get PayPal access token for API requests"""
-    auth = (settings.PAYPAL_CLIENT_ID, settings.PAYPAL_SECRET)
-    data = {'grant_type': 'client_credentials'}
-    headers = {'Accept': 'application/json'}
-
-    response = requests.post(
-        f"{settings.PAYPAL_API_URL}/v1/oauth2/token",
-        auth=auth,
-        data=data,
-        headers=headers,
-        timeout=10
-    )
-    return response.json()['access_token']
-
-
+# -----------------------------
+# MPESA INTEGRATION
+# -----------------------------
 def initiate_mpesa_payment(amount, phone_number, order_id):
-    """Initiate M-Pesa STK push payment with enhanced error handling and retry logic"""
+    """Initiate M-Pesa STK push payment with support for Money and numeric types"""
     try:
-        # Validate amount first (can be Decimal or float)
-        try:
-            if hasattr(amount, 'quantize'):
-                amount_float = float(amount)
-            else:
-                amount_float = float(amount)
+        # --- Normalize Money objects ---
+        if isinstance(amount, Money):
+            amount_value = amount.amount
+        else:
+            amount_value = amount
 
+        # --- Validate amount ---
+        try:
+            amount_float = float(amount_value)
             if amount_float <= 0:
                 return {'errorMessage': 'Invalid amount. Amount must be greater than 0.'}
-            amount_int = int(amount_float)
+            amount_int = int(round(amount_float))
         except (ValueError, TypeError):
             return {'errorMessage': 'Invalid amount format'}
 
-        # Get access token with retry logic
+        # --- Authentication ---
         max_retries = 3
         access_token = None
 
@@ -270,54 +245,34 @@ def initiate_mpesa_payment(amount, phone_number, order_id):
                     auth_url,
                     auth=(settings.MPESA_CONSUMER_KEY, settings.MPESA_CONSUMER_SECRET),
                     timeout=10,
-                    headers={
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                        'Pragma': 'no-cache',
-                    }
+                    headers={'Accept': 'application/json'}
                 )
-
-                # Check for Incapsula block
-                if auth_response.status_code == 403 and 'Incapsula' in auth_response.text:
-                    logger.warning(f"Incapsula block detected during auth, attempt {attempt + 1}")
-                    if attempt < max_retries - 1:
-                        time.sleep(5)  # Longer delay
-                        continue
-                    else:
-                        return {'errorMessage': 'Service temporarily unavailable. Please try again in a few minutes.'}
-
                 auth_response.raise_for_status()
                 access_token = auth_response.json().get('access_token')
-                break  # Success, break out of retry loop
-
+                break
             except requests.exceptions.RequestException as e:
                 logger.error(f"M-Pesa auth error (attempt {attempt + 1}): {str(e)}")
-                if attempt == max_retries - 1:  # Last attempt
+                if attempt == max_retries - 1:
                     return {'errorMessage': 'M-Pesa service temporarily unavailable'}
-                time.sleep(3)  # Wait before retry
-                continue
+                time.sleep(3)
 
         if not access_token:
             return {'errorMessage': 'Failed to get access token'}
 
-        # Format phone number
+        # --- Format phone number ---
         if phone_number.startswith('0'):
             phone_number = '254' + phone_number[1:]
         elif not phone_number.startswith('254'):
             phone_number = '254' + phone_number
 
-        # Prepare STK push request
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        password_str = f"{settings.MPESA_SHORTCODE}{settings.MPESA_PASSKEY}{timestamp}"
-        password = base64.b64encode(password_str.encode("utf-8")).decode("utf-8")
+        password = base64.b64encode(
+            f"{settings.MPESA_SHORTCODE}{settings.MPESA_PASSKEY}{timestamp}".encode()
+        ).decode()
 
-
-        # ✅ FIXED: Use the correct callback URL with trailing slash
-        callback_url = f"{settings.BASE_URL}{reverse('payment:mpesa_webhook')}"
+        callback_url = f"{settings.BASE_URL}{reverse('payment:payment_webhook', args=['MPESA'])}"
         if not callback_url.endswith('/'):
             callback_url += '/'
-
-
 
         payload = {
             "BusinessShortCode": settings.MPESA_SHORTCODE,
@@ -328,7 +283,7 @@ def initiate_mpesa_payment(amount, phone_number, order_id):
             "PartyA": phone_number,
             "PartyB": settings.MPESA_SHORTCODE,
             "PhoneNumber": phone_number,
-            "CallBackURL": callback_url,  # ✅ FIXED: Now has trailing slash
+            "CallBackURL": callback_url,
             "AccountReference": f"ORDER_{order_id}",
             "TransactionDesc": "ASAI Payment"
         }
@@ -336,88 +291,46 @@ def initiate_mpesa_payment(amount, phone_number, order_id):
         headers = {
             'Authorization': f'Bearer {access_token}',
             'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
         }
 
         logger.info(f"[M-Pesa] Initiating payment: {amount_int} KES to {phone_number} for order {order_id}")
 
-        # Make payment request with retry logic
-        for attempt in range(max_retries):
-            try:
-                response = requests.post(
-                    "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
-                    json=payload,
-                    headers=headers,
-                    timeout=15
-                )
+        response = requests.post(
+            "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+            json=payload,
+            headers=headers,
+            timeout=15
+        )
+        result = response.json()
 
-                # Check if we got an Incapsula block page
-                if response.status_code == 403 and 'Incapsula' in response.text:
-                    logger.warning(f"Incapsula block detected, attempt {attempt + 1}")
-                    if attempt < max_retries - 1:
-                        time.sleep(5)  # Longer delay for Incapsula
-                        continue
-                    else:
-                        return {
-                            'errorMessage': 'Payment service temporarily blocked. Please try again in a few minutes.'
-                        }
-
-                # Check for other error statuses
-                if response.status_code >= 400:
-                    logger.error(f"M-Pesa API returned status {response.status_code}")
-                    if attempt < max_retries - 1:
-                        time.sleep(3)
-                        continue
-                    else:
-                        try:
-                            error_data = response.json()
-                            return {'errorMessage': error_data.get('errorMessage', 'M-Pesa service error')}
-                        except:
-                            return {'errorMessage': f'M-Pesa API error: {response.status_code}'}
-
-                response.raise_for_status()
-                result = response.json()
-
-                # Check if it's a successful response
-                if 'ResponseCode' in result and result.get('ResponseCode') == '0':
-                    logger.info(f"M-Pesa payment initiated successfully: {result.get('CheckoutRequestID')}")
-                    return result
-                else:
-                    error_msg = result.get('errorMessage') or result.get(
-                        'ResponseDescription') or 'M-Pesa payment failed'
-                    logger.error(f"M-Pesa payment failed: {error_msg}")
-                    return {'errorMessage': error_msg}
-
-            except requests.exceptions.RequestException as e:
-                logger.error(f"M-Pesa API error (attempt {attempt + 1}): {str(e)}")
-                if attempt < max_retries - 1:
-                    time.sleep(3)
-                    continue
-                else:
-                    return {'errorMessage': 'M-Pesa service temporarily unavailable. Please try again.'}
+        if 'ResponseCode' in result and result.get('ResponseCode') == '0':
+            logger.info(f"M-Pesa payment initiated successfully: {result.get('CheckoutRequestID')}")
+            return result
+        else:
+            error_msg = result.get('errorMessage') or result.get('ResponseDescription') or 'M-Pesa payment failed'
+            logger.error(f"M-Pesa payment failed: {error_msg}")
+            return {'errorMessage': error_msg}
 
     except Exception as e:
         logger.error(f"M-Pesa initiation error: {str(e)}")
         return {'errorMessage': 'Failed to initiate M-Pesa payment'}
 
 
-
+# -----------------------------
+# HELPERS
+# -----------------------------
 def is_currency_supported(currency, provider):
     """Check if a currency is supported by a payment provider"""
     if provider == 'PAYPAL':
         return is_paypal_currency_supported(currency)
     elif provider == 'MPESA':
-        # M-Pesa now supports all currencies via conversion to KES
-        return True
+        return True  # all currencies converted to KES
     return False
 
 
 def get_prioritized_payment_methods(request):
+    """Prioritize M-Pesa in Kenya, otherwise PayPal first"""
     country = getattr(request, 'country', None)
-
-    if country == 'KE':  # Kenya
+    if country == 'KE':
         return ['mpesa', 'paypal']
-    else:  # All other countries
-        return ['paypal', 'mpesa']
+    return ['paypal', 'mpesa']

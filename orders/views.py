@@ -1,5 +1,5 @@
-# orders/views.py
-
+from djmoney.money import Money
+from decimal import Decimal
 import logging
 from django.conf import settings
 from django.core.cache import cache
@@ -10,11 +10,12 @@ from django.views.generic import ListView, DetailView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Prefetch
+from django.contrib.auth.decorators import login_required
+
 from cart.utils import get_cart
 from payment.models import Payment
 from store.models import Product
-from .models import Order, OrderItem, CurrencyRate
-from django.contrib.auth.decorators import login_required
+from .models import Order, OrderItem
 from payment.utils import get_prioritized_payment_methods
 from core.utils import get_exchange_rate
 from .forms import ShippingForm
@@ -26,6 +27,10 @@ logger = logging.getLogger(__name__)
 @login_required
 @transaction.atomic
 def create_order(request):
+    """
+    Creates an Order and related OrderItems from the user's cart,
+    using django-money for price and total handling.
+    """
     cart = get_cart(request)
     if not cart.items.exists():
         return redirect('cart:cart_detail')
@@ -36,61 +41,76 @@ def create_order(request):
             order = form.save(commit=False)
             if request.user.is_authenticated:
                 order.user = request.user
-            order.currency = settings.DEFAULT_CURRENCY
             order.save()
 
-            order_total = 0
+            order_total = Money(0, settings.DEFAULT_CURRENCY)
             items_to_create = []
             products_to_update = []
 
             try:
-                for cart_item in cart.items.select_related('product').all():
-                    if cart_item.quantity > cart_item.product.stock:
+                for cart_item in cart.items.select_related('product'):
+                    product = cart_item.product
+
+                    # Check stock
+                    if cart_item.quantity > product.stock:
                         form.add_error(None,
-                                       f"Insufficient stock for {cart_item.product.name}. Only {cart_item.product.stock} left.")
+                                       f"Insufficient stock for {product.name}. Only {product.stock} left.")
                         raise transaction.TransactionManagementError()
 
-                    current_price = cart_item.product.get_display_price()
-                    order_total += (current_price * cart_item.quantity)
+                    # Get price as Money
+                    current_price = product.get_display_price()
+                    if not isinstance(current_price, Money):
+                        logger.warning(
+                            f"product.get_display_price() returned {type(current_price)}; coercing to Money."
+                        )
+                        current_price = Money(Decimal(current_price), settings.DEFAULT_CURRENCY)
 
+                    # Accumulate total
+                    order_total += current_price * cart_item.quantity
+
+                    # Prepare OrderItem
                     items_to_create.append(OrderItem(
                         order=order,
-                        product=cart_item.product,
+                        product=product,
                         price=current_price,
-                        quantity=cart_item.quantity
+                        quantity=cart_item.quantity,
                     ))
 
-                    cart_item.product.stock -= cart_item.quantity
-                    products_to_update.append(cart_item.product)
+                    # Decrement stock
+                    product.stock -= cart_item.quantity
+                    products_to_update.append(product)
 
+                # Bulk operations
                 OrderItem.objects.bulk_create(items_to_create)
                 Product.objects.bulk_update(products_to_update, ['stock'])
 
+                # Save total
                 order.total = order_total
                 order.save(update_fields=['total'])
 
-                payment = Payment.objects.create(
+                # Create Payment
+                Payment.objects.create(
                     order=order,
                     amount=order.total,
-                    currency=order.currency,
                     original_amount=order.total,
                     converted_amount=order.total,
                     phone_number=order.phone,
-                    status='PENDING'
+                    status='PENDING',
                 )
 
-
+                # Clear cart and send confirmation
                 cart.items.all().delete()
                 request.session['order_id'] = order.id
-
                 order_created_email.delay(order.id)
 
                 return redirect('orders:checkout')
 
             except transaction.TransactionManagementError:
-                pass
+                logger.error("Transaction failed during order creation.")
+                transaction.set_rollback(True)
 
     else:
+        initial_data = {}
         if request.user.is_authenticated:
             initial_data = {
                 'first_name': request.user.first_name,
@@ -98,9 +118,7 @@ def create_order(request):
                 'email': request.user.email,
                 'phone': getattr(request.user, 'phone_number', ''),
             }
-            form = ShippingForm(initial=initial_data)
-        else:
-            form = ShippingForm()
+        form = ShippingForm(initial=initial_data)
 
     return render(request, 'orders/shipping_form.html', {
         'form': form,
@@ -115,11 +133,13 @@ class OrderListView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        return Order.objects.filter(
-            user=self.request.user
-        ).select_related('user').prefetch_related('items').only(
-            'id', 'created', 'status', 'currency', 'total', 'user__email'
-        ).order_by('-created')
+        return (
+            Order.objects.filter(user=self.request.user)
+            .select_related('user')
+            .prefetch_related('items')
+            .only('id', 'created', 'status', 'total_currency', 'total', 'user__email')
+            .order_by('-created')
+        )
 
 
 class OrderDetailView(LoginRequiredMixin, DetailView):
@@ -127,31 +147,17 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
     template_name = 'orders/order_detail.html'
     context_object_name = 'order'
 
-    ORDER_FIELDS = [
-        'id', 'created', 'status', 'currency', 'payment_method',
-        'address', 'postal_code', 'city', 'total', 'email',
-        'first_name', 'last_name', 'country'
-    ]
-    USER_FIELDS = ['user__first_name', 'user__last_name', 'user__email']
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['payment'] = getattr(self.object, 'payment', None)
         return context
 
     def _build_order_queryset(self):
-        # ✅ Don't use .only() - it's causing the image field to be deferred
-        items_queryset = (
-            OrderItem.objects
-            .select_related('product')
-        )
-
+        items_queryset = OrderItem.objects.select_related('product')
         return (
             Order.objects
             .select_related('user', 'payment')
-            .prefetch_related(
-                Prefetch('items', queryset=items_queryset)
-            )
+            .prefetch_related(Prefetch('items', queryset=items_queryset))
         )
 
     def get_object(self, queryset=None):
@@ -172,10 +178,7 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         )
 
         if not order:
-            logger.warning(
-                f"Order {pk} not found for user {self.request.user.id} "
-                f"(username: {self.request.user.username})"
-            )
+            logger.warning(f"Order {pk} not found for user {self.request.user.username}")
             raise Http404("Order not found or you don't have permission to view it")
 
         return order
@@ -210,20 +213,14 @@ class CheckoutView(LoginRequiredMixin, TemplateView):
     def get_order_from_session(self, request):
         order_id = request.session.get('order_id')
         if not order_id:
-            logger.warning("CheckoutView: No order_id in session. Redirecting to cart.")
             return None
-
         try:
             order = Order.objects.get(id=order_id, user=request.user)
-
             if not order.is_payable:
-                logger.warning(f"CheckoutView: Order {order_id} is no longer payable.")
                 request.session.pop('order_id', None)
                 return None
-
             return order
         except Order.DoesNotExist:
-            logger.error(f"CheckoutView: Order {order_id} not found for user {request.user.id}")
             request.session.pop('order_id', None)
             return None
 
@@ -252,7 +249,7 @@ class CheckoutView(LoginRequiredMixin, TemplateView):
         if not payment:
             payment, _ = Payment.objects.get_or_create(
                 order=order,
-                defaults={'amount': order.total, 'currency': order.currency, 'status': 'PENDING'}
+                defaults={'amount': order.total, 'status': 'PENDING'}
             )
 
         if payment.amount != order.total:
@@ -261,28 +258,25 @@ class CheckoutView(LoginRequiredMixin, TemplateView):
         context['payment'] = payment
 
         currency_options = []
-        for code, name in settings.CURRENCIES:
+
+        for code in settings.CURRENCIES:
+            name = settings.CURRENCY_NAMES.get(code, code)
+            symbol = settings.CURRENCY_SYMBOLS.get(code, code)
+
             if code == base_currency:
                 rate = 1.0
             else:
-                cache_key = f'rate_{base_currency}_{code}'
+                cache_key = f"rate_{base_currency}_{code}"
                 rate = cache.get(cache_key)
                 if rate is None:
-                    try:
-                        db_rate = CurrencyRate.objects.get(
-                            base_currency=base_currency,
-                            target_currency=code
-                        ).rate
-                        rate = float(db_rate)
-                    except CurrencyRate.DoesNotExist:
-                        rate = get_exchange_rate(base_currency, code)
-                    cache.set(cache_key, rate, settings.CURRENCY_CACHE_TIMEOUT)
+                    rate = get_exchange_rate(base_currency, code)
+                    cache.set(cache_key, float(rate), settings.CURRENCY_CACHE_TIMEOUT)
 
             currency_options.append({
                 'code': code,
                 'name': name,
-                'rate': rate,
-                'symbol': settings.CURRENCY_SYMBOLS.get(code, code)
+                'symbol': symbol,
+                'rate': float(rate),
             })
 
         context.update({

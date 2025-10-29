@@ -1,40 +1,45 @@
-from typing import Any  #payment/models.py
+#payment/models.py
+
+from typing import Any
 from django.db import models
-from pydantic_core import ValidationError
-from orders.constants import CURRENCY_CHOICES, ORDER_STATUS_CHOICES
-from paypal.standard.ipn.models import PayPalIPN
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+from django.conf import settings
+from djmoney.models.fields import MoneyField
+from django.core.exceptions import ValidationError
+from orders.constants import ORDER_STATUS_CHOICES
 from orders.models import Order
 
 
 class Payment(models.Model):
-
     PROVIDER_CHOICES = (
         ('MPESA', 'M-Pesa'),
         ('PAYPAL', 'PayPal'),
     )
+
     order = models.OneToOneField(
         Order,
         on_delete=models.CASCADE,
-        related_name='payment'  # Use a simple related_name
+        related_name='payment'
     )
-
-    provider = models.CharField(
-        max_length=20,
-        choices=PROVIDER_CHOICES,
-        default='M-Pesa'
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, default='M-Pesa')
+    status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='PENDING', db_index=True)
+    amount = MoneyField(
+        max_digits=10,
+        decimal_places=2,
+        default_currency=settings.DEFAULT_CURRENCY,
+        default=0.00  # <-- ADD THIS LINE
     )
-    status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='PENDING',db_index=True )
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
     transaction_id = models.CharField(max_length=255, blank=True)
-    phone_number = models.CharField(max_length=15, blank=True)  # For MPesa
-    paypal_email = models.EmailField(blank=True)  # For PayPal
+    phone_number = models.CharField(max_length=15, blank=True)
+    paypal_email = models.EmailField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    raw_response = models.JSONField(blank=True, null=True)  # Store gateway responses
-    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='KES')
-    original_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    converted_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    raw_response = models.JSONField(blank=True, null=True)
+    original_amount = MoneyField(
+        max_digits=10, decimal_places=2, null=True, blank=True, default_currency=None
+    )
+    converted_amount = MoneyField(
+        max_digits=10, decimal_places=2, null=True, blank=True, default_currency=None
+    )
     exchange_rate = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
     checkout_request_id = models.CharField(max_length=255, blank=True, null=True, unique=True, db_index=True)
     result_code = models.CharField(max_length=10, blank=True)
@@ -52,9 +57,6 @@ class Payment(models.Model):
         blank=True
     )
 
-    def __init__(self, *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs)  # <-- unpack correctly
-
     def __str__(self):
         return f"{self.provider} Payment - {self.status}"
 
@@ -69,7 +71,6 @@ class Payment(models.Model):
         ]
 
     def clean(self):
-        """Prevent duplicate active payments for the same order"""
         if self.status in ['PENDING', 'PROCESSING']:
             existing = Payment.objects.filter(
                 order=self.order,

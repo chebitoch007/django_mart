@@ -1,0 +1,84 @@
+<!-- templates/admin/currencies/update_rates.html -->
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <h1>{{ title }}</h1>
+
+    <div class="module" style="margin: 20px 0;">
+        <h2>Current Currency Rates</h2>
+        <table class="table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+            <tr style="background: #f8f8f8;">
+                <th style="padding: 10px; border: 1px solid #ddd;">Code</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Name</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Symbol</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Current Rate (to USD)</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for currency in currencies %}
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;"><strong>{{ currency.code }}</strong></td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ currency.name }}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ currency.symbol }}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">
+                    {% if currency.is_base %}
+                    <span style="color: green;">1.00 (Base Currency)</span>
+                    {% else %}
+                    {{ currency.factor|floatformat:6 }}
+                    {% endif %}
+                </td>
+                <td style="padding: 10px; border: 1px solid #ddd;">
+                    {% if currency.is_active %}
+                    <span style="color: green;">✓ Active</span>
+                    {% else %}
+                    <span style="color: red;">✗ Inactive</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="submit-row" style="margin: 20px 0;">
+        <form method="post"
+              onsubmit="return confirm('This will fetch the latest exchange rates from the API. Continue?');">
+            {% csrf_token %}
+            <button type="submit" class="default" style="padding: 10px 20px; font-size: 14px;">
+                🔄 Update Exchange Rates Now
+            </button>
+            <a href="{% url 'admin:currencies_currency_changelist' %}" class="button" style="margin-left: 10px;">
+                ← Back to Currencies
+            </a>
+        </form>
+    </div>
+
+    <div class="module" style="margin: 20px 0; padding: 15px; background: #fff9e6; border-left: 4px solid #ffa500;">
+        <h3 style="margin-top: 0;">📝 Important Notes</h3>
+        <ul>
+            <li>Exchange rates are fetched from Open Exchange Rates API</li>
+            <li>You need a valid API key in your environment variables: <code>OPENEXCHANGERATES_APP_ID</code></li>
+            <li>Free tier allows 1,000 requests per month</li>
+            <li>Rates are automatically cached for 4 hours to reduce API calls</li>
+            <li>Manual updates override the cache</li>
+            <li>If API is unavailable, fallback rates will be used</li>
+        </ul>
+    </div>
+
+    <div class="module" style="margin: 20px 0; padding: 15px; background: #e6f7ff; border-left: 4px solid #1890ff;">
+        <h3 style="margin-top: 0;">💡 Tips</h3>
+        <ul>
+            <li>Set up a cron job to update rates automatically: <code>0 */4 * * * python manage.py
+                update_currency_rates</code></li>
+            <li>Monitor your API usage at <a href="https://openexchangerates.org/account" target="_blank">openexchangerates.org</a>
+            </li>
+            <li>The base currency (USD) always has a factor of 1.00</li>
+            <li>Deactivate currencies you don't use to simplify the UI</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

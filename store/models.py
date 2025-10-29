@@ -1,4 +1,5 @@
 # store/models.py
+from djmoney.models.fields import MoneyField
 import logging
 from django.db import transaction
 import uuid
@@ -139,8 +140,8 @@ class Product(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField()
     short_description = models.CharField(max_length=300, blank=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    discount_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, db_index=True)
+    price = MoneyField(max_digits=14, decimal_places=2, default_currency='KES', default = 0.00)
+    discount_price = MoneyField(max_digits=14, decimal_places=2, blank=True, null=True, db_index=True)
     image = models.ImageField(upload_to='products/main/')
     stock = models.PositiveIntegerField()
     available = models.BooleanField(default=True)
@@ -277,9 +278,15 @@ class Product(models.Model):
             self.save(update_fields=['rating', 'review_count', 'updated'])
 
     def get_discount_percentage(self):
-        if self.discount_price and self.price and self.price > 0:
-            return round((self.price - self.discount_price) / self.price * 100)
+        if self.discount_price and self.price and self.price.amount > 0:
+            try:
+                diff = self.price.amount - self.discount_price.amount
+                percent = (diff / self.price.amount) * 100
+                return round(percent)
+            except Exception:
+                return 0
         return 0
+
 
     @property
     def on_sale(self):
@@ -319,7 +326,7 @@ class ProductVariant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
     size = models.CharField(max_length=20, blank=True)
     color = models.CharField(max_length=50, blank=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = MoneyField(max_digits=14, decimal_places=2, default = 0.00)
     quantity = models.PositiveIntegerField(default=0)
 
     def __str__(self):

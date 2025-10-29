@@ -9,10 +9,21 @@ import {
   showPaymentStatus
 } from './ui.js';
 import { PaymentSystem } from './payments.js';
-import { MpesaResponse, PaymentResponse } from '@/payments/types/payment.js';
+import { MpesaResponse, PaymentResponse } from '@/payments/types/payment.ts';
+
+// ✅ Global flag to prevent duplicate payment attempts
+let paymentInProgress = false;
+let activePoller: number | null = null;
 
 export async function initializeMpesa(paymentSystem: PaymentSystem): Promise<boolean> {
+  // ✅ CRITICAL: Prevent duplicate payments
+  if (paymentInProgress) {
+    console.warn('[MPESA] Payment already in progress, ignoring duplicate attempt');
+    return false;
+  }
+
   try {
+    paymentInProgress = true;
     const state = paymentSystem.getState();
     const elements = paymentSystem.getElements();
     const config = paymentSystem.getConfig();
@@ -22,6 +33,7 @@ export async function initializeMpesa(paymentSystem: PaymentSystem): Promise<boo
     const formattedPhone = validatePhoneNumber(phoneNumber);
     if (!formattedPhone) {
       showPaymentError('Please enter a valid phone number', elements.paymentErrors);
+      paymentInProgress = false;
       return false;
     }
 
@@ -60,6 +72,7 @@ export async function initializeMpesa(paymentSystem: PaymentSystem): Promise<boo
       // show server returned error
       stopProcessingAnimation(elements.processingModal);
       setSubmitButtonState(false, elements.paymentSubmitButton);
+      paymentInProgress = false;
       const err = data?.error || data?.message || 'Failed to initiate M-Pesa payment';
       showPaymentError(err, elements.paymentErrors);
       return false;
@@ -78,7 +91,7 @@ export async function initializeMpesa(paymentSystem: PaymentSystem): Promise<boo
 
       elements.modalTitle.textContent = 'Payment Sent to Phone';
       elements.modalText.textContent = 'Please check your phone and approve the M-Pesa prompt.';
-      showPaymentStatus('M-Pesa payment requested — awaiting confirmation on phone.', elements.paymentStatus);
+      showPaymentStatus('M-Pesa payment requested – awaiting confirmation on phone.', elements.paymentStatus);
 
       // Start polling
       pollMpesaPaymentStatus(data.checkout_request_id, paymentSystem);
@@ -87,6 +100,7 @@ export async function initializeMpesa(paymentSystem: PaymentSystem): Promise<boo
     } else {
       stopProcessingAnimation(elements.processingModal);
       setSubmitButtonState(false, elements.paymentSubmitButton);
+      paymentInProgress = false;
       const err = data.error || data.message || 'M-Pesa initiation failed';
       showPaymentError(err, elements.paymentErrors);
       return false;
@@ -97,6 +111,7 @@ export async function initializeMpesa(paymentSystem: PaymentSystem): Promise<boo
     stopProcessingAnimation(paymentSystem.getElements().processingModal);
     showPaymentError(err.message || 'Network error. Please try again.', paymentSystem.getElements().paymentErrors);
     setSubmitButtonState(false, paymentSystem.getElements().paymentSubmitButton);
+    paymentInProgress = false;
     return false;
   }
 }
@@ -105,11 +120,17 @@ function pollMpesaPaymentStatus(checkoutRequestId: string, paymentSystem: Paymen
   const elements = paymentSystem.getElements();
   const config = paymentSystem.getConfig();
 
+  // ✅ Clear any existing poller
+  if (activePoller !== null) {
+    clearInterval(activePoller);
+    activePoller = null;
+  }
+
   const pollInterval = 3000;
   const maxAttempts = 40; // 2 minutes total
   let attempts = 0;
 
-  const poller = setInterval(async () => {
+  activePoller = window.setInterval(async () => {
     attempts++;
 
     // Update UI with attempt count
@@ -118,9 +139,11 @@ function pollMpesaPaymentStatus(checkoutRequestId: string, paymentSystem: Paymen
     }
 
     if (attempts > maxAttempts) {
-      clearInterval(poller);
+      if (activePoller !== null) clearInterval(activePoller);
+      activePoller = null;
       stopProcessingAnimation(elements.processingModal);
       setSubmitButtonState(false, elements.paymentSubmitButton);
+      paymentInProgress = false;
       showPaymentError(
         'Payment timed out. Please check your phone to complete the M-Pesa payment, or try again.',
         elements.paymentErrors
@@ -145,15 +168,25 @@ function pollMpesaPaymentStatus(checkoutRequestId: string, paymentSystem: Paymen
       console.info('[MPESA] poll status:', json, `Attempt: ${attempts}/${maxAttempts}`);
 
       if (json.status === 'success' || json.status === 'completed') {
-        clearInterval(poller);
+        // ✅ Stop polling immediately
+        if (activePoller !== null) clearInterval(activePoller);
+        activePoller = null;
+
         elements.modalTitle.textContent = 'Payment Confirmed!';
         elements.modalText.textContent = 'Finalizing your order...';
         showPaymentStatus('Payment confirmed! Finalizing order...', elements.paymentStatus);
+
+        // ✅ Finalize payment (only once)
         finalizeMpesaPayment(checkoutRequestId, paymentSystem);
+
       } else if (json.status === 'failed' || json.status === 'cancelled' || json.status === 'error') {
-        clearInterval(poller);
+        // ✅ Stop polling on failure
+        if (activePoller !== null) clearInterval(activePoller);
+        activePoller = null;
+
         stopProcessingAnimation(elements.processingModal);
         setSubmitButtonState(false, elements.paymentSubmitButton);
+        paymentInProgress = false;
         showPaymentError(
           json.message || 'Payment failed or was cancelled. Please try again.',
           elements.paymentErrors
@@ -174,7 +207,18 @@ function pollMpesaPaymentStatus(checkoutRequestId: string, paymentSystem: Paymen
   }, pollInterval);
 }
 
+// ✅ Prevent duplicate finalization
+let finalizationInProgress = false;
+
 function finalizeMpesaPayment(checkoutRequestId: string, paymentSystem: PaymentSystem): void {
+  // ✅ CRITICAL: Prevent duplicate finalization calls
+  if (finalizationInProgress) {
+    console.warn('[MPESA] Finalization already in progress, ignoring duplicate call');
+    return;
+  }
+
+  finalizationInProgress = true;
+
   const elements = paymentSystem.getElements();
   const config = paymentSystem.getConfig();
   const state = paymentSystem.getState();
@@ -191,6 +235,8 @@ function finalizeMpesaPayment(checkoutRequestId: string, paymentSystem: PaymentS
   if (!finalCheckoutRequestId) {
     stopProcessingAnimation(elements.processingModal);
     setSubmitButtonState(false, elements.paymentSubmitButton);
+    paymentInProgress = false;
+    finalizationInProgress = false;
     showPaymentError('Missing M-Pesa transaction reference. Please retry.', elements.paymentErrors);
     return;
   }
@@ -219,11 +265,29 @@ function finalizeMpesaPayment(checkoutRequestId: string, paymentSystem: PaymentS
       const data: PaymentResponse = await resp.json();
       console.info('[MPESA] finalize response:', data);
 
-      if (!resp.ok) throw new Error(data.error_message || data.message || 'Failed to verify M-Pesa payment');
+      if (!resp.ok) {
+        // ✅ Check if already processed (not an error)
+        if (data.message && data.message.includes('already')) {
+          console.info('[MPESA] Order already processed, redirecting...');
+          elements.modalTitle.textContent = 'Payment Complete!';
+          elements.modalText.textContent = 'Redirecting to your order...';
+          setTimeout(() => {
+            stopProcessingAnimation(elements.processingModal);
+            window.location.href = data.redirect_url || config.urls.orderSuccess;
+          }, 1000);
+          return;
+        }
+        throw new Error(data.error_message || data.message || 'Failed to verify M-Pesa payment');
+      }
 
       if (data.success || data.status === 'success') {
+        // ✅ Clear localStorage
+        localStorage.removeItem('lastCheckoutRequestId');
+        localStorage.removeItem('paymentFormState');
+
         elements.modalTitle.textContent = 'Payment Successful!';
         elements.modalText.textContent = 'Redirecting to your order confirmation...';
+
         setTimeout(() => {
           stopProcessingAnimation(elements.processingModal);
           window.location.href = data.redirect_url || config.urls.orderSuccess;
@@ -231,6 +295,8 @@ function finalizeMpesaPayment(checkoutRequestId: string, paymentSystem: PaymentS
       } else {
         stopProcessingAnimation(elements.processingModal);
         setSubmitButtonState(false, elements.paymentSubmitButton);
+        paymentInProgress = false;
+        finalizationInProgress = false;
         showPaymentError(data.message || data.error_message || 'Payment verification failed', elements.paymentErrors);
       }
     })
@@ -238,6 +304,19 @@ function finalizeMpesaPayment(checkoutRequestId: string, paymentSystem: PaymentS
       console.error('[MPESA] finalize error:', err);
       stopProcessingAnimation(elements.processingModal);
       setSubmitButtonState(false, elements.paymentSubmitButton);
+      paymentInProgress = false;
+      finalizationInProgress = false;
       showPaymentError(err.message || 'Error finalizing payment', elements.paymentErrors);
     });
+}
+
+// ✅ Export function to reset payment state (for retry scenarios)
+export function resetMpesaPaymentState(): void {
+  paymentInProgress = false;
+  finalizationInProgress = false;
+  if (activePoller !== null) {
+    clearInterval(activePoller);
+    activePoller = null;
+  }
+  console.info('[MPESA] Payment state reset');
 }

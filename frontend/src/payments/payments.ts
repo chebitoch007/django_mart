@@ -1,5 +1,5 @@
-import { initializeMpesa } from './mpesa.js';
-import { initializePayPal, cleanupPayPal } from './paypal.js';
+import { initializeMpesa, resetMpesaPaymentState } from './mpesa.js';
+import { initializePayPal, cleanupPayPal, resetPayPalPaymentState } from './paypal.js';
 import {
   validatePhoneNumber,
   formatCurrency,
@@ -26,6 +26,7 @@ export class PaymentSystem {
   private config: PaymentConfig;
   private state: PaymentState;
   private elements: PaymentElements;
+  private formSubmitted: boolean = false; // ✅ Track form submission
 
   constructor(config: PaymentConfig) {
     this.config = config;
@@ -47,7 +48,20 @@ export class PaymentSystem {
     this.cacheElements();
     this.bindEvents();
     this.restoreState();
+    this.checkExistingPayment(); // ✅ Check if payment already in progress
     this.initializePaymentMethod(this.state.currentMethod);
+  }
+
+  // ✅ NEW: Check if a payment is already in progress
+  private checkExistingPayment(): void {
+    const existingCheckoutId = localStorage.getItem('lastCheckoutRequestId');
+    if (existingCheckoutId) {
+      console.warn('[PAYMENT] Found existing checkout request ID:', existingCheckoutId);
+      showPaymentStatus(
+        'You have a payment in progress. Please complete it or wait for it to expire.',
+        this.elements.paymentStatus
+      );
+    }
   }
 
   private cacheElements(): void {
@@ -120,6 +134,15 @@ export class PaymentSystem {
     window.addEventListener('resize', () => {
       this.handleResize();
     });
+
+    // ✅ NEW: Prevent accidental page navigation during payment
+    window.addEventListener('beforeunload', (e) => {
+      if (this.formSubmitted) {
+        e.preventDefault();
+        e.returnValue = 'Payment is in progress. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    });
   }
 
   private restoreState(): void {
@@ -136,6 +159,10 @@ export class PaymentSystem {
   }
 
   private switchPaymentMethod(method: PaymentMethod): void {
+    // ✅ Reset payment states when switching methods
+    resetMpesaPaymentState();
+    resetPayPalPaymentState();
+
     this.state.currentMethod = method;
 
     // Update UI
@@ -149,7 +176,7 @@ export class PaymentSystem {
     // Handle method-specific initialization
     if (method === 'paypal') {
       showCurrencyTooltip(method, this.state.currentCurrency, this.elements.currencyTooltip, this.elements.tooltipText);
-      console.log("Switching to PayPal... Terms checked?", this.elements.termsCheckbox.checked);
+      console.log("[PAYMENT] Switching to PayPal... Terms checked?", this.elements.termsCheckbox.checked);
       if (this.elements.termsCheckbox.checked) {
         console.log("✅ Initializing PayPal...");
         setTimeout(() => initializePayPal(this), 400);
@@ -287,6 +314,12 @@ export class PaymentSystem {
   private async handleFormSubmit(e: Event): Promise<void> {
     e.preventDefault();
 
+    // ✅ Prevent double submission
+    if (this.formSubmitted) {
+      console.warn('[PAYMENT] Form already submitted, ignoring duplicate submission');
+      return;
+    }
+
     // Hide previous errors
     this.elements.paymentErrors.style.display = 'none';
 
@@ -311,7 +344,11 @@ export class PaymentSystem {
 
     // Handle M-Pesa
     if (method === 'mpesa') {
-      await initializeMpesa(this);
+      this.formSubmitted = true;
+      const success = await initializeMpesa(this);
+      if (!success) {
+        this.formSubmitted = false; // ✅ Reset on failure
+      }
     }
   }
 

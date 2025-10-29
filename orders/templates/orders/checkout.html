@@ -10,8 +10,8 @@
       mpesaStatus: "{% url 'payment:mpesa_status' %}",
       orderSuccess: "{% url 'orders:success' order.id %}"
     },
-    cartTotalPrice: "{{ order.total }}",
-    defaultCurrency: "{{ default_currency|default:'USD' }}",
+    cartTotalPrice: "{{ order.total.amount }}",
+    defaultCurrency: "{{ order.total.currency.code }}",
     csrfToken: "{{ csrf_token }}",
     orderId: "{{ order.id }}",
     paypalClientId: "{{ PAYPAL_CLIENT_ID }}"
@@ -19,16 +19,15 @@
 </script>
 
 {% if not paypal_loaded %}
-  <script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&currency=USD&commit=false&components=buttons" async></script>
+  <script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&currency={{ order.total.currency.code }}&commit=false&components=buttons" async></script>
 {% endif %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-
 {% vite_asset 'src/payments/payments.ts' %}
-
 {% endblock %}
 
 {% block content %}
 <style>
+/* (Your CSS
     /* Enhanced Checkout Page Styles */
     :root {
         --primary-color: #3b82f6;
@@ -800,258 +799,229 @@
 </style>
 
 <div class="checkout-container">
-    <div class="checkout-layout">
-        <!-- Payment Section -->
-        <div class="payment-section">
-            <div class="payment-card">
-                <h2 class="payment-title">
-                    <i class="fas fa-credit-card"></i>
-                    Secure Payment
-                </h2>
+  <div class="checkout-layout">
+    <!-- Payment Section -->
+    <div class="payment-section">
+      <div class="payment-card">
+        <h2 class="payment-title">
+          <i class="fas fa-credit-card"></i>
+          Secure Payment
+        </h2>
 
-                <!-- Geolocation Indicator -->
-                <div class="location-indicator">
-                    <i class="fas fa-location-dot"></i>
-                    <span id="locationText">
-                        {% if request.country_name %}
-                            Detected location: {{ request.country_name }}.
-                        {% else %}
-                            Detected location: Kenya.
-                        {% endif %}
-                        {% if prioritized_methods|length > 1 %}
-                            Multiple payment options available
-                        {% elif prioritized_methods|length == 1 %}
-                            {{ prioritized_methods.0|upper }} prioritized
-                        {% else %}
-                            Please select payment method
-                        {% endif %}
-                    </span>
-                </div>
-
-                <!-- Currency Selection -->
-                <div class="currency-selector">
-                    <label class="currency-label">Payment Currency</label>
-                    <select class="currency-dropdown" id="currencySelector">
-                        {% for currency in currency_options %}
-                        <option value="{{ currency.code }}"
-                                {% if currency.code == default_currency %}selected{% endif %}
-                                data-symbol="{{ currency.symbol }}"
-                                data-rate="{{ currency.rate }}">
-                            {{ currency.name }} ({{ currency.code }}) {{ currency.symbol }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <div id="currencyTooltip" class="currency-tooltip" style="display: none;">
-                        <i class="fas fa-info-circle"></i>
-                        <span id="tooltipText"></span>
-                    </div>
-                </div>
-
-                <!-- Enhanced Payment Method Tabs -->
-                <div class="payment-tabs">
-                    <button type="button" class="payment-tab active" data-method="mpesa">
-                        <i class="fas fa-mobile-alt"></i>
-                        <span>M-Pesa</span>
-                        <small>Mobile Money</small>
-                    </button>
-                    <button type="button" class="payment-tab" data-method="paypal">
-                        <i class="fab fa-paypal"></i>
-                        <span>PayPal</span>
-                        <small>Credit & Debit Cards</small>
-                    </button>
-                </div>
-
-                <!-- Payment Method Confirmation -->
-                <div class="method-confirmation" id="methodConfirmation">
-                    <i class="fas fa-check-circle"></i>
-                    <span>You've selected to pay with <strong id="selectedMethodName">M-Pesa</strong></span>
-                </div>
-
-                <!-- Payment Forms -->
-                <form id="paymentForm" method="post" action="{% url 'payment:process_payment' order.id %}" novalidate>
-                    {% csrf_token %}
-                    <input type="hidden" id="checkoutRequestId" name="checkout_request_id" value="">
-                    <input type="hidden" name="order_id" value="{{ order.id }}" id="orderId">
-                    <input type="hidden" name="amount" id="formAmount" value="{{ order.total_price }}">
-                    <input type="hidden" name="payment_method" id="selectedMethod" value="mpesa">
-                    <input type="hidden" name="currency" id="formCurrency" value="{{ default_currency }}">
-                    <input type="hidden" name="conversion_rate" id="formConversionRate" value="1">
-
-
-                    <!-- Mobile Money Section -->
-                    <div class="payment-form-section active" id="mobileMoneySection">
-                        <!-- Enhanced Side-by-Side Form Layout -->
-                        <div class="form-row">
-                            <div class="input-group">
-                                <label class="input-label">Phone Number</label>
-                                <input
-                                    type="tel"
-                                    class="phone-input"
-                                    id="phoneNumber"
-                                    name="phone_number"
-                                    pattern="[0-9]{10}"
-                                    placeholder="712345678"
-                                    required>
-                                <div id="phoneError" class="error-text">
-                                    <i class="fas fa-exclamation-circle"></i>
-                                    Please enter a valid phone number (e.g. 712345678)
-                                </div>
-                            </div>
-                            <div class="input-group">
-                                <label class="input-label">Amount to Pay</label>
-                                <input
-                                    type="text"
-                                    class="amount-input"
-                                    id="amount"
-                                    value="{{ default_currency }} {{ order.total|floatformat:2|intcomma }}"
-                                    readonly>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Terms Agreement -->
-                    <div class="terms-group">
-                        <input type="checkbox" id="termsAgreement" class="terms-checkbox" required>
-                        <label for="termsAgreement" class="terms-label">
-                            I agree to the <a href="{% url 'store:terms' %}" class="terms-link" target="_blank">Terms of Service</a>
-                            and <a href="{% url 'store:privacy' %}" class="terms-link" target="_blank">Privacy Policy</a>
-                        </label>
-                    </div>
-
-                    <!-- Status Messages -->
-                    <div id="paymentStatus" class="payment-status info" style="display: none;">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <span>Processing your payment...</span>
-                    </div>
-
-                    <div id="paymentErrors" class="payment-status error" style="display: none;">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <span>Please fix the errors below.</span>
-                    </div>
-
-                    <!-- Enhanced Submit Button with Dynamic Text -->
-                    <button type="submit" id="paymentSubmitButton" class="submit-button">
-                        <i class="fas fa-lock" id="submitIcon"></i>
-                        <span id="submitText">Pay with M-Pesa</span>
-                        <div class="button-spinner"></div>
-                    </button>
-
-                    <!-- Trust Badges -->
-                    <div class="trust-badges">
-                        <div class="trust-badge">
-                            <i class="fab fa-cc-visa"></i>
-                            <span>Visa</span>
-                        </div>
-                        <div class="trust-badge">
-                            <i class="fab fa-cc-mastercard"></i>
-                            <span>MasterCard</span>
-                        </div>
-                        <div class="trust-badge">
-                            <i class="fab fa-paypal"></i>
-                            <span>PayPal</span>
-                        </div>
-                        <div class="trust-badge">
-                            <i class="fas fa-mobile-alt"></i>
-                            <span>M-Pesa</span>
-                        </div>
-                        <div class="trust-badge">
-                            <i class="fas fa-shield-alt"></i>
-                            <span>Secure</span>
-                        </div>
-                    </div>
-                </form>
-
-<!-- PayPal Payment Section -->
-<div id="paypalSection" class="payment-form-section" style="display: none;">
-  <h4 class="mb-3">Pay with PayPal</h4>
-
-  <!-- Tooltip shown when switching currencies -->
-  <div id="currencyTooltip" class="alert alert-info d-none">
-    <span id="tooltipText"></span>
-  </div>
-
-  <!-- PayPal button container -->
-  <div id="paypal-button-container" class="mb-3"></div>
-
-
-<!-- Status area -->
-<div id="paypal-status" class="payment-status info" style="display: none;">
-  <i class="fas fa-spinner fa-spin"></i>
-  <span class="status-message"></span>
-</div>
-
-
-  <!-- Fallback if PayPal SDK not loaded -->
-  <div id="paypal-fallback" class="alert alert-warning text-center" style="display:none;">
-    Unable to load PayPal. Please refresh the page or choose another payment method.
-  </div>
-
-  <!-- Hidden fields for form submission -->
-  <input type="hidden" id="paypalOrderId" name="paypal_order_id" value="">
-  <input type="hidden" id="paypalPayerId" name="paypal_payer_id" value="">
-</div>
-
-
-
-            </div>
+        <!-- Geolocation Indicator -->
+        <div class="location-indicator">
+          <i class="fas fa-location-dot"></i>
+          <span id="locationText">
+            {% if request.country_name %}
+              Detected location: {{ request.country_name }}.
+            {% else %}
+              Detected location: Kenya.
+            {% endif %}
+            {% if prioritized_methods|length > 1 %}
+              Multiple payment options available
+            {% elif prioritized_methods|length == 1 %}
+              {{ prioritized_methods.0|upper }} prioritized
+            {% else %}
+              Please select payment method
+            {% endif %}
+          </span>
         </div>
 
-        <!-- Enhanced Order Summary Section with Collapsible Mobile Version -->
-        <div class="order-summary-section">
-            <div class="summary-card">
-                <div class="summary-header">
-                    <h2 class="summary-title">Order Summary</h2>
-                    <button type="button" class="summary-toggle" id="summaryToggle">
-                        <span>Show Details</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                </div>
-
-                <div class="summary-content" id="summaryContent">
-<div class="order-items" id="orderItems">
-                        {% for item in order.items.all %} <div class="order-item" data-price="{{ item.total_price }}">
-                            <img src="{{ item.product.get_image_url }}" alt="{{ item.product.name }}" class="item-image">
-                            <div class="item-info">
-                                <div class="item-name">{{ item.product.name }}</div>
-                                <div class="item-quantity">Qty: {{ item.quantity }}</div>
-                            </div>
-                            <div class="item-price">
-                                <span class="currency-symbol">{{ default_currency_symbol|default:"$" }}</span>
-                                <span class="item-amount">{{ item.total_price|intcomma }}</span>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-
-                    <div class="summary-row">
-                        <div class="summary-label">Subtotal</div>
-                        <div class="summary-value">
-                            <span class="currency-symbol">{{ default_currency_symbol|default:"$" }}</span>
-                            <span class="subtotal-amount">{{ order.total|intcomma }}</span>
-                        </div>
-                    </div>
-
-                    <div class="summary-total">
-                        <div>Total</div>
-                        <div>
-                            <span class="currency-symbol">{{ default_currency_symbol|default:"Ksh" }}</span>
-                            <span class="total-amount">{{ order.total|intcomma }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <!-- Currency Selection -->
+        <div class="currency-selector">
+          <label class="currency-label">Payment Currency</label>
+          <select class="currency-dropdown" id="currencySelector">
+            {% for currency in currency_options %}
+            <option value="{{ currency.code }}"
+                    {% if currency.code == order.total.currency.code %}selected{% endif %}
+                    data-symbol="{{ currency.symbol }}"
+                    data-rate="{{ currency.rate }}">
+              {{ currency.name }} ({{ currency.code }}) {{ currency.symbol }}
+            </option>
+            {% endfor %}
+          </select>
+          <div id="currencyTooltip" class="currency-tooltip" style="display: none;">
+            <i class="fas fa-info-circle"></i>
+            <span id="tooltipText"></span>
+          </div>
         </div>
+
+        <!-- Payment Method Tabs -->
+        <div class="payment-tabs">
+          <button type="button" class="payment-tab active" data-method="mpesa">
+            <i class="fas fa-mobile-alt"></i>
+            <span>M-Pesa</span>
+            <small>Mobile Money</small>
+          </button>
+          <button type="button" class="payment-tab" data-method="paypal">
+            <i class="fab fa-paypal"></i>
+            <span>PayPal</span>
+            <small>Credit & Debit Cards</small>
+          </button>
+        </div>
+
+        <!-- Method Confirmation -->
+        <div class="method-confirmation" id="methodConfirmation">
+          <i class="fas fa-check-circle"></i>
+          <span>You've selected to pay with <strong id="selectedMethodName">M-Pesa</strong></span>
+        </div>
+
+        <!-- Payment Forms -->
+        <form id="paymentForm" method="post" action="{% url 'payment:process_payment' order.id %}" novalidate>
+          {% csrf_token %}
+          <input type="hidden" id="checkoutRequestId" name="checkout_request_id" value="">
+          <input type="hidden" name="order_id" value="{{ order.id }}" id="orderId">
+          <input type="hidden" name="amount" id="formAmount" value="{{ order.total.amount }}">
+          <input type="hidden" name="currency" id="formCurrency" value="{{ order.total.currency.code }}">
+          <input type="hidden" name="payment_method" id="selectedMethod" value="mpesa">
+          <input type="hidden" name="conversion_rate" id="formConversionRate" value="1">
+
+          <!-- Mobile Money Section -->
+          <div class="payment-form-section active" id="mobileMoneySection">
+            <div class="form-row">
+              <div class="input-group">
+                <label class="input-label">Phone Number</label>
+                <input type="tel"
+                       class="phone-input"
+                       id="phoneNumber"
+                       name="phone_number"
+                       pattern="[0-9]{10}"
+                       placeholder="712345678"
+                       required>
+                <div id="phoneError" class="error-text">
+                  <i class="fas fa-exclamation-circle"></i>
+                  Please enter a valid phone number (e.g. 712345678)
+                </div>
+              </div>
+
+              <div class="input-group">
+                <label class="input-label">Amount to Pay</label>
+                <input type="text"
+                       class="amount-input"
+                       id="amount"
+                       value="{{ order.total.currency.symbol }} {{ order.total.amount|floatformat:2|intcomma }}"
+                       readonly>
+              </div>
+            </div>
+          </div>
+
+          <!-- Terms Agreement -->
+          <div class="terms-group">
+            <input type="checkbox" id="termsAgreement" class="terms-checkbox" required>
+            <label for="termsAgreement" class="terms-label">
+              I agree to the <a href="{% url 'store:terms' %}" class="terms-link" target="_blank">Terms of Service</a>
+              and <a href="{% url 'store:privacy' %}" class="terms-link" target="_blank">Privacy Policy</a>
+            </label>
+          </div>
+
+          <!-- Status Messages -->
+          <div id="paymentStatus" class="payment-status info" style="display: none;">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Processing your payment...</span>
+          </div>
+
+          <div id="paymentErrors" class="payment-status error" style="display: none;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>Please fix the errors below.</span>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" id="paymentSubmitButton" class="submit-button">
+            <i class="fas fa-lock" id="submitIcon"></i>
+            <span id="submitText">Pay with M-Pesa</span>
+            <div class="button-spinner"></div>
+          </button>
+
+          <!-- Trust Badges -->
+          <div class="trust-badges">
+            <div class="trust-badge"><i class="fab fa-cc-visa"></i><span>Visa</span></div>
+            <div class="trust-badge"><i class="fab fa-cc-mastercard"></i><span>MasterCard</span></div>
+            <div class="trust-badge"><i class="fab fa-paypal"></i><span>PayPal</span></div>
+            <div class="trust-badge"><i class="fas fa-mobile-alt"></i><span>M-Pesa</span></div>
+            <div class="trust-badge"><i class="fas fa-shield-alt"></i><span>Secure</span></div>
+          </div>
+        </form>
+
+        <!-- PayPal Section -->
+        <div id="paypalSection" class="payment-form-section" style="display: none;">
+          <h4 class="mb-3">Pay with PayPal</h4>
+
+          <div id="currencyTooltip" class="alert alert-info d-none">
+            <span id="tooltipText"></span>
+          </div>
+
+          <div id="paypal-button-container" class="mb-3"></div>
+
+          <div id="paypal-status" class="payment-status info" style="display: none;">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span class="status-message"></span>
+          </div>
+
+          <div id="paypal-fallback" class="alert alert-warning text-center" style="display:none;">
+            Unable to load PayPal. Please refresh the page or choose another payment method.
+          </div>
+
+          <input type="hidden" id="paypalOrderId" name="paypal_order_id" value="">
+          <input type="hidden" id="paypalPayerId" name="paypal_payer_id" value="">
+        </div>
+      </div>
     </div>
+
+    <!-- Order Summary -->
+    <div class="order-summary-section">
+      <div class="summary-card">
+        <div class="summary-header">
+          <h2 class="summary-title">Order Summary</h2>
+          <button type="button" class="summary-toggle" id="summaryToggle">
+            <span>Show Details</span>
+            <i class="fas fa-chevron-down"></i>
+          </button>
+        </div>
+
+        <div class="summary-content" id="summaryContent">
+          <div class="order-items" id="orderItems">
+            {% for item in order.items.all %}
+            <div class="order-item" data-price="{{ item.total_price.amount }}">
+              <img src="{{ item.product.get_image_url }}" alt="{{ item.product.name }}" class="item-image">
+              <div class="item-info">
+                <div class="item-name">{{ item.product.name }}</div>
+                <div class="item-quantity">Qty: {{ item.quantity }}</div>
+              </div>
+              <div class="item-price">
+                <span class="currency-symbol">{{ item.total_price.currency.symbol }}</span>
+                <span class="item-amount">{{ item.total_price.amount|intcomma }}</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="summary-row">
+            <div class="summary-label">Subtotal</div>
+            <div class="summary-value">
+              <span class="currency-symbol">{{ order.total.currency.symbol }}</span>
+              <span class="subtotal-amount">{{ order.total.amount|intcomma }}</span>
+            </div>
+          </div>
+
+          <div class="summary-total">
+            <div>Total</div>
+            <div>
+              <span class="currency-symbol">{{ order.total.currency.symbol }}</span>
+              <span class="total-amount">{{ order.total.amount|intcomma }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- Enhanced Processing Modal with Staged Messages -->
+<!-- Processing Modal -->
 <div class="processing-modal" id="processingModal">
-    <div class="modal-content">
-        <div class="spinner"></div>
-        <h3 class="modal-title" id="modalTitle">Processing Payment</h3>
-        <p class="modal-text" id="modalText">Please wait while we complete your transaction</p>
-    </div>
+  <div class="modal-content">
+    <div class="spinner"></div>
+    <h3 class="modal-title" id="modalTitle">Processing Payment</h3>
+    <p class="modal-text" id="modalText">Please wait while we complete your transaction</p>
+  </div>
 </div>
-
 {% endblock %}
-

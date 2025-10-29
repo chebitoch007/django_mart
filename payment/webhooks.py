@@ -1,4 +1,5 @@
-#payment/webhooks.py
+# payment/webhooks.py
+from django.core.exceptions import ValidationError
 from .cart_utils import clear_cart_after_payment
 import json
 import requests
@@ -6,35 +7,91 @@ from django.conf import settings
 from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-
 from core.utils import logger
 from .models import Payment
 from django.views.decorators.http import require_http_methods
-
 from .utils import paypal_client
 
 
-
-
-def get_cart_for_user(user):
-    """Safely get cart for user"""
-    from cart.models import Cart
+def process_mpesa_webhook_data(payment, data):
+    """
+    ✅ FIXED: Processes M-Pesa webhook with idempotency - safe to call multiple times
+    """
     try:
-        return Cart.objects.get(user=user)
-    except Cart.DoesNotExist:
-        return None
-    except Cart.MultipleObjectsReturned:
-        # Handle multiple carts by using the most recent
-        return Cart.objects.filter(user=user).order_by('-created_at').first()
+        stk_callback = data.get('Body', {}).get('stkCallback', {})
+        result_code = stk_callback.get('ResultCode')
+        callback_metadata = stk_callback.get('CallbackMetadata', {}) or {}
+        items = callback_metadata.get('Item', [])
 
+        # ✅ FIX: Skip if already completed
+        if payment.status == 'COMPLETED':
+            logger.info(f"Payment {payment.id} already COMPLETED, skipping webhook processing")
+            return
 
+        if result_code == 0:  # ✅ SUCCESS
+            payment.status = 'COMPLETED'
+
+            # Extract metadata safely
+            for item in items:
+                name = item.get('Name')
+                value = item.get('Value')
+                if name == 'MpesaReceiptNumber':
+                    payment.transaction_id = value
+                elif name == 'PhoneNumber':
+                    payment.phone_number = str(value)
+                elif name == 'Amount':
+                    payment.amount = value
+
+            payment.save(update_fields=['status', 'transaction_id', 'phone_number', 'amount'])
+
+            # ✅ FIX: Handle already-paid orders gracefully
+            try:
+                order = payment.order
+
+                # Only mark as paid if still pending
+                if order.status == 'PENDING':
+                    order.mark_as_paid(payment_method='MPESA')
+                    logger.info(f"Order {order.id} marked as PAID after M-Pesa success")
+                    clear_cart_after_payment(order)
+                else:
+                    logger.info(f"Order {order.id} already in {order.status} status, skipping mark_as_paid")
+
+            except ValidationError as e:
+                logger.error(f"Validation error for order {order.id}: {e}")
+                payment.status = 'FAILED'
+                payment.failure_type = 'STOCK_ISSUE'
+                payment.save()
+            except PermissionError as e:
+                # Order was already processed by another thread/webhook
+                logger.warning(f"Order {order.id} already processed (race condition): {e}")
+            except Exception as e:
+                logger.error(f"Error updating order after M-Pesa success: {e}")
+
+        elif result_code == 1032:  # ❌ User cancelled
+            payment.status = 'FAILED'
+            payment.failure_type = 'USER_CANCELLED'
+            payment.save(update_fields=['status', 'failure_type'])
+
+        elif result_code in [1, 2, 3, 4, 5, 8, 1031]:  # ⚠️ Temporary failures
+            payment.status = 'FAILED'
+            payment.failure_type = 'TEMPORARY'
+            payment.save(update_fields=['status', 'failure_type'])
+
+        else:  # 🛑 Permanent or unknown failure
+            payment.status = 'FAILED'
+            payment.failure_type = 'PERMANENT'
+            payment.save(update_fields=['status', 'failure_type'])
+
+    except Exception as e:
+        logger.exception(f"Error processing stored M-Pesa webhook for payment {payment.id}: {e}")
 
 
 @csrf_exempt
 @require_http_methods(["POST", "GET"])
 def handle_mpesa_webhook(request):
-    """Handles M-Pesa webhook callbacks with cart clearing, duplicate prevention, and atomic updates."""
-
+    """
+    ✅ FIXED: Handles M-Pesa webhook callbacks with proper idempotency
+    """
     if request.method == "GET":
         return JsonResponse({'status': 'ok', 'message': 'M-Pesa webhook is active'})
 
@@ -62,6 +119,8 @@ def handle_mpesa_webhook(request):
                 return JsonResponse({'error': 'Payment not found'}, status=404)
 
             payment = payments.first()
+
+            # ✅ FIX: Handle multiple payments for same checkout ID
             if payments.count() > 1:
                 logger.warning(f"Multiple payments found for {checkout_request_id}, keeping most recent")
                 payments.exclude(id=payment.id).update(
@@ -76,8 +135,9 @@ def handle_mpesa_webhook(request):
             payment.raw_response = json.dumps(data)
             payment.result_code = result_code
             payment.result_description = stk_callback.get('ResultDesc', '')
+            payment.save(update_fields=['raw_response', 'result_code', 'result_description'])
 
-            # Process using helper function
+            # Process using helper function (now idempotent)
             process_mpesa_webhook_data(payment, data)
 
         return JsonResponse({'status': 'success'})
@@ -142,7 +202,6 @@ def handle_paypal_webhook(request):
 def verify_paypal_webhook(request):
     """Proper PayPal webhook signature verification"""
     try:
-        # Get required headers
         transmission_id = request.META.get('HTTP_PAYPAL_TRANSMISSION_ID')
         transmission_time = request.META.get('HTTP_PAYPAL_TRANSMISSION_TIME')
         transmission_sig = request.META.get('HTTP_PAYPAL_TRANSMISSION_SIG')
@@ -153,7 +212,6 @@ def verify_paypal_webhook(request):
             logger.warning("Missing PayPal webhook verification headers")
             return False
 
-        # Verify webhook signature using PayPal's API
         verification_url = f"{settings.PAYPAL_API_URL}/v1/notifications/verify-webhook-signature"
 
         verification_data = {
@@ -192,39 +250,31 @@ def verify_webhook_with_paypal(payload):
         webhook_id = payload.get('id')
         if not webhook_id:
             return False
-
-        # In production, implement PayPal webhook verification API call
-        # This ensures the webhook is genuinely from PayPal
         return True  # Placeholder for actual implementation
-
     except Exception as e:
         logger.error(f"PayPal webhook API verification failed: {str(e)}")
         return False
 
 
 def handle_payment_capture_completed(resource):
-    """Handle completed PayPal payment capture with proper order ID extraction"""
+    """
+    ✅ FIXED: Handle completed PayPal payment with idempotency
+    """
     try:
         capture_id = resource.get('id')
-
-        # Extract order ID from multiple possible locations
         order_id = None
         purchase_units = resource.get('purchase_units', [{}])
 
         for unit in purchase_units:
-            # Try custom_id first
             custom_id = unit.get('custom_id')
             if custom_id:
                 order_id = custom_id
                 break
-
-            # Try invoice_id as fallback
             invoice_id = unit.get('invoice_id')
             if invoice_id and invoice_id.startswith('ORDER_'):
                 order_id = invoice_id.replace('ORDER_', '')
                 break
 
-        # Also check resource level
         if not order_id and resource.get('custom_id'):
             order_id = resource.get('custom_id')
 
@@ -232,7 +282,6 @@ def handle_payment_capture_completed(resource):
             logger.error(f"No order ID found in PayPal webhook. Capture: {capture_id}")
             return JsonResponse({'error': 'Missing order ID'}, status=400)
 
-        # Remove ORDER_ prefix if present
         if order_id.startswith('ORDER_'):
             order_id = order_id.replace('ORDER_', '')
 
@@ -241,13 +290,13 @@ def handle_payment_capture_completed(resource):
         try:
             payment = Payment.objects.get(order_id=order_id, provider='PAYPAL')
 
-            # Prevent duplicate processing with transaction lock
             with transaction.atomic():
                 payment = Payment.objects.select_for_update().get(
                     order_id=order_id,
                     provider='PAYPAL'
                 )
 
+                # ✅ FIX: Skip if already completed
                 if payment.status == 'COMPLETED':
                     logger.info(f"Payment already completed for order {order_id}")
                     return JsonResponse({'status': 'already_processed'})
@@ -264,20 +313,24 @@ def handle_payment_capture_completed(resource):
                 payment.raw_response = resource
                 payment.save()
 
-                # ✅ FIXED: Use the order model's method
+                # ✅ FIX: Handle already-paid orders
                 order = payment.order
                 try:
-                    order.mark_as_paid(payment_method='PAYPAL')
-                    logger.info(f"Order {order.id} marked as PAID via model method.")
-                    clear_cart_after_payment(order)
+                    if order.status == 'PENDING':
+                        order.mark_as_paid(payment_method='PAYPAL')
+                        logger.info(f"Order {order.id} marked as PAID via PayPal webhook")
+                        clear_cart_after_payment(order)
+                    else:
+                        logger.info(f"Order {order.id} already in {order.status} status")
+
                 except ValidationError as e:
-                    logger.error(f"Stock error marking order {order.id} as paid: {e}")
-                    # Handle this business logic error (e.g., set status to 'FAILED')
+                    logger.error(f"Validation error for order {order.id}: {e}")
                     payment.status = 'FAILED'
                     payment.failure_type = 'STOCK_ISSUE'
                     payment.save()
+                except PermissionError as e:
+                    logger.warning(f"Order {order.id} already processed: {e}")
 
-                logger.info(f"PayPal payment completed for order {order_id}")
                 return JsonResponse({'status': 'success'})
 
         except Payment.DoesNotExist:
@@ -292,15 +345,12 @@ def handle_payment_capture_completed(resource):
 def verify_capture_status(capture_id):
     """Verify capture status with PayPal API"""
     try:
-        from .utils import paypal_client
-        result = paypal_client._make_request(
-            'GET',
-            f'/v2/payments/captures/{capture_id}'
-        )
+        result = paypal_client._make_request('GET', f'/v2/payments/captures/{capture_id}')
         return result
     except Exception as e:
         logger.error(f"Capture verification failed: {str(e)}")
         return None
+
 
 def handle_payment_capture_denied(resource):
     """Handle denied PayPal payment capture"""
@@ -320,13 +370,11 @@ def handle_payment_capture_denied(resource):
                 payment.failure_type = 'PAYPAL_DENIED'
                 payment.result_description = resource.get('details', {}).get('description', 'Payment denied')
                 payment.save()
-
                 logger.info(f"Updated payment status to FAILED for order {order_id}")
             except Payment.DoesNotExist:
                 logger.error(f"Payment not found for denied order {order_id}")
 
         return JsonResponse({'status': 'processed'})
-
     except Exception as e:
         logger.exception("Error handling payment capture denial")
         return JsonResponse({'error': 'Processing failed'}, status=500)
@@ -337,26 +385,20 @@ def handle_payment_refunded(resource):
     try:
         refund_id = resource.get('id')
         capture_id = resource.get('capture_id')
-        amount = resource.get('amount', {})
-
         logger.info(f"PayPal payment refunded: {refund_id} for capture {capture_id}")
 
-        # Find payment by capture ID
         payments = Payment.objects.filter(transaction_id=capture_id, provider='PAYPAL')
         if payments.exists():
             payment = payments.first()
             payment.status = 'REFUNDED'
             payment.save()
 
-            # Update order status
             order = payment.order
             order.status = 'REFUNDED'
             order.save()
-
             logger.info(f"Order {order.id} marked as REFUNDED")
 
         return JsonResponse({'status': 'processed'})
-
     except Exception as e:
         logger.exception("Error handling payment refund")
         return JsonResponse({'error': 'Processing failed'}, status=500)
@@ -378,60 +420,3 @@ def handle_checkout_order_completed(resource):
     """Handle completed checkout order"""
     logger.info(f"PayPal checkout order completed: {resource.get('id')}")
     return JsonResponse({'status': 'processed'})
-
-
-def send_payment_confirmation(order, payment):
-    """Send payment confirmation email (implement as needed)"""
-    try:
-        # Implement email sending logic here
-        logger.info(f"Payment confirmation would be sent for order {order.id}")
-        pass
-    except Exception as e:
-        logger.error(f"Failed to send payment confirmation: {str(e)}")
-
-def process_mpesa_webhook_data(payment, data):
-    """Processes a stored M-Pesa webhook payload and updates payment/order state accordingly."""
-    try:
-        stk_callback = data.get('Body', {}).get('stkCallback', {})
-        result_code = stk_callback.get('ResultCode')
-        callback_metadata = stk_callback.get('CallbackMetadata', {}) or {}
-        items = callback_metadata.get('Item', [])
-
-        if result_code == 0:  # ✅ SUCCESS
-            payment.status = 'COMPLETED'
-            # ... (set transaction_id, phone, amount)
-            payment.save(...)
-
-            # ✅ FIXED: Use the order model's method
-            try:
-                order = payment.order
-                order.mark_as_paid(payment_method='MPESA')
-                logger.info(f"Order {order.id} marked as PAID after M-Pesa success")
-                clear_cart_after_payment(order)
-            except ValidationError as e:
-                logger.error(f"Stock error marking order {order.id} as paid (M-Pesa): {e}")
-                payment.status = 'FAILED'
-                payment.failure_type = 'STOCK_ISSUE'
-                payment.save()
-            except Exception as e:
-                logger.error(f"Error updating order after M-Pesa success: {e}")
-
-
-        elif result_code == 1032:  # ❌ User cancelled
-            payment.status = 'FAILED'
-            payment.failure_type = 'USER_CANCELLED'
-            payment.save(update_fields=['status', 'failure_type'])
-
-        elif result_code in [1, 2, 3, 4, 5, 8, 1031]:  # ⚠️ Temporary failures
-            payment.status = 'FAILED'
-            payment.failure_type = 'TEMPORARY'
-            payment.save(update_fields=['status', 'failure_type'])
-
-        else:  # 🛑 Permanent or unknown failure
-            payment.status = 'FAILED'
-            payment.failure_type = 'PERMANENT'
-            payment.save(update_fields=['status', 'failure_type'])
-
-    except Exception as e:
-        logger.exception(f"Error processing stored M-Pesa webhook for payment {payment.id}: {e}")
-

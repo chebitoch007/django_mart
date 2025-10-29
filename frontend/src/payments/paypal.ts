@@ -1,4 +1,5 @@
-// paypal.ts
+// frontend/src/payments/paypal.ts
+
 import { formatCurrency, isPaypalCurrencySupported } from './utils.js';
 import {
   startProcessingAnimation,
@@ -12,6 +13,8 @@ import {
 import { PaymentSystem } from './payments.js';
 import { PaymentResponse, PayPalButtons } from '@/payments/types/payment.js';
 
+let paymentInProgress = false;
+let finalizationInProgress = false;
 let paypalButtons: PayPalButtons | null = null;
 
 export function initializePayPal(paymentSystem: PaymentSystem): void {
@@ -266,4 +269,26 @@ function submitPaymentForm(formData: FormData, paymentSystem: PaymentSystem): vo
     }
   }
 
+}
+
+// --- Reset PayPal State ---
+export function resetPayPalPaymentState(): void {
+  try {
+    // Clear the PayPal button container
+    const paypalContainer = document.getElementById('paypal-button-container');
+    if (paypalContainer) paypalContainer.innerHTML = '';
+
+    // Hide fallback message if visible
+    const fallback = document.getElementById('paypal-fallback');
+    if (fallback) fallback.style.display = 'none';
+
+    // Clear status or errors
+    clearPayPalStatus();
+
+    // Reset internal PayPal state
+    paypalButtons = null;
+    console.info('[PayPal] Payment state reset successfully.');
+  } catch (error) {
+    console.error('[PayPal] Error resetting payment state:', error);
+  }
 }

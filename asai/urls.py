@@ -9,19 +9,15 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('store.urls', namespace='store')),
-
     # Unified user accounts system
     path('accounts/', include('users.urls', namespace='users')),
-
     path('account/', RedirectView.as_view(url='/accounts/', permanent=True)),
-
-
     # Other apps
     path('cart/', include('cart.urls', namespace='cart')),
     path('orders/', include('orders.urls', namespace='orders')),
     path('payment/', include('payment.urls', namespace='payment')),
-
     path('register/', RedirectView.as_view(pattern_name='users:register', permanent=True)),
+    path('core/', include('core.urls')),
 
 
 ]
