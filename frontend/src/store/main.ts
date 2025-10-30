@@ -1,19 +1,34 @@
-// frontend/src/store/main.ts
+// frontend/src/store/main.ts - FIXED: Prevent multiple CartManager initializations
 
 // Store main entry point
+
+console.log('🟢 STORE main.ts loaded');
+
 import './styles/product-list.css';
 import './styles/product-detail.css';
 import './styles/search.css';
 import './styles/categories.css';
 
-// Then import functionality
+// Import functionality
 import { initProductList } from './product-list';
 import { initProductDetail } from './product-detail';
 import { initSearch } from './search';
 import { initCategories } from './categories';
 
+// ✅ CRITICAL: Import but DON'T call getInstance() here
+// The base.ts module already initializes CartManager when imported
+import './base';
+
+// ✅ Track if we've already initialized to prevent duplicates
+let isStoreInitialized = false;
+
 // Initialize based on current page
-document.addEventListener('DOMContentLoaded', () => {
+function initializeStorePage() {
+  if (isStoreInitialized) {
+    console.warn('⚠️  Store already initialized, skipping...');
+    return;
+  }
+
   // Get the unique page name from the body's data-page attribute
   const pageName = document.body.dataset.page;
 
@@ -36,6 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initCategories();
   }
 
+  isStoreInitialized = true;
+
   // Additional: handle HTMX swaps so page-specific initialisation fires after swap
   document.body.addEventListener('htmx:afterSwap', (evt: any) => {
     const target = evt.detail?.target as HTMLElement | null;
@@ -43,13 +60,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // If the results container was swapped in (for product list), re-initialise
     if (pageName === 'product-list' && target.id === 'resultsRoot') {
-      console.log('↻ HTMX afterSwap on resultsRoot — re-init product list logic');
+      console.log('↻ HTMX afterSwap on resultsRoot – re-init product list logic');
       initProductList();
     }
 
     // If other page types need re-init after swap, add here as needed
   });
-});
+}
+
+// ✅ Use standard DOMContentLoaded (don't initialize multiple times)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeStorePage);
+} else {
+  // DOM already loaded
+  initializeStorePage();
+}
 
 // Export for global access if needed
 declare global {
@@ -57,4 +82,5 @@ declare global {
     storeUtils: any;
   }
 }
+
 export { initProductList, initProductDetail, initSearch, initCategories };

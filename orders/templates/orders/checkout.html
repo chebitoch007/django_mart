@@ -898,11 +898,11 @@
 
               <div class="input-group">
                 <label class="input-label">Amount to Pay</label>
-                <input type="text"
-                       class="amount-input"
-                       id="amount"
-                       value="{{ order.total.currency.symbol }} {{ order.total.amount|floatformat:2|intcomma }}"
-                       readonly>
+                  <input type="text"
+                         class="amount-input"
+                         id="amount"
+                         value="{{ default_currency_symbol }} {{ order.total.amount|floatformat:2|intcomma }}"
+                         readonly>
               </div>
             </div>
           </div>

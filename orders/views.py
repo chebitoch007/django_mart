@@ -201,14 +201,29 @@ class OrderSuccessView(TemplateView):
         return context
 
 
+# orders/views.py - Fixed CheckoutView
+
 class CheckoutView(LoginRequiredMixin, TemplateView):
     template_name = 'orders/checkout.html'
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request, order_id=None, *args, **kwargs):
+        # If order_id is passed in URL, set it in session
+        if order_id:
+            try:
+                order = Order.objects.get(id=order_id, user=request.user)
+                if order.is_payable:
+                    request.session['order_id'] = order_id
+                else:
+                    return redirect('orders:order_detail', pk=order_id)
+            except Order.DoesNotExist:
+                return redirect('orders:order_list')
+
+        # Get order from session (now that we've potentially set it above)
         order = self.get_order_from_session(request)
         if not order:
             request.session.pop('order_id', None)
             return redirect('cart:cart_detail')
+
         return render(request, self.template_name, self.get_context_data(order=order))
 
     def get_order_from_session(self, request):
@@ -216,14 +231,12 @@ class CheckoutView(LoginRequiredMixin, TemplateView):
         if not order_id:
             return None
         try:
-            # --- OPTIMIZED QUERY ---
             items_queryset = OrderItem.objects.select_related('product')
             order = (
                 Order.objects
                 .prefetch_related(Prefetch('items', queryset=items_queryset))
                 .get(id=order_id, user=request.user)
             )
-            # --- END OPTIMIZATION ---
 
             if not order.is_payable:
                 request.session.pop('order_id', None)
@@ -232,7 +245,6 @@ class CheckoutView(LoginRequiredMixin, TemplateView):
         except Order.DoesNotExist:
             request.session.pop('order_id', None)
             return None
-
 
     def get_context_data(self, order, **kwargs):
         context = super().get_context_data(**kwargs)

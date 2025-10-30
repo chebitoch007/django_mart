@@ -1,4 +1,4 @@
-// frontend/vite.config.js
+// frontend/vite.config.js - FIXED: Remove duplicate main.ts entry
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
@@ -9,12 +9,15 @@ export default defineConfig({
   build: {
     outDir: '../static/frontend',
     assetsDir: '',
-    manifest: 'manifest.json',  // Changed from true to specify filename
+    manifest: 'manifest.json',
     emptyOutDir: true,
 
     rollupOptions: {
       input: {
-        'src/main': resolve(__dirname, 'src/main.ts'),
+        // ❌ REMOVED: 'src/main': resolve(__dirname, 'src/main.ts'),
+        // This was causing CartManager to initialize twice!
+
+        // ✅ KEEP THESE:
         'src/store/main': resolve(__dirname, 'src/store/main.ts'),
         'src/payments/payments': resolve(__dirname, 'src/payments/payments.ts'),
         'src/cart/cart-detail': resolve(__dirname, 'src/cart/cart-detail.ts'),

@@ -5,10 +5,6 @@
 
 {% block title %}Your Shopping Cart - ASAI{% endblock %}
 
-{% block extra_css %}
-<!-- Vite will automatically inject CSS from cart-detail.ts -->
-{% endblock %}
-
 {% block content %}
 <div class="cart-page-container" role="region" aria-labelledby="cart-heading">
     <!-- Header -->
@@ -16,7 +12,8 @@
         <div class="cart-header-content">
             <div class="cart-icon-wrapper" aria-hidden="true">
                 <svg class="icon-cart" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M3 3h2l.4 2M7 13h10l4-8H6.4" stroke="currentColor" stroke-width="1.5"
+                    <path d="M3 3h2l.4 2M7 13h10l4-8H6.4"
+                          stroke="currentColor" stroke-width="1.5"
                           stroke-linecap="round" stroke-linejoin="round"/>
                     <circle cx="10" cy="20" r="1" fill="currentColor"/>
                     <circle cx="18" cy="20" r="1" fill="currentColor"/>
@@ -60,13 +57,10 @@
             </div>
 
             {% for item in cart.items.all %}
-            {# [NEW] Changed class from cart-item-row to cart-card for consistency #}
             <div class="cart-card {% if not item.product.available %}unavailable{% endif %}"
                  data-product-id="{{ item.product.id }}"
                  data-update-url="{% url 'cart:cart_update' item.product.id %}"
                  data-stock="{{ item.product.stock }}">
-
-                {# [NEW] Loading overlay will be inserted here by JavaScript #}
 
                 <div class="cart-item-content">
                     <a href="{{ item.product.get_absolute_url }}" class="cart-item-image-wrapper" aria-hidden="true">
@@ -103,9 +97,15 @@
                         <div class="product-details-row">
                             <div class="price-quantity-group">
                                 <div class="unit-price-block">
-                                    <div class="price-primary">KES {{ item.product.get_display_price|intcomma }}</div>
+                                    <div class="price-primary">
+                                        {{ item.product.get_display_price.currency }}
+                                        {{ item.product.get_display_price.amount|intcomma }}
+                                    </div>
                                     {% if item.product.discount_price %}
-                                    <div class="cart-item-original-price">KES {{ item.product.price|intcomma }}</div>
+                                    <div class="cart-item-original-price">
+                                        {{ item.product.price.currency }}
+                                        {{ item.product.price.amount|intcomma }}
+                                    </div>
                                     {% endif %}
                                 </div>
 
@@ -140,27 +140,13 @@
                                             </svg>
                                         </button>
                                     </div>
-
-                                    {# [NEW] Static stock warning - dynamic one will be added by JS #}
-                                    {% if item.quantity > item.product.stock %}
-                                    <div class="stock-warning" role="alert">
-                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"
-                                             style="width:14px;height:14px;">
-                                            <path d="M12 9v4" stroke="currentColor" stroke-width="1.2"
-                                                  stroke-linecap="round" stroke-linejoin="round"/>
-                                            <path d="M12 17h.01" stroke="currentColor" stroke-width="1.2"
-                                                  stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                        Only {{ item.product.stock }} available
-                                    </div>
-                                    {% endif %}
-                                    {# Dynamic stock warning will be inserted here by JavaScript #}
                                 </div>
                             </div>
 
                             <div class="item-actions">
                                 <div class="cart-item-total" id="total-{{ item.product.id }}" aria-live="polite">
-                                    KES {{ item.total_price|intcomma }}
+                                    {{ item.total_price.currency }}
+                                    {{ item.total_price.amount|intcomma }}
                                 </div>
 
                                 <form method="post" action="{% url 'cart:cart_remove' item.product.id %}"
@@ -170,9 +156,11 @@
                                         <svg class="icon-trash" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                             <path d="M3 6h18" stroke="currentColor" stroke-width="1.2"
                                                   stroke-linecap="round" stroke-linejoin="round"/>
-                                            <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="currentColor"
-                                                  stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                                            <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="1.2"
+                                            <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6"
+                                                  stroke="currentColor" stroke-width="1.2"
+                                                  stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M10 11v6M14 11v6"
+                                                  stroke="currentColor" stroke-width="1.2"
                                                   stroke-linecap="round" stroke-linejoin="round"/>
                                         </svg>
                                     </button>
@@ -204,7 +192,7 @@
             {% endif %}
         </div>
 
-        <!-- Summary Section -->
+        <!-- ✅ Restored Original Order Summary Design -->
         <div class="cart-summary-section">
             <div class="summary-card" id="cart-summary" aria-labelledby="summary-title">
                 <div class="summary-content">
@@ -212,7 +200,9 @@
 
                     <div class="summary-row">
                         <span>Subtotal:</span>
-                        <span id="cart-subtotal" aria-live="polite">KES {{ cart.total_price|intcomma }}</span>
+                        <span id="cart-subtotal" aria-live="polite">
+                            {{ cart.total_price.currency }} {{ cart.total_price.amount|intcomma }}
+                        </span>
                     </div>
                     <div class="summary-row">
                         <span>Shipping:</span>
@@ -220,17 +210,20 @@
                     </div>
                     <div class="summary-row">
                         <span>Estimated Tax:</span>
-                        <span>KES 0.00</span>
+                        <span>{{ cart.total_price.currency }} 0.00</span>
                     </div>
 
                     <div class="summary-total-row" aria-live="polite">
                         <span>Total:</span>
-                        <span id="cart-total">KES {{ cart.total_price|intcomma }}</span>
+                        <span id="cart-total">
+                            {{ cart.total_price.currency }} {{ cart.total_price.amount|intcomma }}
+                        </span>
                     </div>
 
                     <form method="post" action="{% url 'orders:create_order' %}">
                         {% csrf_token %}
-                        <button type="submit" name="checkout" class="checkout-btn" {% if not cart.items.exists %}disabled{% endif %}>
+                        <button type="submit" name="checkout" class="checkout-btn"
+                                {% if not cart.items.exists %}disabled{% endif %}>
                             Proceed to Checkout
                         </button>
                     </form>
@@ -250,43 +243,31 @@
     <div class="empty-cart-container" role="status" aria-live="polite">
         <div class="empty-cart-icon" aria-hidden="true">
             <svg class="icon-cart-lg" viewBox="0 0 24 24" fill="none">
-                <path d="M3 3h2l.4 2M7 13h10l4-8H6.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"
-                      stroke-linejoin="round"/>
+                <path d="M3 3h2l.4 2M7 13h10l4-8H6.4"
+                      stroke="currentColor" stroke-width="1.2"
+                      stroke-linecap="round" stroke-linejoin="round"/>
                 <circle cx="10" cy="20" r="1" fill="currentColor"/>
                 <circle cx="18" cy="20" r="1" fill="currentColor"/>
             </svg>
         </div>
-
         <h2 class="empty-cart-title">Your Cart is Empty</h2>
         <p class="empty-cart-text">Explore our premium products and find something special for your gaming setup!</p>
         <a href="{% url 'store:product_list' %}" class="discover-btn">
             <svg class="icon-bag" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:20px;height:20px;">
-                <path d="M6 7V6a6 6 0 0 1 12 0v1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"
-                      stroke-linejoin="round"/>
-                <path d="M3 7h18l-1 13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2L3 7z" stroke="currentColor" stroke-width="1.2"
+                <path d="M6 7V6a6 6 0 0 1 12 0v1"
+                      stroke="currentColor" stroke-width="1.2"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M3 7h18l-1 13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2L3 7z"
+                      stroke="currentColor" stroke-width="1.2"
                       stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             Discover Products
         </a>
-
-        <div class="recently-viewed">
-            <h3 class="recently-viewed-title">Recently Viewed</h3>
-            <div class="recent-products">
-                {% for product in recently_viewed|slice:":3" %}
-                <a href="{{ product.get_absolute_url }}" class="recent-product" aria-label="{{ product.name }}">
-                    <img src="{{ product.get_image_url }}" alt="{{ product.name }}" loading="lazy" decoding="async">
-                </a>
-                {% endfor %}
-            </div>
-        </div>
     </div>
     {% endif %}
 </div>
 
-{# [NEW] Toast container and sticky bar will be added by JavaScript #}
-
 {% endblock %}
-
 
 {% block extra_scripts %}
 {% vite_asset 'src/cart/cart-detail.ts' %}

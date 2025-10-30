@@ -1,6 +1,6 @@
 # store/utils/filters.py
 from typing import Iterable, Optional
-from django.db.models import Q, Avg, Count
+from django.db.models import Q, Avg, Count, QuerySet
 from django.db.models.functions import Coalesce
 from django.http import HttpRequest
 
@@ -19,8 +19,8 @@ def _parse_number(value: Optional[str]) -> Optional[float]:
         return float(value)
     except (ValueError, TypeError):
         return None
-
-def apply_search_filter(request: HttpRequest, queryset):
+#def apply_search_filter(request: HttpRequest, queryset):
+def apply_product_filters(request: HttpRequest, queryset):
     """
     Apply standard product filters from request.GET to the given queryset.
 
@@ -102,4 +102,4 @@ def apply_search_filter(request: HttpRequest, queryset):
 
 
 # alias used in your views (the view you showed calls apply_product_filters)
-apply_product_filters = apply_search_filter
+#apply_product_filters = apply_search_filter

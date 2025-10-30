@@ -15,6 +15,9 @@ urlpatterns = [
     path('<int:pk>/', views.OrderDetailView.as_view(), name='order_detail'),
 
     path('checkout/', login_required(CheckoutView.as_view()), name='checkout'),
+
+    path('checkout/<int:order_id>/', login_required(CheckoutView.as_view()), name='checkout_order'),
+
     #path('', views.order_history, name='order_list'),
     path("success/<int:order_id>/", views.OrderSuccessView.as_view(), name="success"),
     path('shipping/', views.create_order, name='create_order'),

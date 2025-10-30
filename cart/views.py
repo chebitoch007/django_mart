@@ -1,16 +1,23 @@
-#cart/views.py
+#cart/views.py - FIXED VERSION
 
 import json
-from django.views.decorators.http import require_POST
-from django.db import transaction, IntegrityError
+from django.db import transaction
 from django.dispatch.dispatcher import logger
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from orders.models import Order
+from django.views.decorators.http import require_POST
+from djmoney.money import Money
 from store.models import Product
-from .models import CartItem
 from .forms import CartAddProductForm
-from .utils import get_cart, merge_carts
+from .models import CartItem
+from .utils import get_cart
+
+
+def money_to_string(money):
+    """Convert Money object to a numeric string (amount only)."""
+    if isinstance(money, Money):
+        return str(money.amount)
+    return str(money)
 
 
 def cart_detail(request):
@@ -24,14 +31,9 @@ def cart_detail(request):
             item.quantity = item.product.stock
             item.save()
 
-    # ✅ FIXED: Simplified checkout POST
-    # The cart's job isn't to create the order, just to lead to checkout.
-    # The 'orders' app will be responsible for reading the cart and creating the order.
     if request.method == 'POST' and 'checkout' in request.POST:
         if not cart.items.exists():
             return redirect('cart:cart_detail')
-
-        # Redirect to the checkout page. The orders app will handle the rest.
         return redirect('orders:create_order')
 
     return render(request, 'cart/detail.html', {
@@ -57,19 +59,14 @@ def cart_add(request, product_id):
                 if cart_item_exists and not update_quantity:
                     response_data['message'] = 'Product is already in your cart'
                 else:
-                    # Use update_quantity=True for new items or when explicitly updating
                     cart.add_product(product, quantity, update_quantity=update_quantity or not cart_item_exists)
-
                     response_data = {
                         'success': True,
                         'message': f'{product.name} added to cart',
                         'cart_total_items': cart.total_items,
                         'is_new_item': not cart_item_exists,
-                        # Add HX-Trigger header for HTMX
                         'HX-Trigger': json.dumps({
-                            'cartUpdated': {
-                                'cart_total_items': cart.total_items
-                            }
+                            'cartUpdated': {'cart_total_items': cart.total_items}
                         })
                     }
 
@@ -77,21 +74,14 @@ def cart_add(request, product_id):
             logger.error(f"Cart add error: {str(e)}")
             response_data['message'] = 'Server error. Please try again later.'
 
-        # HTMX or AJAX response
         if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse(response_data)
-
         return redirect('cart:cart_detail')
 
-    # Invalid form handling
     if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return JsonResponse({
-            'success': False,
-            'message': 'Invalid quantity or request data.'
-        }, status=400)
+        return JsonResponse({'success': False, 'message': 'Invalid quantity or request data.'}, status=400)
 
     return redirect(product.get_absolute_url())
-
 
 
 def cart_remove(request, product_id):
@@ -105,23 +95,17 @@ def cart_remove(request, product_id):
         response_data = {
             'success': True,
             'cart_total_items': cart.total_items,
-            'cart_total_price': cart.total_price,
-            # Add HX-Trigger header for HTMX
+            'cart_total_price': money_to_string(cart.total_price),
             'HX-Trigger': json.dumps({
-                'cartUpdated': {
-                    'cart_total_items': cart.total_items
-                }
+                'cartUpdated': {'cart_total_items': cart.total_items}
             })
         }
-
     except CartItem.DoesNotExist:
         pass
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse(response_data)
     return redirect('cart:cart_detail')
-
-
 
 
 def cart_clear(request):
@@ -133,15 +117,9 @@ def cart_clear(request):
             'success': True,
             'cart_total_items': 0,
             'message': 'Cart cleared successfully',
-            'HX-Trigger': json.dumps({
-                'cartUpdated': {
-                    'cart_total_items': 0
-                }
-            })
+            'HX-Trigger': json.dumps({'cartUpdated': {'cart_total_items': 0}})
         })
-
     return redirect('cart:cart_detail')
-
 
 
 @require_POST
@@ -160,44 +138,33 @@ def cart_update(request, product_id):
 
     try:
         item = cart.items.get(product=product)
-        # Ensure quantity doesn't exceed stock
+
         if quantity > product.stock:
             quantity = product.stock
             exceeded_stock = True
 
         if quantity <= 0:
-            # ✅ FIXED: Changed cart.items.remove(item) to item.delete()
             item.delete()
             removed_item = True
             response_data = {
                 'success': True,
-                'cart_total_price': cart.total_price,
+                'cart_total_price': money_to_string(cart.total_price),
                 'cart_total_items': cart.total_items,
                 'message': 'Item removed from cart',
-                # Add HX-Trigger header for HTMX
-                'HX-Trigger': json.dumps({
-                    'cartUpdated': {
-                        'cart_total_items': cart.total_items
-                    }
-                })
+                'HX-Trigger': json.dumps({'cartUpdated': {'cart_total_items': cart.total_items}})
             }
         else:
             item.quantity = quantity
             item.save()
             response_data = {
                 'success': True,
-                'item_total': item.total_price,
-                'cart_total_price': cart.total_price,
+                'item_total': money_to_string(item.total_price),
+                'cart_total_price': money_to_string(cart.total_price),
                 'cart_total_items': cart.total_items,
                 'item_quantity': quantity,
                 'product_stock': product.stock,
                 'message': 'Quantity adjusted due to stock limits' if exceeded_stock else 'Quantity updated',
-                # Add HX-Trigger header for HTMX
-                'HX-Trigger': json.dumps({
-                    'cartUpdated': {
-                        'cart_total_items': cart.total_items
-                    }
-                })
+                'HX-Trigger': json.dumps({'cartUpdated': {'cart_total_items': cart.total_items}})
             }
 
     except CartItem.DoesNotExist:
@@ -206,7 +173,6 @@ def cart_update(request, product_id):
     return JsonResponse(response_data)
 
 
-# FIXED: Removed trailing comma and extra text
 def cart_total(request):
     cart = get_cart(request)
     return JsonResponse({

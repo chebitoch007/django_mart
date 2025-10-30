@@ -484,4 +484,4 @@ CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 
 
-BASE_URL='https://47512f0d27bc.ngrok-free.app'
+BASE_URL='https://a2e3376069fe.ngrok-free.app'

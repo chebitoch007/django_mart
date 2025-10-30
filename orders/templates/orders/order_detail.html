@@ -1,5 +1,4 @@
-<!-- orders/templates/orders/order_detail.html -->
-
+<!-- orders/templates/orders/order_detail.html - FIXED -->
 
 {% load humanize %}
 {% load static %}
@@ -801,9 +800,9 @@
                     Order #{{ order.id }}
                 </h1>
                 <span class="status-badge {% if order.status == 'PAID' %}status-paid{% else %}status-pending{% endif %}">
-                        <i class="fas fa-circle" style="font-size: 0.5rem;"></i>
-                        {{ order.get_status_display }}
-                    </span>
+                    <i class="fas fa-circle" style="font-size: 0.5rem;"></i>
+                    {{ order.get_status_display }}
+                </span>
             </div>
 
             <!-- Order Status Progress Bar -->
@@ -905,18 +904,18 @@
                         <div class="product-info">
                             <div class="product-name">{{ item.product.name }}</div>
                             <div class="product-meta">
-                                {{ item.quantity }} × {{ item.price }}
+                                {{ item.quantity }} × {{ item.price.currency }} {{ item.price.amount|floatformat:2|intcomma }}
                             </div>
                         </div>
                     </td>
                     <td class="text-right price-cell" data-label="Price">
-                        {{ order.currency }} {{ item.price|floatformat:2|intcomma }}
+                        {{ item.price.currency }} {{ item.price.amount|floatformat:2|intcomma }}
                     </td>
                     <td class="text-center quantity-cell" data-label="Quantity">
                         {{ item.quantity }}
                     </td>
                     <td class="text-right price-cell" data-label="Total">
-                        {{ order.currency }} {{ item.total_price|floatformat:2|intcomma }}
+                        {{ item.total_price.currency }} {{ item.total_price.amount|floatformat:2|intcomma }}
                     </td>
                 </tr>
                 {% endfor %}
@@ -924,12 +923,11 @@
                 <tfoot>
                 <tr>
                     <td colspan="3" class="text-right">Subtotal:</td>
-                    <td class="text-right">{{ order.currency }} {{ order.total|floatformat:2|intcomma }}</td>
+                    <td class="text-right">{{ order.total.currency }} {{ order.total.amount|floatformat:2|intcomma }}</td>
                 </tr>
                 <tr class="total-row">
                     <td colspan="3" class="text-right">Total Amount:</td>
-                    <td class="text-right total-amount">{{ order.currency }} {{ order.total|floatformat:2|intcomma }}
-                    </td>
+                    <td class="text-right total-amount">{{ order.total.currency }} {{ order.total.amount|floatformat:2|intcomma }}</td>
                 </tr>
                 </tfoot>
             </table>
@@ -946,7 +944,7 @@
                 Your order is confirmed but requires payment to proceed. Complete your payment securely to start
                 processing your order.
             </p>
-            <a href="{% url 'orders:checkout' %}" class="payment-btn-inline">
+            <a href="{% url 'orders:checkout_order' order.id %}" class="payment-btn-inline">
                 <i class="fas fa-lock"></i>
                 Proceed to Secure Payment
             </a>
@@ -958,7 +956,7 @@
 <!-- Floating Payment Button (Mobile & Desktop) -->
 {% if order.status == 'PENDING' and order.is_payable %}
 <div class="floating-pay-btn">
-    <a href="{% url 'orders:checkout' %}" class="pay-now-btn">
+    <a href="{% url 'orders:checkout_order' order.id %}" class="pay-now-btn">
         <i class="fas fa-shield-alt"></i>
         <span>Pay Now</span>
     </a>

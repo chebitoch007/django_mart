@@ -1,6 +1,10 @@
 // frontend/src/main.ts
 
 // Import styles and assets
+
+console.log('🔴 ROOT main.ts loaded');
+
+
 import './style.css';
 import javascriptLogo from './javascript.svg';
 import viteLogo from '/vite.svg';

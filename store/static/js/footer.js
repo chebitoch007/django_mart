@@ -1,3 +1,4 @@
+// ===== BASE JAVASCRIPT (NO FOOTER CODE) =====
 // Enhanced Responsive JavaScript for Base Template
 
 // ===== VIEWPORT AND DEVICE DETECTION =====
@@ -71,7 +72,7 @@ class ResponsiveNav {
         });
         ticking = true;
       }
-    });
+    }, { passive: true });
 
     // Handle window resize
     let resizeTimer;
@@ -143,9 +144,6 @@ class ResponsiveNav {
   }
 }
 
-// static/js/base.js - FIXED VERSION
-// Find and replace the cart functionality section with this:
-
 // ===== ENHANCED CART FUNCTIONALITY =====
 document.addEventListener('DOMContentLoaded', function() {
   function updateCartCount(count) {
@@ -186,7 +184,6 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-
 // ===== ENHANCED SEARCH FUNCTIONALITY =====
 class SearchEnhancer {
   constructor() {
@@ -194,7 +191,7 @@ class SearchEnhancer {
     this.searchInput = this.searchBar?.querySelector('input[name="q"]');
     this.searchSuggestions = document.getElementById('search-suggestions');
     this.selectedIndex = -1;
-    this.originalQuery = ''; // <-- ADD THIS LINE
+    this.originalQuery = '';
 
     if (this.searchInput) {
       this.init();
@@ -237,13 +234,12 @@ class SearchEnhancer {
         }
       }
     });
-    // <-- ADD THIS LISTENER -->
+
+    // Store original query on input
     this.searchInput.addEventListener('input', () => {
-      // Store what the user is typing
       this.originalQuery = this.searchInput.value;
-      this.selectedIndex = -1; // Reset selection on new typing
+      this.selectedIndex = -1;
     });
-    // <-- END OF ADDITION -->
   }
 
   handleKeyboard(e) {
@@ -270,10 +266,10 @@ class SearchEnhancer {
         }
         break;
 
-        case 'Escape':
-            this.searchInput.value = this.originalQuery; // Restore original text
-            this.hideSuggestions();
-            break;
+      case 'Escape':
+        this.searchInput.value = this.originalQuery;
+        this.hideSuggestions();
+        break;
     }
   }
 
@@ -288,13 +284,12 @@ class SearchEnhancer {
     });
 
     // Update input value for preview
-      if (this.selectedIndex >= 0) {
-          const selectedText = items[this.selectedIndex].textContent.trim();
-          this.searchInput.value = selectedText;
-      } else {
-          // User arrowed up past the first item
-          this.searchInput.value = this.originalQuery;
-      }
+    if (this.selectedIndex >= 0) {
+      const selectedText = items[this.selectedIndex].textContent.trim();
+      this.searchInput.value = selectedText;
+    } else {
+      this.searchInput.value = this.originalQuery;
+    }
   }
 
   hideSuggestions() {
@@ -302,52 +297,6 @@ class SearchEnhancer {
       this.searchSuggestions.style.display = 'none';
       this.selectedIndex = -1;
     }
-  }
-}
-
-// ===== BACK TO TOP BUTTON =====
-class BackToTop {
-  constructor() {
-    this.button = document.getElementById('back-to-top');
-    this.threshold = 300;
-
-    if (this.button) {
-      this.init();
-    }
-  }
-
-  init() {
-    let ticking = false;
-    window.addEventListener('scroll', () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          this.handleScroll();
-          ticking = false;
-        });
-        ticking = true;
-      }
-    });
-
-    this.button.addEventListener('click', () => {
-      this.scrollToTop();
-    });
-  }
-
-  handleScroll() {
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-    if (scrollTop > this.threshold) {
-      this.button.classList.add('visible');
-    } else {
-      this.button.classList.remove('visible');
-    }
-  }
-
-  scrollToTop() {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
   }
 }
 
@@ -405,58 +354,6 @@ function removeNotification(notification) {
     notification.remove();
   }, 300);
 }
-
-// ===== NEWSLETTER FORM =====
-document.addEventListener('DOMContentLoaded', function() {
-  const newsletterForm = document.getElementById('newsletter-form');
-  const feedbackDiv = document.getElementById('newsletter-feedback');
-
-  if (newsletterForm && feedbackDiv) {
-    newsletterForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-
-      const formData = new FormData(this);
-      const submitButton = this.querySelector('.newsletter-button');
-      const originalText = submitButton.textContent;
-
-      submitButton.textContent = 'Subscribing...';
-      submitButton.disabled = true;
-
-      fetch(this.action, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          showFeedback('Thank you for subscribing!', 'success');
-          this.reset();
-        } else {
-          showFeedback(data.message || 'Subscription failed. Please try again.', 'error');
-        }
-      })
-      .catch(error => {
-        showFeedback('An error occurred. Please try again later.', 'error');
-      })
-      .finally(() => {
-        submitButton.textContent = originalText;
-        submitButton.disabled = false;
-      });
-    });
-  }
-
-  function showFeedback(message, type) {
-    feedbackDiv.textContent = message;
-    feedbackDiv.className = `newsletter-feedback ${type} show`;
-
-    setTimeout(() => {
-      feedbackDiv.classList.remove('show');
-    }, 5000);
-  }
-});
 
 // ===== LAZY LOADING PROTECTION FOR CRITICAL IMAGES =====
 const EAGER_SELECTORS = [
@@ -613,7 +510,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize all components
   new ResponsiveNav();
   new SearchEnhancer();
-  new BackToTop();
   AccessibilityEnhancer.init();
 
   // Enable performance monitoring in development
@@ -626,7 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.classList.add(`device-${DeviceDetector.getBreakpoint()}`);
   document.body.classList.add(DeviceDetector.isTouchDevice() ? 'touch-device' : 'no-touch');
 
-  console.log('🚀 Responsive base scripts initialized');
+  console.log('🚀 Base scripts initialized');
 });
 
 // ===== GLOBAL UTILITIES =====
@@ -643,7 +539,6 @@ if (typeof module !== 'undefined' && module.exports) {
     DeviceDetector,
     ResponsiveNav,
     SearchEnhancer,
-    BackToTop,
     showNotification
   };
 }

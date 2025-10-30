@@ -1,3 +1,4 @@
+// src/store/base.ts - FIXED VERSION
 // Enhanced Store Utilities with more functionality
 
 // Declare the global showNotification function from base.js
@@ -269,18 +270,22 @@ export class StoreUtils {
   }
 }
 
-// Enhanced Cart Manager with wishlist and persistence
+// ✅ FIXED: Enhanced Cart Manager with GLOBAL duplicate notification prevention
 export class CartManager {
   private static instance: CartManager;
   private cartCountElements: NodeListOf<HTMLElement>;
   private cartLink: HTMLElement | null;
   private wishlist: Set<number> = new Set();
+  private static lastNotificationTime: number = 0; // ✅ Made static (global)
+  private static notificationDebounceMs: number = 300; // ✅ Increased to 300ms
+  private static isNotifying: boolean = false; // ✅ New: Prevent concurrent notifications
 
   private constructor() {
     this.cartCountElements = document.querySelectorAll('.cart-count, #cart-count, #mobile-cart-count');
     this.cartLink = document.getElementById('cart-link');
     this.loadWishlist();
     this.bindEvents();
+    console.log('🛒 CartManager initialized');
   }
 
   public static getInstance(): CartManager {
@@ -291,8 +296,21 @@ export class CartManager {
   }
 
   private bindEvents(): void {
-    // HTMX cart updates
-    document.body.addEventListener('htmx:afterRequest', this.handleCartUpdate.bind(this) as EventListener);
+    // ✅ NUCLEAR OPTION: Remove any existing cart update listeners first
+    // This prevents duplicate listeners if getInstance() is called multiple times
+    const existingListener = (this as any)._cartUpdateListener;
+    if (existingListener) {
+      document.body.removeEventListener('htmx:afterRequest', existingListener);
+      console.log('🧹 Removed existing HTMX listener');
+    }
+
+    // Create and store the bound listener
+    const boundListener = this.handleCartUpdate.bind(this) as EventListener;
+    (this as any)._cartUpdateListener = boundListener;
+
+    // HTMX cart updates (only one listener now)
+    document.body.addEventListener('htmx:afterRequest', boundListener);
+    console.log('✅ Cart HTMX listener registered');
 
     // Wishlist events
     document.addEventListener('wishlist:toggle', ((event: WishlistEvent) => {
@@ -306,25 +324,69 @@ export class CartManager {
     const form = target.closest('.add-to-cart-form');
 
     if (form && customEvent.detail && customEvent.detail.xhr.status === 200) {
+      console.log('🔔 Cart update detected');
       try {
         const response = JSON.parse(customEvent.detail.xhr.responseText);
 
-
         if (response.success) {
             this.updateCartCount(response.cart_total_items);
-            showNotification(response.message, 'success');
+            this.showDebouncedNotification(response.message, 'success');
 
             // Dispatch custom event for analytics
             this.dispatchCartEvent('add', response.cart_item);
         } else {
-            showNotification(response.message, 'error');
+            // Check for "already in cart" message to show a warning instead of an error
+            if (response.message === 'Product is already in your cart') {
+              this.showDebouncedNotification(response.message, 'warning');
+            } else {
+              this.showDebouncedNotification(response.message, 'error');
+            }
         }
 
       } catch (e) {
-        console.error('Error parsing cart response:', e);
-        this.showNotification('Item added to cart', 'success');
+        console.error('Error parsing cart response:', e, customEvent.detail.xhr.responseText);
+        this.showDebouncedNotification('An error occurred while updating cart.', 'error');
       }
     }
+  }
+
+  // ✅ ENHANCED: Global debounced notification with locking mechanism
+  private showDebouncedNotification(message: string, type: 'success' | 'error' | 'warning' | 'info'): void {
+    const now = Date.now();
+
+    console.log('📬 Notification requested:', {
+      message,
+      type,
+      timeSinceLastNotification: now - CartManager.lastNotificationTime,
+      isCurrentlyNotifying: CartManager.isNotifying,
+      willShow: !CartManager.isNotifying && (now - CartManager.lastNotificationTime >= CartManager.notificationDebounceMs)
+    });
+
+    // ✅ Check if we're already showing a notification
+    if (CartManager.isNotifying) {
+      console.log('⏭️  Notification skipped: Already showing a notification');
+      return;
+    }
+
+    // ✅ Check if enough time has passed since last notification
+    if (now - CartManager.lastNotificationTime < CartManager.notificationDebounceMs) {
+      console.log('⏭️  Notification debounced:', message);
+      return;
+    }
+
+    // ✅ Lock the notification system
+    CartManager.isNotifying = true;
+    CartManager.lastNotificationTime = now;
+
+    // Show the notification
+    showNotification(message, type);
+    console.log('✅ Notification shown:', message);
+
+    // ✅ Unlock after a brief delay
+    setTimeout(() => {
+      CartManager.isNotifying = false;
+      console.log('🔓 Notification system unlocked');
+    }, 100);
   }
 
   public updateCartCount(count: number): void {
@@ -346,14 +408,14 @@ export class CartManager {
   }
 
   // Wishlist functionality
-    public toggleWishlist(product: any): void {
-      if (this.wishlist.has(product.id)) {
-        this.wishlist.delete(product.id);
-        showNotification('Removed from wishlist', 'info');
-      } else {
-          this.wishlist.add(product.id);
-          showNotification('Added to wishlist', 'success');
-      }
+  public toggleWishlist(product: any): void {
+    if (this.wishlist.has(product.id)) {
+      this.wishlist.delete(product.id);
+      this.showDebouncedNotification('Removed from wishlist', 'info');
+    } else {
+      this.wishlist.add(product.id);
+      this.showDebouncedNotification('Added to wishlist', 'success');
+    }
 
     this.saveWishlist();
     this.updateWishlistUI();
@@ -395,8 +457,6 @@ export class CartManager {
     });
   }
 
-
-
   // Analytics events
   private dispatchCartEvent(action: string, item?: any): void {
     const event = new CustomEvent('analytics:cart', {
@@ -422,24 +482,27 @@ export class CartManager {
         'X-Requested-With': 'XMLHttpRequest'
       }
     })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                this.updateCartCount(data.cart_total_items);
-                showNotification(data.message, 'success');
-            } else {
-                showNotification(data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Quick add failed:', error);
-            showNotification('Failed to add item to cart', 'error');
-        });
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            this.updateCartCount(data.cart_total_items);
+            this.showDebouncedNotification(data.message, 'success');
+        } else {
+            this.showDebouncedNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Quick add failed:', error);
+        this.showDebouncedNotification('Failed to add item to cart', 'error');
+    });
   }
 }
 
-// Initialize cart manager
+// Initialize cart manager (singleton - only runs once)
 export const cartManager = CartManager.getInstance();
+
+// ✅ Log to confirm single initialization
+console.log('✅ base.ts loaded - CartManager singleton created');
 
 // Export as default for module compatibility
 export default {
