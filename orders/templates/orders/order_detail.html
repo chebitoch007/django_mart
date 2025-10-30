@@ -1,3 +1,6 @@
+<!-- orders/templates/orders/order_detail.html -->
+
+
 {% load humanize %}
 {% load static %}
 
@@ -902,7 +905,7 @@
                         <div class="product-info">
                             <div class="product-name">{{ item.product.name }}</div>
                             <div class="product-meta">
-                                {{ item.quantity }} × {{ order.currency }} {{ item.price|floatformat:2|intcomma }}
+                                {{ item.quantity }} × {{ item.price }}
                             </div>
                         </div>
                     </td>

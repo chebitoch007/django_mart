@@ -1,3 +1,6 @@
+<!-- orders/templates/orders/history.html -->
+
+
 {% extends "store/base.html" %}
 {% load humanize %}
 
@@ -229,7 +232,7 @@
                         </span>
                     </td>
                     <td>{{ order.items.count }}</td>
-                    <td>KES {{ order.total|intcomma }}</td>
+                    <td>{{ order.total }}</td>
                     <td>
                         <a href="{% url 'orders:order_detail' order.id %}" class="view-btn">
                             <i class="fas fa-eye"></i> Details

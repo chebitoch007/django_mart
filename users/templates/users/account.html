@@ -222,7 +222,7 @@
                                             </span>
                                     </td>
                                     <!-- ✅ FIX: Changed get_total_cost to total and added humanize -->
-                                    <td class="py-3 px-4 text-sm font-semibold">KSh {{ order.total|intcomma }}</td>
+                                    <td class="py-3 px-4 text-sm font-semibold">{{ order.total }}</td>
                                     <td class="py-3 px-4">
                                         <a href="{% url 'orders:order_detail' order.id %}"
                                            class="text-indigo-600 hover:text-indigo-500 text-sm font-medium">

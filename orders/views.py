@@ -1,3 +1,5 @@
+#orders/views.py
+
 from djmoney.money import Money
 from decimal import Decimal
 import logging
@@ -128,7 +130,7 @@ def create_order(request):
 
 class OrderListView(LoginRequiredMixin, ListView):
     model = Order
-    template_name = 'orders/order_list.html'
+    template_name = 'orders/history.html'
     context_object_name = 'orders'
     paginate_by = 10
 
@@ -141,6 +143,11 @@ class OrderListView(LoginRequiredMixin, ListView):
             .order_by('-created')
         )
 
+
+@login_required
+def order_history(request):
+    orders = Order.objects.filter(user=request.user).order_by('-created')
+    return render(request, 'orders/history.html', {'orders': orders})
 
 class OrderDetailView(LoginRequiredMixin, DetailView):
     model = Order
@@ -184,12 +191,6 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         return order
 
 
-@login_required
-def order_history(request):
-    orders = Order.objects.filter(user=request.user).order_by('-created')
-    return render(request, 'orders/history.html', {'orders': orders})
-
-
 class OrderSuccessView(TemplateView):
     template_name = "orders/success.html"
 
@@ -215,7 +216,15 @@ class CheckoutView(LoginRequiredMixin, TemplateView):
         if not order_id:
             return None
         try:
-            order = Order.objects.get(id=order_id, user=request.user)
+            # --- OPTIMIZED QUERY ---
+            items_queryset = OrderItem.objects.select_related('product')
+            order = (
+                Order.objects
+                .prefetch_related(Prefetch('items', queryset=items_queryset))
+                .get(id=order_id, user=request.user)
+            )
+            # --- END OPTIMIZATION ---
+
             if not order.is_payable:
                 request.session.pop('order_id', None)
                 return None
@@ -223,6 +232,7 @@ class CheckoutView(LoginRequiredMixin, TemplateView):
         except Order.DoesNotExist:
             request.session.pop('order_id', None)
             return None
+
 
     def get_context_data(self, order, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -245,12 +255,7 @@ class CheckoutView(LoginRequiredMixin, TemplateView):
             'selected_method': selected_method,
         })
 
-        payment = getattr(order, 'payment', None)
-        if not payment:
-            payment, _ = Payment.objects.get_or_create(
-                order=order,
-                defaults={'amount': order.total, 'status': 'PENDING'}
-            )
+        payment = order.payment
 
         if payment.amount != order.total:
             payment.amount = order.total

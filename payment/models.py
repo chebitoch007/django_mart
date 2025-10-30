@@ -62,22 +62,6 @@ class Payment(models.Model):
 
     class Meta:
         ordering = ['-created_at']
-        constraints = [
-            models.UniqueConstraint(
-                fields=['order', 'provider'],
-                name='unique_order_provider',
-                condition=models.Q(status__in=['PENDING', 'PROCESSING'])
-            )
-        ]
 
-    def clean(self):
-        if self.status in ['PENDING', 'PROCESSING']:
-            existing = Payment.objects.filter(
-                order=self.order,
-                provider=self.provider,
-                status__in=['PENDING', 'PROCESSING']
-            ).exclude(pk=self.pk)
-            if existing.exists():
-                raise ValidationError(
-                    f"An active {self.provider} payment already exists for this order"
-                )
+
+

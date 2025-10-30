@@ -1,3 +1,6 @@
+<!-- orders/templates/orders/success.html -->
+
+
 {% extends 'store/base.html' %}
 {% load humanize %}
 
@@ -113,7 +116,7 @@
     <div class="success-details">
         <div class="detail-row">
             <span class="detail-label">Order Total:</span>
-            <span class="detail-value">KES {{ order.total|intcomma }}</span>
+            <span class="detail-value">{{ order.total }}</span>
         </div>
         <div class="detail-row">
             <span class="detail-label">Payment Method:</span>
