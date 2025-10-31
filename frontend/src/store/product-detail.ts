@@ -219,16 +219,14 @@ function createLightbox(imageSrc: string): HTMLElement {
     if (e.target === lightbox) closeLightbox();
   });
 
-  // Keyboard support — use a named handler that we can remove later
-    const escHandler = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-            closeLightbox();
-            document.removeEventListener('keydown', escHandler);
-        }
-    };
+  const escHandler = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      closeLightbox();
+      document.removeEventListener('keydown', escHandler);
+    }
+  };
 
-    document.addEventListener('keydown', escHandler);
-
+  document.addEventListener('keydown', escHandler);
 
   lightbox.appendChild(img);
   lightbox.appendChild(closeBtn);
@@ -300,9 +298,6 @@ function initQuantityControls(): void {
   const quantityPlus = document.querySelector('.quantity-plus');
 
   console.log('[Quantity] initQuantityControls() called');
-  console.log('[Quantity] Input element:', quantityInput);
-  console.log('[Quantity] Minus button:', quantityMinus);
-  console.log('[Quantity] Plus button:', quantityPlus);
 
   if (!quantityInput) {
     console.warn('[Quantity] ❌ Quantity input not found');
@@ -310,44 +305,32 @@ function initQuantityControls(): void {
   }
 
   let maxStock = parseInt(quantityInput.dataset.maxStock || '99');
-  console.log('[Quantity] Max stock initially:', maxStock);
 
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       if (mutation.type === 'attributes' && mutation.attributeName === 'data-max-stock') {
         maxStock = parseInt(quantityInput.dataset.maxStock || '99');
         quantityInput.max = maxStock.toString();
-        console.log('[Quantity] Updated maxStock from data-max-stock:', maxStock);
       }
     });
   });
   observer.observe(quantityInput, { attributes: true });
 
   quantityMinus?.addEventListener('click', (e) => {
-    console.log('[Quantity] Minus clicked');
     e.stopPropagation();
     const currentValue = parseInt(quantityInput.value) || 1;
-    console.log('[Quantity] Current value before minus:', currentValue);
     if (currentValue > 1) {
       quantityInput.value = (currentValue - 1).toString();
-      console.log('[Quantity] New value after minus:', quantityInput.value);
       animateButton(quantityMinus as HTMLElement);
-    } else {
-      console.log('[Quantity] Already at minimum');
     }
   });
 
   quantityPlus?.addEventListener('click', (e) => {
-    console.log('[Quantity] Plus clicked');
     e.stopPropagation();
     const currentValue = parseInt(quantityInput.value) || 1;
-    console.log('[Quantity] Current value before plus:', currentValue, 'Max:', maxStock);
     if (currentValue < maxStock) {
       quantityInput.value = (currentValue + 1).toString();
-      console.log('[Quantity] New value after plus:', quantityInput.value);
       animateButton(quantityPlus as HTMLElement);
-    } else {
-      console.log('[Quantity] Already at maximum');
     }
   });
 
@@ -356,11 +339,9 @@ function initQuantityControls(): void {
     if (value < 1) value = 1;
     if (value > maxStock) value = maxStock;
     quantityInput.value = value.toString();
-    console.log('[Quantity] Input changed manually to:', value);
   });
 
   quantityInput.addEventListener('keydown', (e) => {
-    console.log('[Quantity] Key pressed:', e.key);
     if (e.key === 'ArrowUp') {
       e.preventDefault();
       (quantityPlus as HTMLButtonElement | null)?.click();
@@ -427,7 +408,6 @@ function initVariantSelection(): void {
     const selectedColor = colorInput?.value || null;
     const selectedSize = sizeInput?.value || null;
 
-    // Find matching variant
     const matchedVariant = variants.find(v => {
       const colorMatch = !v.color || v.color === selectedColor || !selectedColor;
       const sizeMatch = !v.size || v.size === selectedSize || !selectedSize;
@@ -435,7 +415,6 @@ function initVariantSelection(): void {
     });
 
     if (matchedVariant && priceEl && stockEl && variantInput && addToCartBtn && quantityInput) {
-      // Update price with animation
       priceEl.style.opacity = '0.5';
       setTimeout(() => {
         priceEl.textContent = `KES ${matchedVariant.price.toLocaleString()}`;
@@ -446,7 +425,6 @@ function initVariantSelection(): void {
         (originalPriceEl as HTMLElement).style.display = 'none';
       }
 
-      // Update stock status with appropriate styling
       if (matchedVariant.quantity > 10) {
         stockEl.innerHTML = '<span class="stock-in"><i class="fas fa-check-circle"></i> In Stock</span>';
       } else if (matchedVariant.quantity > 0) {
@@ -458,7 +436,6 @@ function initVariantSelection(): void {
       variantInput.value = matchedVariant.id.toString();
       addToCartBtn.disabled = matchedVariant.quantity <= 0;
 
-      // Update quantity input constraints
       quantityInput.max = matchedVariant.quantity.toString();
       quantityInput.dataset.maxStock = matchedVariant.quantity.toString();
 
@@ -477,36 +454,20 @@ function initReviewFormToggle(): void {
   const toggleBtn = document.getElementById('toggle-review-form');
   const reviewForm = document.getElementById('review-form');
 
-  console.log('[ReviewForm] initReviewFormToggle() called');
-  console.log('[ReviewForm] toggleBtn:', toggleBtn);
-  console.log('[ReviewForm] reviewForm:', reviewForm);
-
-  if (!toggleBtn) {
-    console.warn('[ReviewForm] ❌ Toggle button (#toggle-review-form) not found');
-    return;
-  }
-  if (!reviewForm) {
-    console.warn('[ReviewForm] ❌ Review form (#review-form) not found');
-    return;
-  }
+  if (!toggleBtn || !reviewForm) return;
 
   toggleBtn.addEventListener('click', (e) => {
     e.preventDefault();
-    console.log('[ReviewForm] Toggle button clicked');
-
     const isActive = reviewForm.classList.toggle('active');
-    console.log('[ReviewForm] Form active state:', isActive);
 
     toggleBtn.innerHTML = isActive
       ? '<i class="fas fa-times"></i> Cancel'
       : '<i class="fas fa-edit"></i> Write a Review';
 
     if (isActive) {
-      console.log('[ReviewForm] Scheduling scrollIntoView after animation');
       setTimeout(() => {
-        console.log('[ReviewForm] Scrolling into view now');
         reviewForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 400); // match CSS transition duration
+      }, 400);
     }
   });
 }
@@ -514,26 +475,18 @@ function initReviewFormToggle(): void {
 // ========================================
 // Review Filtering and Sorting
 // ========================================
-/**
- * Reviews initialization: filter, sort, and hook up helpful/delete buttons.
- */
 function initReviews(): void {
   const filter = document.getElementById('review-filter') as HTMLSelectElement | null;
   const sort = document.getElementById('review-sort') as HTMLSelectElement | null;
   const list = document.querySelector('.reviews-list') as HTMLElement | null;
 
-  if (!list) {
-    // No reviews on page
-    return;
-  }
+  if (!list) return;
 
-  // Filter + sort implementation (exposed so other parts can re-run it)
   function filterAndSort(): void {
     const filterValue = filter?.value ?? 'all';
     const sortValue = sort?.value ?? 'newest';
     const reviews = Array.from(list.querySelectorAll<HTMLElement>('.review-item'));
 
-    // 1. Filter reviews
     reviews.forEach(review => {
       const rating = review.dataset.rating ?? '';
       const shouldShow = filterValue === 'all' || rating === filterValue;
@@ -545,7 +498,6 @@ function initReviews(): void {
       }
     });
 
-    // 2. Sort visible reviews
     const visibleReviews = reviews.filter(r => r.style.display !== 'none');
 
     visibleReviews.sort((a, b) => {
@@ -566,29 +518,18 @@ function initReviews(): void {
       }
     });
 
-    // Re-append in sorted order (this preserves existing nodes)
     visibleReviews.forEach(review => list.appendChild(review));
   }
 
-  // Bind controls
   filter?.addEventListener('change', filterAndSort);
   sort?.addEventListener('change', filterAndSort);
 
-  // Run initially
   filterAndSort();
 
-  // Helpful and delete buttons setup
   initHelpfulButtons();
   initDeleteReviewButtons();
-
-  // Expose the filterAndSort function to global (optional) so other parts can call it
-  // (window as any)._productDetail_filterAndSort = filterAndSort;
 }
 
-/**
- * Initialize "Helpful" vote buttons on reviews — toggles vote/unvote.
- * Also updates the review's data-helpful attribute and helpful-count display.
- */
 function initHelpfulButtons(): void {
   const buttons = document.querySelectorAll<HTMLButtonElement>('.helpful-btn');
 
@@ -603,10 +544,8 @@ function initHelpfulButtons(): void {
     btn.addEventListener('click', async (e) => {
       e.preventDefault();
 
-      // prevent double-clicks
       if (btn.dataset.busy === 'true') return;
       btn.dataset.busy = 'true';
-      btn.setAttribute('aria-disabled', 'true');
       btn.disabled = true;
 
       const countEl = btn.querySelector<HTMLElement>('.helpful-count');
@@ -623,16 +562,13 @@ function initHelpfulButtons(): void {
           credentials: 'same-origin',
         });
 
-        // Handle not logged in (401 or 403)
         if (response.status === 401 || response.status === 403) {
           showNotification('You need to log in to vote helpful reviews.', 'error');
           return;
         }
 
         if (!response.ok) {
-          const text = await response.text().catch(() => null);
           showNotification('Could not register vote. Please try again.', 'error');
-          console.warn('Helpful vote failed', response.status, text);
           return;
         }
 
@@ -652,12 +588,10 @@ function initHelpfulButtons(): void {
           if (data.voted) {
             btn.classList.add('voted');
             btn.dataset.voted = 'true';
-            btn.setAttribute('aria-pressed', 'true');
             showNotification('Marked as helpful', 'success');
           } else if (data.unvoted) {
             btn.classList.remove('voted');
             btn.dataset.voted = 'false';
-            btn.setAttribute('aria-pressed', 'false');
             showNotification('Removed helpful vote', 'success');
           }
 
@@ -672,15 +606,11 @@ function initHelpfulButtons(): void {
       } finally {
         btn.disabled = false;
         btn.dataset.busy = 'false';
-        btn.removeAttribute('aria-disabled');
       }
     });
   });
 }
 
-/**
- * Initialize delete buttons for reviews (only shown to review owner).
- */
 function initDeleteReviewButtons(): void {
   document.querySelectorAll<HTMLButtonElement>('.delete-review-btn').forEach(btn => {
     const reviewId = btn.dataset.reviewId;
@@ -691,12 +621,9 @@ function initDeleteReviewButtons(): void {
       const ok = confirm('Delete your review? This cannot be undone.');
       if (!ok) return;
 
-      // Disable while deleting
       btn.disabled = true;
-      btn.dataset.busy = 'true';
 
       try {
-        // endpoint must match your urls.py pattern
         const response = await fetch(`/reviews/${reviewId}/delete/`, {
           method: 'POST',
           headers: {
@@ -714,10 +641,8 @@ function initDeleteReviewButtons(): void {
 
         const data = await response.json();
         if (data.success) {
-          // remove review from DOM and show toast
           const reviewItem = btn.closest<HTMLElement>('.review-item');
           if (reviewItem) reviewItem.remove();
-
           showNotification('Review deleted', 'success');
         } else {
           showNotification(data.message || 'Unable to delete review', 'error');
@@ -727,12 +652,10 @@ function initDeleteReviewButtons(): void {
         showNotification('Network error. Try again later.', 'error');
       } finally {
         btn.disabled = false;
-        btn.dataset.busy = 'false';
       }
     });
   });
 }
-
 
 // ========================================
 // Stock Notifications
@@ -747,7 +670,6 @@ function initStockNotifications(): void {
 
     if (!email) return;
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       showNotification('Please enter a valid email address.', 'error');
@@ -781,7 +703,7 @@ function initStockNotifications(): void {
 }
 
 // ========================================
-// Social Sharing (Optional Enhancement)
+// Social Sharing
 // ========================================
 
 function initSocialSharing(): void {
@@ -825,7 +747,7 @@ function initSocialSharing(): void {
 }
 
 // ========================================
-// Questions Section (Optional)
+// Questions Section
 // ========================================
 
 function initQuestions(): void {
@@ -867,7 +789,6 @@ function initLazyLoading(): void {
 
     lazyImages.forEach(img => imageObserver.observe(img));
   } else {
-    // Fallback for older browsers
     lazyImages.forEach(img => {
       const image = img as HTMLImageElement;
       image.src = image.dataset.src || '';
@@ -899,55 +820,13 @@ function initMobileStickyCTA(): void {
   );
 
   observer.observe(addToCartForm);
-
-  // Add smooth transition
   stickyCTA.style.transition = 'transform 0.3s ease';
 }
 
 // ========================================
-// HTMX Event Handler for Cart Actions
+// ✅ REMOVED: HTMX Event Handler
+// Notifications are now ONLY handled by base.ts CartManager
 // ========================================
-
-function initHTMXHandlers(): void {
-  document.body.addEventListener('htmx:afterRequest', (event: any) => {
-    if (!event.detail || !event.detail.elt) return;
-
-    const form = event.detail.elt.closest('.add-to-cart-form');
-
-    if (form && event.detail.xhr.status === 200) {
-      try {
-        const response = JSON.parse(event.detail.xhr.responseText);
-
-        if (response.success) {
-          updateGlobalCartCount(response.cart_total_items);
-          showNotification(response.message || 'Item added to cart!', 'success');
-
-          // Visual feedback on button
-          const btn = form.querySelector('.add-to-cart-btn') as HTMLButtonElement;
-          if (btn) {
-            const originalBg = btn.style.background;
-            btn.style.background = '#16a34a';
-            setTimeout(() => {
-              btn.style.background = originalBg;
-            }, 500);
-          }
-        } else {
-          showNotification(response.message || 'Unable to add item to cart', 'error');
-        }
-      } catch (e) {
-        // Fallback if response isn't JSON
-        showNotification('Item added to cart!', 'success');
-      }
-    } else if (event.detail.failed) {
-      showNotification('Failed to add item to cart. Please try again.', 'error');
-    }
-  });
-
-  // Handle HTMX errors
-  document.body.addEventListener('htmx:responseError', () => {
-    showNotification('A network error occurred. Please check your connection.', 'error');
-  });
-}
 
 // ========================================
 // Scroll Animation for Reviews
@@ -969,7 +848,6 @@ function initScrollAnimations(): void {
 
   animatedElements.forEach(el => observer.observe(el));
 
-  // Add animation styles
   const style = document.createElement('style');
   style.textContent = `
     .fade-in-up {
@@ -996,12 +874,12 @@ console.log('[Init] initProductDetail() called');
 let productDetailInitialized = false;
 
 export function initProductDetail(): void {
-    if (productDetailInitialized) {
-          console.warn('[Init] Product detail already initialized — skipping duplicate');
+  if (productDetailInitialized) {
+    console.warn('[Init] Product detail already initialized – skipping duplicate');
     return;
-      }
-      productDetailInitialized = true;
-      console.log('[Init] Product detail initialized once');
+  }
+  productDetailInitialized = true;
+  console.log('[Init] Product detail initialized once');
 
   // Core functionality
   initImageGallery();
@@ -1023,11 +901,9 @@ export function initProductDetail(): void {
   initMobileStickyCTA();
   initScrollAnimations();
 
-  // HTMX integration
-  initHTMXHandlers();
+  // ✅ NO HTMX HANDLERS - Let base.ts handle all notifications
 
-  // Log initialization
-  console.log('✓ Product detail page initialized');
+  console.log('✅ Product detail page initialized (without duplicate notifications)');
 }
 
 // Auto-initialize if this is the only script
