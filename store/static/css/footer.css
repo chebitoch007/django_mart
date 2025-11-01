@@ -73,8 +73,16 @@
   box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
 }
 
+/* X (Twitter) - Black background */
+.footer-social-icon:has(.fa-x-twitter):hover {
+  background: #000000;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+}
+
+/* Instagram - Gradient from orange to pink/purple */
 .footer-social-instagram:hover {
-  background: linear-gradient(to bottom right, #a855f7, #ec4899);
+  background: linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  box-shadow: 0 8px 20px rgba(188, 24, 136, 0.5);
 }
 
 .footer-social-youtube:hover {

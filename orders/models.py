@@ -79,10 +79,23 @@ class Order(models.Model):
 
     @property
     def total_cost(self):
-        total_sum = self.items.aggregate(
-            total=Sum(F('price_amount') * F('quantity'))
-        )['total'] or 0
-        return Money(total_sum, self.total.currency)
+        """Calculate total cost from order items"""
+        from decimal import Decimal
+
+        # Django-money stores amount in 'price' field directly
+        # We need to sum up: price * quantity for each item
+        items = self.items.all()
+
+        if not items:
+            return Money(0, self.total.currency)
+
+        total = Decimal('0.00')
+        for item in items:
+            # item.price is already a Money object
+            item_total = item.price.amount * item.quantity
+            total += item_total
+
+        return Money(total, self.total.currency)
 
     @property
     def is_payable(self):

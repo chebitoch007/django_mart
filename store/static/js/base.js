@@ -23,6 +23,7 @@ class ResponsiveNav {
     this.nav = document.querySelector('.amazon-nav');
     this.mobileMenu = document.getElementById('mobile-menu');
     this.menuToggle = document.getElementById('mobile-menu-toggle');
+    this.menuClose = document.getElementById('mobile-menu-close-btn'); // Added close button
     this.lastScrollTop = 0;
     this.scrollThreshold = 100;
 
@@ -41,6 +42,14 @@ class ResponsiveNav {
         e.stopPropagation();
         this.toggleMobileMenu();
       });
+    }
+
+    // Mobile menu close button
+    if (this.menuClose) {
+        this.menuClose.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.closeMobileMenu();
+        });
     }
 
     // Close menu on outside click
@@ -84,6 +93,10 @@ class ResponsiveNav {
   toggleMobileMenu() {
     if (!this.mobileMenu) return;
 
+    // Dynamically set the top position based on the nav's current height
+    const navHeight = this.nav.offsetHeight;
+    this.mobileMenu.style.top = `${navHeight}px`;
+
     const isActive = this.mobileMenu.classList.toggle('active');
     this.menuToggle?.setAttribute('aria-expanded', isActive.toString());
     this.mobileMenu.setAttribute('aria-hidden', (!isActive).toString());
@@ -93,8 +106,9 @@ class ResponsiveNav {
 
     // Focus management
     if (isActive) {
-      const firstLink = this.mobileMenu.querySelector('a');
-      firstLink?.focus();
+      // Focus the close button or the first link
+      const closeBtn = this.mobileMenu.querySelector('.mobile-menu-close');
+      (closeBtn || this.mobileMenu.querySelector('a'))?.focus();
     }
   }
 
@@ -119,12 +133,15 @@ class ResponsiveNav {
 
     // Hide/show nav on mobile when scrolling
     if (DeviceDetector.isMobile()) {
-      if (scrollTop > this.lastScrollTop && scrollTop > this.scrollThreshold) {
-        // Scrolling down
-        this.nav?.classList.add('nav-hidden');
-      } else {
-        // Scrolling up
-        this.nav?.classList.remove('nav-hidden');
+      // Only hide if mobile menu is NOT active
+      if (!this.mobileMenu.classList.contains('active')) {
+        if (scrollTop > this.lastScrollTop && scrollTop > this.scrollThreshold) {
+          // Scrolling down
+          this.nav?.classList.add('nav-hidden');
+        } else {
+          // Scrolling up
+          this.nav?.classList.remove('nav-hidden');
+        }
       }
     }
 
@@ -135,6 +152,12 @@ class ResponsiveNav {
     // Close mobile menu on resize to desktop
     if (DeviceDetector.isDesktop() && this.mobileMenu?.classList.contains('active')) {
       this.closeMobileMenu();
+    }
+
+    // Recalculate menu top if it's active and window resizes
+    if (this.mobileMenu?.classList.contains('active')) {
+        const navHeight = this.nav.offsetHeight;
+        this.mobileMenu.style.top = `${navHeight}px`;
     }
 
     // Update body class for CSS targeting

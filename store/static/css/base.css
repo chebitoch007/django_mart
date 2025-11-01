@@ -326,7 +326,7 @@ select {
   }
 
   .mobile-menu {
-    top: 48px;
+    /* top: 48px; <-- REMOVED, JS will handle this */
   }
 
   .hamburger-menu {
@@ -617,9 +617,16 @@ select {
   display: none !important;
 }
 
+.show-mobile-inline {
+    display: none !important;
+}
+
 @media (max-width: 640px) {
   .show-mobile {
     display: block !important;
+  }
+  .show-mobile-inline {
+    display: inline !important;
   }
 }
 
@@ -833,7 +840,7 @@ body {
 .nav-top-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* justify-content: space-between; <-- REMOVED */
   padding: var(--spacing-sm) var(--spacing-md);
   width: 100%;
   gap: var(--spacing-sm);
@@ -842,7 +849,7 @@ body {
 
 /* Logo Section */
 .nav-logo {
-  flex: 0 0 auto;
+  flex: 0 0 auto; /* Will not grow, will not shrink */
   transition: transform 0.3s ease;
 }
 
@@ -885,10 +892,12 @@ body {
 
 /* Search Container */
 .search-container {
-  flex: 1 1 auto;
-  min-width: 0;
+  flex: 1 1 auto; /* Will grow and shrink */
+  min-width: 0; /* Important for flex-shrink */
   max-width: 700px;
   position: relative;
+  margin-left: var(--spacing-md); /* Added margin */
+  margin-right: var(--spacing-md); /* Added margin */
 }
 
 .search-bar {
@@ -967,7 +976,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  flex: 0 0 auto;
+  flex: 0 0 auto; /* Will not grow, will not shrink */
   gap: var(--spacing-xs);
   flex-wrap: nowrap;
 }
@@ -1103,21 +1112,91 @@ body {
 .mobile-menu {
   display: none;
   position: fixed;
-  top: 60px;
+  /* top: 60px; <-- REMOVED, JS will set this dynamically */
   left: 0;
   right: 0;
   bottom: 0;
   background: rgba(15,23,42,0.98);
   z-index: 90;
-  overflow-y: auto;
-  padding: var(--spacing-lg);
+  overflow-y: auto; /* This overflow is now for the outer container, inner one scrolls */
   transform: translateX(-100%);
   transition: transform 0.4s cubic-bezier(0.25,0.8,0.25,1);
   backdrop-filter: blur(10px);
+  padding: 0; /* REMOVED padding, will add to inner containers */
+  display: flex; /* Use flex for header/content split */
+  flex-direction: column;
 }
 
 .mobile-menu.active {
   transform: translateX(0);
+}
+
+/* NEW Mobile Menu Header */
+.mobile-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-indigo); /* Match nav bar */
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-menu-account {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: clamp(1rem, 2.5vw, 1.125rem);
+  font-weight: 600;
+  color: white;
+  text-decoration: none;
+  transition: var(--transition-default);
+}
+.mobile-menu-account:hover {
+  opacity: 0.8;
+}
+
+.mobile-menu-close {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  border-radius: 50%;
+  transition: var(--transition-default);
+}
+.mobile-menu-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: rotate(90deg);
+}
+
+/* NEW Mobile Menu Scroll Container */
+.mobile-menu-scroll-container {
+  overflow-y: auto;
+  flex-grow: 1;
+  padding: var(--spacing-lg);
+  -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+}
+
+.mobile-menu-title {
+  font-size: clamp(0.875rem, 2vw, 1rem);
+  font-weight: 600;
+  color: #9ca3af; /* Light gray */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.mobile-menu-title:first-child {
+  margin-top: 0;
+}
+
+.mobile-menu-links {
+   display: grid;
+   grid-template-columns: 1fr;
+   gap: var(--spacing-sm); /* Tighter gap for links */
 }
 
 .mobile-menu-categories {
@@ -1183,23 +1262,27 @@ body {
 /* Tablet Landscape (1024px and below) */
 @media (max-width: 1024px) {
   .nav-top-row {
-    flex-wrap: wrap;
+    /* flex-wrap: wrap; <-- REMOVED */
     gap: var(--spacing-sm);
   }
 
   .search-container {
-    order: 3;
-    width: 100%;
-    max-width: 100%;
-    margin-top: var(--spacing-xs);
+    /* order: 3; <-- REMOVED */
+    /* width: 100%; <-- REMOVED */
+    /* max-width: 100%; <-- REMOVED */
+    /* margin-top: var(--spacing-xs); <-- REMOVED */
+    flex: 1 1 auto; /* Ensure it still grows/shrinks */
+    min-width: 150px; /* Give it a min-width */
   }
 
   .nav-logo {
-    order: 1;
+    /* order: 1; <-- REMOVED */
+    flex-shrink: 0; /* Don't shrink logo */
   }
 
   .nav-right {
-    order: 2;
+    /* order: 2; <-- REMOVED */
+    flex-shrink: 0; /* Don't shrink nav-right */
   }
 }
 
@@ -1207,6 +1290,26 @@ body {
 @media (max-width: 768px) {
   .nav-top-row {
     padding: var(--spacing-sm);
+    flex-wrap: wrap; /* Allow wrapping only on 768px and below */
+  }
+
+  /* On tablet portrait, make search 100% width on its own row */
+  .search-container {
+      order: 3;
+      width: 100%;
+      max-width: 100%;
+      margin-top: var(--spacing-xs);
+      margin-left: 0;
+      margin-right: 0;
+      min-width: 100%;
+  }
+
+  .nav-logo {
+      order: 1;
+  }
+
+  .nav-right {
+      order: 2;
   }
 
   .hamburger-menu {
@@ -1218,7 +1321,7 @@ body {
   }
 
   .mobile-menu {
-    display: block;
+    display: flex; /* Use flex to enable new header/scroll layout */
   }
 
   .nav-bottom-row {
@@ -1256,8 +1359,8 @@ body {
     height: 44px;
   }
 
-  .mobile-menu {
-    padding: var(--spacing-md);
+  .mobile-menu-scroll-container {
+    padding: var(--spacing-md); /* Adjust padding for scroll container */
   }
 }
 
@@ -1402,7 +1505,7 @@ body {
   }
 
   .mobile-menu {
-    top: 50px;
+    /* top: 50px; <-- REMOVED, JS will handle this */
   }
 }
 

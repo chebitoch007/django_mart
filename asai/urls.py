@@ -1,3 +1,5 @@
+# urls.py
+
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic.base import RedirectView
@@ -5,9 +7,13 @@ from django.views.generic.base import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
 
+# Normalize ADMIN_URL from settings (strip leading/trailing slashes)
+_admin_route = getattr(settings, 'ADMIN_URL', 'admin')
+_admin_route = _admin_route.strip('/')  # ensure no leading/trailing slashes
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path(f'{_admin_route}/', admin.site.urls),
+
     path('', include('store.urls', namespace='store')),
     # Unified user accounts system
     path('accounts/', include('users.urls', namespace='users')),
@@ -18,8 +24,6 @@ urlpatterns = [
     path('payment/', include('payment.urls', namespace='payment')),
     path('register/', RedirectView.as_view(pattern_name='users:register', permanent=True)),
     path('core/', include('core.urls')),
-
-
 ]
 
 if settings.DEBUG:

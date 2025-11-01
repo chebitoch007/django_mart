@@ -482,6 +482,6 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap4'
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 
-
+ADMIN_URL = env("ADMIN_URL", default="admin")
 
 BASE_URL='https://a2e3376069fe.ngrok-free.app'

@@ -43,6 +43,7 @@ SUGGESTION_THRESHOLD = 0.15
 TRENDING_CACHE_KEY = 'trending_products'
 TRENDING_CACHE_TIMEOUT = 3600  # seconds
 
+
 def ajax_login_required(view_func):
     """Custom decorator to return JSON 401 for AJAX requests instead of redirecting."""
     @wraps(view_func)
@@ -492,89 +493,267 @@ def product_categories(request):
 
 
 def create_confirmation_email_content(request: HttpRequest, subscription: NewsletterSubscription) -> tuple[str, str]:
+    """Generate both plaintext and HTML email content for confirmation."""
     confirmation_link = request.build_absolute_uri(
         reverse('store:confirm_subscription', args=[subscription.confirmation_token]))
     unsubscribe_link = request.build_absolute_uri(
         reverse('store:unsubscribe', args=[subscription.unsubscribe_token]))
-    privacy_policy_link = request.build_absolute_uri(reverse('users:privacy'))
+    privacy_policy_link = request.build_absolute_uri(reverse('store:privacy'))
 
-    plaintext_message = f"""Please confirm your subscription by clicking:
+    plaintext_message = f"""Welcome to ASAI Newsletter!
+
+Please confirm your subscription by clicking the link below:
 {confirmation_link}
 
-If you didn't request this, you can unsubscribe here:
+If you didn't request this subscription, you can safely ignore this email or unsubscribe here:
 {unsubscribe_link}
 
+Your subscription details:
+- Email: {subscription.email}
+- IP Address: {subscription.ip_address}
+- Signup Date: {subscription.created_at.strftime('%Y-%m-%d %H:%M:%S')}
+
 Privacy Policy: {privacy_policy_link}
-IP Address: {subscription.ip_address}
-Signup Date: {subscription.created_at}
+
+Best regards,
+ASAI Team
 """
 
     html_content = f"""
-    <h2>Almost there!</h2>
-    <p>Click below to confirm your subscription:</p>
-    <a href="{confirmation_link}" style="display:inline-block;padding:12px 20px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;">Confirm Subscription</a>
-    <p>Or copy this link to your browser:<br><code>{confirmation_link}</code></p>
-    <p style="margin-top: 20px;">
-        <small>
-            If you didn't request this, please 
-            <a href="{unsubscribe_link}">unsubscribe here</a>.<br>
-            IP Address: {subscription.ip_address}<br>
-            Signup Date: {subscription.created_at}<br>
-            <a href="{privacy_policy_link}">Privacy Policy</a>
-        </small>
-    </p>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {{
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+            }}
+            .container {{
+                background: #ffffff;
+                border-radius: 10px;
+                padding: 30px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }}
+            .header {{
+                text-align: center;
+                margin-bottom: 30px;
+            }}
+            .logo {{
+                font-size: 32px;
+                font-weight: bold;
+                background: linear-gradient(45deg, #60a5fa, #a78bfa, #f472b6);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                margin-bottom: 10px;
+            }}
+            .button {{
+                display: inline-block;
+                padding: 14px 30px;
+                background: linear-gradient(135deg, #2563eb, #4338ca);
+                color: white !important;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: 600;
+                margin: 20px 0;
+                transition: transform 0.2s;
+            }}
+            .button:hover {{
+                transform: translateY(-2px);
+            }}
+            .info-box {{
+                background: #f8fafc;
+                border-left: 4px solid #2563eb;
+                padding: 15px;
+                margin: 20px 0;
+                border-radius: 4px;
+            }}
+            .footer {{
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #e2e8f0;
+                font-size: 12px;
+                color: #64748b;
+                text-align: center;
+            }}
+            .footer a {{
+                color: #2563eb;
+                text-decoration: none;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="logo">ASAI</div>
+                <h2 style="color: #1e293b; margin: 0;">Welcome to Our Newsletter! 🎮</h2>
+            </div>
+
+            <p>Hi there!</p>
+
+            <p>Thanks for subscribing to the ASAI newsletter. You're one click away from getting exclusive deals, 
+            new product launches, and gaming tips delivered straight to your inbox.</p>
+
+            <div style="text-align: center;">
+                <a href="{confirmation_link}" class="button">Confirm My Subscription</a>
+            </div>
+
+            <p style="text-align: center; color: #64748b; font-size: 14px;">
+                Or copy this link to your browser:<br>
+                <code style="background: #f1f5f9; padding: 5px 10px; border-radius: 4px; display: inline-block; margin-top: 5px;">
+                    {confirmation_link}
+                </code>
+            </p>
+
+            <div class="info-box">
+                <strong>Subscription Details:</strong><br>
+                📧 Email: {subscription.email}<br>
+                📍 IP Address: {subscription.ip_address}<br>
+                📅 Date: {subscription.created_at.strftime('%B %d, %Y at %H:%M')}
+            </div>
+
+            <p style="color: #64748b; font-size: 14px;">
+                <strong>Didn't request this?</strong><br>
+                If you didn't sign up for our newsletter, you can safely ignore this email or 
+                <a href="{unsubscribe_link}" style="color: #2563eb;">unsubscribe here</a>.
+            </p>
+
+            <div class="footer">
+                <p>
+                    <a href="{privacy_policy_link}">Privacy Policy</a> | 
+                    <a href="{unsubscribe_link}">Unsubscribe</a>
+                </p>
+                <p>© 2025 ASAI. All rights reserved.<br>Made with ❤️ in Nairobi</p>
+            </div>
+        </div>
+    </body>
+    </html>
     """
     return plaintext_message, html_content
 
 
 @require_POST
 def subscribe(request):
+    """Handle newsletter subscription with proper validation and error handling."""
+    # Get email from POST data
     email = request.POST.get('email', '').strip()
 
+    # Check if it's an AJAX request
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+
+    if not email:
+        message = "Please enter an email address."
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': message})
+        messages.error(request, message)
+        return redirect(request.META.get('HTTP_REFERER', 'store:product_list'))
+
     try:
+        # Validate email format
         validate_email(email)
 
+        # Check for existing subscription
         existing = NewsletterSubscription.objects.filter(email=email).first()
+
         if existing:
             if existing.confirmed and not existing.unsubscribed:
-                messages.info(request, "This email is already subscribed!")
-                return redirect('store:home')
-            messages.warning(request, "Please check your email to confirm subscription!")
-            return redirect('store:home')
+                message = "This email is already subscribed to our newsletter!"
+                if is_ajax:
+                    return JsonResponse({'success': False, 'message': message})
+                messages.info(request, message)
+                return redirect(request.META.get('HTTP_REFERER', 'store:product_list'))
 
+            elif existing.unsubscribed:
+                # Reactivate unsubscribed user
+                existing.unsubscribed = False
+                existing.confirmed = False
+                existing.generate_tokens()
+                existing.confirmation_sent = timezone.now()
+                existing.save()
+
+                # Send new confirmation email
+                plaintext, html = create_confirmation_email_content(request, existing)
+                send_email_async(
+                    "Confirm Your ASAI Newsletter Subscription",
+                    plaintext,
+                    email,
+                    html_message=html
+                )
+
+                message = "Welcome back! Please check your email to confirm your subscription."
+                if is_ajax:
+                    return JsonResponse({'success': True, 'message': message})
+                messages.success(request, message)
+                return redirect(request.META.get('HTTP_REFERER', 'store:product_list'))
+
+            else:
+                # Resend confirmation to pending subscription
+                plaintext, html = create_confirmation_email_content(request, existing)
+                send_email_async(
+                    "Confirm Your ASAI Newsletter Subscription",
+                    plaintext,
+                    email,
+                    html_message=html
+                )
+
+                message = "Confirmation email resent! Please check your inbox."
+                if is_ajax:
+                    return JsonResponse({'success': True, 'message': message})
+                messages.warning(request, message)
+                return redirect(request.META.get('HTTP_REFERER', 'store:product_list'))
+
+        # Create new subscription
         subscription = NewsletterSubscription(
             email=email,
-            ip_address=request.META.get('REMOTE_ADDR'),
-            source_url=request.META.get('HTTP_REFERER')
+            ip_address=request.META.get('REMOTE_ADDR', ''),
+            source_url=request.META.get('HTTP_REFERER', '')
         )
         subscription.generate_tokens()
         subscription.confirmation_sent = timezone.now()
         subscription.save()
 
+        # Send confirmation email
         plaintext, html = create_confirmation_email_content(request, subscription)
 
         send_email_async(
-            "Confirm newsletter subscription",
+            "Confirm Your ASAI Newsletter Subscription",
             plaintext,
             email,
             html_message=html
         )
 
-        logger.info(f"Subscription initiated for {email}")
-        messages.success(request, "Confirmation email sent! Please check your inbox.")
-        return redirect('store:home')
+        logger.info(f"Newsletter subscription initiated for {email}")
+
+        message = "Success! Please check your email to confirm your subscription."
+        if is_ajax:
+            return JsonResponse({'success': True, 'message': message})
+        messages.success(request, message)
+        return redirect(request.META.get('HTTP_REFERER', 'store:product_list'))
 
     except ValidationError:
         logger.warning(f"Invalid email attempt: {email}")
-        messages.error(request, "Please enter a valid email address.")
+        message = "Please enter a valid email address."
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': message})
+        messages.error(request, message)
+        return redirect(request.META.get('HTTP_REFERER', 'store:product_list'))
+
     except Exception as e:
         logger.error(f"Subscription error for {email}: {str(e)}", exc_info=True)
-        messages.error(request, "Subscription failed. Please try again later.")
-
-    return redirect('store:home')
+        message = "An error occurred. Please try again later."
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': message})
+        messages.error(request, message)
+        return redirect(request.META.get('HTTP_REFERER', 'store:product_list'))
 
 
 def confirm_subscription(request, token):
+    """Confirm newsletter subscription."""
     try:
         subscription = NewsletterSubscription.objects.get(
             confirmation_token=token,
@@ -582,44 +761,51 @@ def confirm_subscription(request, token):
             unsubscribed=False
         )
 
+        # Check if confirmation link has expired (24 hours)
         if (timezone.now() - subscription.confirmation_sent).days > 1:
             subscription.delete()
-            logger.info(f"Expired subscription attempt: {token}")
-            messages.error(request, "Confirmation link has expired.")
-            return redirect('store:home')
+            logger.info(f"Expired subscription confirmation: {token}")
+            messages.error(request, "This confirmation link has expired. Please subscribe again.")
+            return redirect('store:product_list')
 
+        # Confirm subscription
         subscription.confirmed = True
         subscription.confirmed_at = timezone.now()
         subscription.save()
 
         logger.info(f"Subscription confirmed: {subscription.email}")
-        messages.success(request, "Subscription confirmed! Welcome to our newsletter.")
+        messages.success(request, "Thank you! Your subscription is now confirmed. Welcome to ASAI!")
 
     except NewsletterSubscription.DoesNotExist:
         logger.warning(f"Invalid confirmation token: {token}")
-        messages.error(request, "Invalid confirmation link.")
+        messages.error(request, "Invalid or expired confirmation link.")
 
-    return redirect('store:home')
+    return redirect('store:product_list')
 
 
 def unsubscribe(request, token):
+    """Handle newsletter unsubscription."""
     subscription = None
+
     try:
         subscription = NewsletterSubscription.objects.get(
             unsubscribe_token=token,
             unsubscribed=False
         )
+
         subscription.unsubscribed = True
         subscription.save()
 
         logger.info(f"Unsubscribed: {subscription.email}")
-        messages.success(request, "You've been unsubscribed successfully.")
+        messages.success(request, "You've been successfully unsubscribed from our newsletter.")
+
     except NewsletterSubscription.DoesNotExist:
         logger.warning(f"Invalid unsubscribe token: {token}")
         messages.error(request, "Invalid unsubscribe link.")
 
     return render(request, 'store/newsletter/unsubscribe.html', {
-        'success': subscription is not None
+        'success': subscription is not None,
+        'email': subscription.email if subscription else None
     })
 
 
