@@ -1,0 +1,913 @@
+{% load django_vite static %}
+
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <title>ASAI - Premium Shopping Experience</title>
+
+    <link rel="shortcut icon" href="{% static 'store/images/favicon.ico' %}" type="image/x-icon">
+
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet">
+
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+
+    {% vite_hmr_client %}
+    {% vite_asset 'main.js' %}
+
+    {% block extra_head_scripts %}{% endblock %}
+
+    <style>
+        /* ===== css VARIABLES ===== */
+        :root {
+            --color-primary: #2563eb;
+            --color-primary-dark: #1d4ed8;
+            --color-indigo: #4338ca;
+            --color-indigo-dark: #3730a3;
+            --color-accent: #f97316;
+            --color-accent-dark: #ea580c;
+            --color-secondary: #8b5cf6;
+            --color-dark: #0f172a;
+            --color-light: #f8fafc;
+            --color-success: #10b981;
+            --color-danger: #ef4444;
+            --color-purple: #a259ff;
+            --transition-default: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            --blue-gradient: linear-gradient(135deg, #2563eb, #4338ca);
+        }
+
+        /* Dark mode variables */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #0f172a;
+                --bg-secondary: #1e293b;
+                --bg-tertiary: #334155;
+                --text-primary: #f8fafc;
+                --text-secondary: #cbd5e1;
+                --text-muted: #94a3b8;
+                --border-color: #334155;
+                --card-bg: #1e293b;
+            }
+        }
+
+        /* Light mode variables */
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-primary: #ffffff;
+                --bg-secondary: #f8fafc;
+                --bg-tertiary: #e2e8f0;
+                --text-primary: #0f172a;
+                --text-secondary: #64748b;
+                --text-muted: #94a3b8;
+                --border-color: #e2e8f0;
+                --card-bg: #ffffff;
+            }
+        }
+
+        /* ===== BASE RESET & SETUP ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.6;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        main {
+            flex-grow: 1;
+            padding-top: 20px;
+        }
+
+        /* ===== NAVIGATION REIMAGINED ===== */
+        .site-header {
+            background: var(--color-indigo);
+            color: white;
+            padding: 0 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(67, 56, 202, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 70px;
+            gap: 1.5rem;
+        }
+
+        /* Nav Left: Hamburger & Logo */
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-shrink: 0;
+        }
+
+        .hamburger-menu {
+            display: none; /* Hidden on desktop */
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            transition: background-color 0.3s ease;
+        }
+
+        .hamburger-menu:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-logo:hover {
+            transform: scale(1.05);
+        }
+
+        .asai-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.5rem, 3vw, 1.8rem);
+            font-weight: 800;
+            background: linear-gradient(45deg, #60a5fa, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Nav Center: Desktop Links */
+        .nav-center {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .nav-link-item {
+            padding: 0.6rem 1rem;
+            color: #e2e8f0;
+            text-decoration: none;
+            font-weight: 500;
+            border-radius: 6px;
+            position: relative;
+            transition: color 0.3s ease, background-color 0.3s ease;
+        }
+
+        .nav-link-item::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background-color: var(--color-accent);
+            transition: width 0.3s ease;
+            border-radius: 1px;
+        }
+
+        .nav-link-item:hover, .nav-link-item.active {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-link-item:hover::after, .nav-link-item.active::after {
+            width: 80%;
+        }
+
+
+        /* Nav Right: Icons & Actions */
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-icon-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.4rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s ease;
+            position: relative;
+        }
+
+        .nav-icon-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .search-toggle-btn {
+            display: none;
+        }
+
+        /* Hidden on desktop */
+
+        /* User Dropdown */
+        .user-menu {
+            position: relative;
+        }
+
+        .user-menu-dropdown {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            width: 240px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s 0.3s;
+            z-index: 1100;
+        }
+
+        .user-menu.active .user-menu-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s 0s;
+        }
+
+        .dropdown-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .dropdown-header .username {
+            font-weight: 600;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .dropdown-header .greeting {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .dropdown-link {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.8rem 1rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: background-color 0.2s ease;
+            border-radius: 4px;
+            margin: 4px;
+        }
+
+        .dropdown-link:hover {
+            background-color: var(--bg-tertiary);
+        }
+
+        .dropdown-link i {
+            width: 20px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        /* Cart Icon */
+        .cart-count {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background-color: var(--color-danger);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: bold;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Search Bar Area */
+        .search-area {
+            background-color: var(--bg-secondary);
+            padding: 0.8rem 1rem;
+            display: none; /* Hidden on desktop by default */
+        }
+
+        #search-form-wrapper {
+            width: 100%;
+        }
+
+        .search-container {
+            flex-grow: 1;
+            max-width: 600px;
+            position: relative;
+        }
+
+        /* Off-Canvas Mobile Menu */
+        .mobile-menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease, visibility 0s 0.4s;
+            z-index: 1900;
+        }
+
+        .mobile-menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.4s ease, visibility 0s 0s;
+        }
+
+        .mobile-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 300px;
+            height: 100%;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            z-index: 2000;
+            transform: translateX(-100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 5px 0 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .mobile-menu.active {
+            transform: translateX(0);
+        }
+
+        .mobile-menu-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .mobile-menu-close-btn {
+            color: var(--text-primary);
+        }
+
+        .mobile-menu-categories {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+            padding: 1rem;
+        }
+
+        .mobile-category {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: var(--text-primary);
+            padding: 1rem;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: var(--transition-default);
+        }
+
+        .mobile-category:hover {
+            background: var(--bg-tertiary);
+            color: var(--color-primary);
+        }
+
+        .mobile-category i {
+            width: 24px;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+
+
+        /* ===== RESPONSIVE BREAKPOINTS ===== */
+        @media (max-width: 1024px) {
+            .nav-center {
+                display: none;
+            }
+
+            /* Hide text links */
+            .hamburger-menu {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            /* Show hamburger */
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                height: 60px;
+                gap: 1rem;
+            }
+
+            .asai-text {
+                font-size: 1.5rem;
+            }
+
+            /* Hide the full search bar from the header */
+            .search-container {
+                display: none;
+            }
+
+            .search-toggle-btn {
+                display: flex;
+            }
+
+            /* Show search icon */
+            .search-area {
+                display: none;
+            }
+
+            .search-area.active {
+                display: block;
+                animation: slideDown 0.3s ease-out;
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== EXISTING STYLES (Slightly modified for compatibility) ===== */
+        .search-bar {
+            display: flex;
+            width: 100%;
+            height: 44px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-bar.focused {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+
+        .search-bar input {
+            flex: 1 1 auto;
+            min-width: 80px;
+            height: 100%;
+            border: none;
+            padding: 0 16px;
+            font-size: 1rem;
+            outline: none;
+            background: transparent;
+            color: var(--color-dark);
+        }
+
+        .search-bar input::placeholder {
+            color: #9ca3af;
+        }
+
+        .search-indicator {
+            position: absolute;
+            right: 60px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-primary);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .search-indicator.htmx-request {
+            opacity: 1;
+        }
+
+        .search-bar button {
+            height: 100%;
+            width: 50px;
+            background: var(--color-accent);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+
+        .search-bar button:hover {
+            background: var(--color-accent-dark);
+        }
+
+        #search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-top: none;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            z-index: 999;
+            max-height: 450px;
+            overflow-y: auto;
+            display: none;
+            border-radius: 0 0 12px 12px;
+        }
+
+        /* The rest of your original css (product cards, footer, etc.) can be pasted here. */
+        /* --- PASTE THE REST OF YOUR ORIGINAL css HERE --- */
+
+        /* A few key styles from original for demonstration */
+        .footer {
+            background: var(--color-indigo);
+            color: #e2e8f0;
+            padding: 80px 0 0;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: var(--blue-gradient);
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: var(--transition-default);
+            z-index: 99;
+            border: none;
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .mobile-cart-btn {
+            display: none;
+        }
+
+        /* Hiding this as it's redundant with the header icon */
+
+        @media (max-width: 768px) {
+            .back-to-top {
+                bottom: 20px;
+                right: 20px;
+                width: 45px;
+                height: 45px;
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+<div class="mobile-menu-overlay" id="mobile-menu-overlay"></div>
+
+<header class="site-header">
+    <div class="nav-container">
+        <div class="nav-left">
+            <button class="hamburger-menu" id="hamburger-menu" aria-label="Open menu" aria-expanded="false"
+                    aria-controls="mobile-menu">
+                <i class="fas fa-bars" aria-hidden="true"></i>
+            </button>
+            <a href="{% url 'store:product_list' %}" class="nav-logo" aria-label="ASAI Home">
+                <div class="asai-text">ASAI</div>
+            </a>
+        </div>
+
+        <nav class="nav-center" aria-label="Main navigation">
+            <a href="{% url 'store:product_list' %}" class="nav-link-item">All</a>
+            <a href="{% url 'store:product_list' %}?on_sale=true" class="nav-link-item">Deals</a>
+            <a href="{% url 'store:product_list' %}?sort=-created" class="nav-link-item">New Releases</a>
+            {% for category in top_level_categories|slice:":3" %}
+            <a href="{{ category.get_absolute_url }}" class="nav-link-item">{{ category.name }}</a>
+            {% endfor %}
+        </nav>
+
+        <div class="nav-right">
+            <div class="search-container">
+            </div>
+
+            <button class="nav-icon-btn search-toggle-btn" id="search-toggle-btn" aria-label="Toggle search"
+                    aria-expanded="false" aria-controls="search-area">
+                <i class="fas fa-search" aria-hidden="true"></i>
+            </button>
+
+            <div class="user-menu" id="user-menu">
+                <button class="nav-icon-btn" id="user-menu-toggle" aria-label="User account" aria-haspopup="true"
+                        aria-expanded="false">
+                    <i class="fas fa-user-circle" aria-hidden="true"></i>
+                </button>
+                <div class="user-menu-dropdown">
+                    {% if user.is_authenticated %}
+                    <div class="dropdown-header">
+                        <div class="username" title="{{ user.first_name|default:user.username }}">{{
+                            user.first_name|default:user.username }}
+                        </div>
+                        <div class="greeting">Welcome back!</div>
+                    </div>
+                    <a href="{% url 'users:account' %}" class="dropdown-link">
+                        <i class="fas fa-user-cog" aria-hidden="true"></i>
+                        <span>My Account</span>
+                    </a>
+                    <a href="{% url 'orders:history' %}" class="dropdown-link">
+                        <i class="fas fa-box" aria-hidden="true"></i>
+                        <span>Orders & Returns</span>
+                    </a>
+                    <a href="{% url 'users:logout' %}" class="dropdown-link">
+                        <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                        <span>Logout</span>
+                    </a>
+                    {% else %}
+                    <div class="dropdown-header">
+                        <div class="username">Guest</div>
+                        <div class="greeting">Welcome to ASAI</div>
+                    </div>
+                    <a href="{% url 'users:login' %}" class="dropdown-link">
+                        <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
+                        <span>Sign In</span>
+                    </a>
+                    <a href="{% url 'users:register' %}" class="dropdown-link">
+                        <i class="fas fa-user-plus" aria-hidden="true"></i>
+                        <span>Create Account</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <a href="{% url 'cart:cart_detail' %}" class="nav-icon-btn cart-link" aria-label="Shopping Cart">
+                <i class="fas fa-shopping-cart" aria-hidden="true"></i>
+                <div class="cart-count" id="cart-count">
+                    {{ cart.total_items|default:0 }}
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="search-area" id="search-area">
+    </div>
+
+    <div id="search-form-wrapper" style="display: none;">
+        <form action="{% url 'store:product_search' %}" method="get" class="w-full" id="search-form" role="search">
+            <div class="search-bar flex" id="search-bar">
+                <input type="search" name="q" value="{{ request.GET.q }}" placeholder="Search products..."
+                       class="flex-grow focus:outline-none"
+                       hx-get="{% url 'store:search_suggestions' %}"
+                       hx-trigger="keyup changed delay:250ms"
+                       hx-target="#search-suggestions"
+                       hx-indicator=".search-indicator"
+                       autocomplete="off"
+                       aria-label="Search products"
+                       onfocus="document.getElementById('search-bar').classList.add('focused')"
+                       onblur="document.getElementById('search-bar').classList.remove('focused')">
+
+                <div class="search-indicator htmx-indicator">
+                    <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                </div>
+
+                <button type="submit" aria-label="Submit search">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div id="search-suggestions" role="listbox"></div>
+            <input type="hidden" name="category" id="selectedCategory" value="{{ request.GET.category }}">
+        </form>
+    </div>
+</header>
+
+<div class="mobile-menu" id="mobile-menu" aria-hidden="true" tabindex="-1">
+    <div class="mobile-menu-header">
+        <h3 class="font-bold text-lg">Menu</h3>
+        <button class="nav-icon-btn mobile-menu-close-btn" id="mobile-menu-close-btn" aria-label="Close menu">
+            <i class="fas fa-times" aria-hidden="true"></i>
+        </button>
+    </div>
+    <nav class="mobile-menu-categories" aria-label="Mobile navigation">
+        <a href="{% url 'store:product_list' %}?on_sale=true" class="mobile-category">
+            <i class="fas fa-tag" style="color: var(--color-purple);" aria-hidden="true"></i>
+            <span>Today's Deals</span>
+        </a>
+        <a href="{% url 'store:product_list' %}?sort=-created" class="mobile-category">
+            <i class="fas fa-box-open" style="color: #3b82f6;" aria-hidden="true"></i>
+            <span>New Releases</span>
+        </a>
+        <a href="{% url 'store:product_list' %}?sort=-review_count" class="mobile-category">
+            <i class="fas fa-crown" style="color: #fbbf24;" aria-hidden="true"></i>
+            <span>Best Sellers</span>
+        </a>
+
+        {% for category in top_level_categories|slice:":6" %}
+        <a href="{{ category.get_absolute_url }}" class="mobile-category">
+            {% if category.image %}
+            <img src="{{ category.image.url }}" alt="" class="w-10 h-10 object-cover rounded" loading="lazy">
+            {% else %}
+            <div class="w-10 h-10 bg-tertiary rounded flex items-center justify-center">
+                <i class="fas fa-folder text-muted" aria-hidden="true"></i>
+            </div>
+            {% endif %}
+            <span>{{ category.name }}</span>
+        </a>
+        {% endfor %}
+    </nav>
+</div>
+
+<main class="flex-grow container" id="main-content">
+    {% block content %}
+    {% endblock %}
+</main>
+
+<footer class="footer">
+</footer>
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">
+    <i class="fas fa-chevron-up" aria-hidden="true"></i>
+</button>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const mobileMenu = document.getElementById('mobile-menu');
+        const hamburgerBtn = document.getElementById('hamburger-menu');
+        const closeMenuBtn = document.getElementById('mobile-menu-close-btn');
+        const overlay = document.getElementById('mobile-menu-overlay');
+        const userMenu = document.getElementById('user-menu');
+        const userMenuToggle = document.getElementById('user-menu-toggle');
+        const searchToggleBtn = document.getElementById('search-toggle-btn');
+        const searchArea = document.getElementById('search-area');
+        const searchFormWrapper = document.getElementById('search-form-wrapper');
+        const desktopSearchContainer = document.querySelector('.nav-right .search-container');
+        const searchForm = document.getElementById('search-form');
+
+        // --- Responsive Search Form Logic ---
+        function moveSearchForm() {
+            if (window.innerWidth <= 768) {
+                if (!searchArea.contains(searchForm)) {
+                    searchArea.appendChild(searchForm);
+                }
+            } else {
+                if (!desktopSearchContainer.contains(searchForm)) {
+                    desktopSearchContainer.appendChild(searchForm);
+                    searchArea.classList.remove('active'); // Ensure mobile search is closed
+                    searchToggleBtn.setAttribute('aria-expanded', 'false');
+                }
+            }
+        }
+
+        // Initial move on page load and on window resize
+        moveSearchForm();
+        window.addEventListener('resize', moveSearchForm);
+        // Remove the temporary wrapper
+        searchFormWrapper.remove();
+
+
+        // --- Mobile Off-Canvas Menu ---
+        function openMobileMenu() {
+            mobileMenu.classList.add('active');
+            overlay.classList.add('active');
+            hamburgerBtn.setAttribute('aria-expanded', 'true');
+            mobileMenu.focus(); // Set focus to the menu
+        }
+
+        function closeMobileMenu() {
+            mobileMenu.classList.remove('active');
+            overlay.classList.remove('active');
+            hamburgerBtn.setAttribute('aria-expanded', 'false');
+            hamburgerBtn.focus(); // Return focus to the toggle button
+        }
+
+        hamburgerBtn.addEventListener('click', openMobileMenu);
+        closeMenuBtn.addEventListener('click', closeMobileMenu);
+        overlay.addEventListener('click', closeMobileMenu);
+
+        // --- User Account Dropdown ---
+        userMenuToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isActive = userMenu.classList.toggle('active');
+            userMenuToggle.setAttribute('aria-expanded', isActive);
+        });
+
+        // --- Mobile Search Toggle ---
+        searchToggleBtn.addEventListener('click', () => {
+            const isActive = searchArea.classList.toggle('active');
+            searchToggleBtn.setAttribute('aria-expanded', isActive);
+        });
+
+        // --- Close menus when clicking outside ---
+        document.addEventListener('click', (e) => {
+            if (!userMenu.contains(e.target)) {
+                userMenu.classList.remove('active');
+                userMenuToggle.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        // --- Close menus with Escape key ---
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                if (mobileMenu.classList.contains('active')) {
+                    closeMobileMenu();
+                }
+                if (userMenu.classList.contains('active')) {
+                    userMenu.classList.remove('active');
+                    userMenuToggle.setAttribute('aria-expanded', 'false');
+                }
+            }
+        });
+
+        // --- Back to Top Button ---
+        const backToTopButton = document.getElementById('back-to-top');
+        if (backToTopButton) {
+            window.addEventListener('scroll', () => {
+                backToTopButton.classList.toggle('visible', window.pageYOffset > 300);
+            });
+            backToTopButton.addEventListener('click', () => {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+
+        // --- Cart Update Logic (from original) ---
+        function updateCartCount(count) {
+            document.querySelectorAll('.cart-count').forEach(el => {
+                el.textContent = count;
+                el.style.transform = 'scale(1.3)';
+                setTimeout(() => {
+                    el.style.transform = 'scale(1)';
+                }, 200);
+            });
+        }
+
+        document.body.addEventListener('cartUpdated', (event) => {
+            if (event.detail && event.detail.cart_total_items !== undefined) {
+                updateCartCount(event.detail.cart_total_items);
+            }
+        });
+    });
+</script>
+</body>
+</html>
