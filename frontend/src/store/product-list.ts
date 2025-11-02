@@ -1,64 +1,12 @@
 import { StoreUtils, cartManager } from './base';
 
 export function initProductList(): void {
-  const filterToggle = document.getElementById('filterToggle');
-  const filterContent = document.getElementById('filterContent');
   const priceRange = document.getElementById('priceRange') as HTMLInputElement;
   const priceDisplay = document.getElementById('priceDisplay');
 
-  // Mobile sidebar toggle (doesn't conflict with HTMX)
-  function setupFilterSidebar() {
-  const filterToggle = document.getElementById('filterToggle');
-  const filterContent = document.getElementById('filterContent');
+  // ✅ The FilterSidebar class from filters.js handles all the toggle logic
+  // We just need to handle price display updates here
 
-  if (!filterToggle || !filterContent) return;
-
-  const MOBILE_BREAKPOINT = 1024;
-
-  function updateSidebarVisibility() {
-    if (window.innerWidth >= MOBILE_BREAKPOINT) {
-      // Desktop view: show sidebar and hide toggle
-      filterContent.removeAttribute('hidden');
-      filterContent.classList.remove('slide-in');
-      filterToggle.style.display = 'none';
-    } else {
-      // Mobile view: hide sidebar and show toggle
-      if (!filterToggle.hasAttribute('aria-expanded') || filterToggle.getAttribute('aria-expanded') === 'false') {
-        filterContent.setAttribute('hidden', '');
-      }
-      filterToggle.style.display = 'flex';
-    }
-  }
-
-  // Initial setup
-  updateSidebarVisibility();
-
-  // Update on resize
-  window.addEventListener('resize', StoreUtils.debounce(updateSidebarVisibility, 150));
-
-  // Toggle behavior for mobile
-  filterToggle.addEventListener('click', () => {
-    const isHidden = filterContent.hasAttribute('hidden');
-
-    if (isHidden) {
-      filterContent.removeAttribute('hidden');
-      filterContent.classList.add('slide-in');
-      filterToggle.setAttribute('aria-expanded', 'true');
-      document.body.classList.add('no-scroll'); // prevent background scroll
-    } else {
-      filterContent.classList.remove('slide-in');
-      setTimeout(() => filterContent.setAttribute('hidden', ''), 250); // after animation
-      filterToggle.setAttribute('aria-expanded', 'false');
-      document.body.classList.remove('no-scroll');
-    }
-
-    const span = filterToggle.querySelector('span');
-    if (span) span.textContent = isHidden ? 'Hide Filters' : 'Show Filters';
-  });
-}
-
-// Call it inside initProductList()
-setupFilterSidebar();
   // Live update price display (visual feedback only, HTMX handles submission)
   if (priceRange && priceDisplay) {
     priceRange.addEventListener('input', () => {

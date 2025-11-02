@@ -1,0 +1,624 @@
+/* =======================================
+   UNIFIED FILTER SIDEBAR STYLES
+   Beautiful, Consistent Design Across All Pages
+   ======================================= */
+
+/* -------- Base Sidebar Styles -------- */
+.filter-sidebar {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  padding: 0; /* We'll add padding to inner content */
+  width: 100%;
+  max-width: 300px;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* -------- Filter Toggle Button (Mobile Only) -------- */
+.filter-toggle {
+  display: none; /* Hidden by default, shown on mobile */
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 24px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  width: 100%;
+  text-align: center;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.filter-toggle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.filter-toggle:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.filter-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.filter-toggle:active {
+  transform: translateY(0);
+}
+
+.filter-toggle i {
+  font-size: 1.2rem;
+  transition: transform 0.3s ease;
+}
+
+.filter-toggle[aria-expanded="true"] i {
+  transform: rotate(180deg);
+}
+
+/* -------- Filter Content -------- */
+.filter-content,
+.filter-card {
+  padding: 25px;
+  background: transparent;
+}
+
+/* -------- Filter Header -------- */
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.filter-header h2,
+.filter-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  letter-spacing: -0.02em;
+}
+
+.filter-header h2 i,
+.filter-title i {
+  color: #3b82f6;
+  font-size: 1.3rem;
+}
+
+.reset-link {
+  color: #3b82f6;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+.reset-link:hover {
+  background: #eff6ff;
+  text-decoration: none;
+  transform: translateX(-2px);
+}
+
+/* -------- Filter Sections -------- */
+.filter-section {
+  margin-bottom: 30px;
+  padding-bottom: 25px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.filter-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.filter-section h3,
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: -0.01em;
+}
+
+.section-icon {
+  color: #64748b;
+  width: 20px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+/* -------- Sort Options -------- */
+.sort-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sort-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 2px solid #e2e8f0;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  text-decoration: none;
+  color: #334155;
+  font-weight: 500;
+  font-size: 0.95rem;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.sort-option:hover {
+  border-color: #93c5fd;
+  background: #f0f9ff;
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+}
+
+.sort-option.active {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-color: #3b82f6;
+  color: #1e40af;
+  font-weight: 700;
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.sort-option i {
+  color: #94a3b8;
+  transition: color 0.3s ease;
+}
+
+.sort-option.active i,
+.sort-option:hover i {
+  color: #3b82f6;
+}
+
+/* -------- Price Filter -------- */
+.price-filter {
+  padding: 10px 0;
+}
+
+.price-slider {
+  width: 100%;
+  height: 8px;
+  background: linear-gradient(to right, #e2e8f0 0%, #cbd5e1 100%);
+  border-radius: 4px;
+  outline: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.price-slider:hover {
+  background: linear-gradient(to right, #cbd5e1 0%, #94a3b8 100%);
+}
+
+.price-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+  border: 3px solid white;
+}
+
+.price-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.6);
+}
+
+.price-slider::-webkit-slider-thumb:active {
+  transform: scale(1.3);
+}
+
+.price-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+  border: 3px solid white;
+}
+
+.price-slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.6);
+}
+
+.price-display {
+  display: flex;
+  justify-content: space-between;
+  color: #64748b;
+  font-size: 0.95rem;
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+.price-display span:last-child {
+  color: #1e40af;
+  font-weight: 700;
+}
+
+.price-inputs {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.price-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+  transition: all 0.3s ease;
+}
+
+.price-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.apply-price-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  margin-top: 12px;
+  width: 100%;
+}
+
+.apply-price-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.apply-price-btn:active {
+  transform: translateY(0);
+}
+
+/* -------- Stock Filter -------- */
+.stock-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 2px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.stock-filter:hover {
+  background: #f0f9ff;
+  border-color: #93c5fd;
+}
+
+.stock-filter input[type="checkbox"],
+.stock-checkbox {
+  width: 22px;
+  height: 22px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.stock-label {
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+/* -------- Brand/Supplier/Rating Filters -------- */
+.brand-filter,
+.supplier-filter,
+.rating-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+/* Custom Scrollbar */
+.brand-filter::-webkit-scrollbar,
+.supplier-filter::-webkit-scrollbar,
+.rating-filter::-webkit-scrollbar {
+  width: 6px;
+}
+
+.brand-filter::-webkit-scrollbar-track,
+.supplier-filter::-webkit-scrollbar-track,
+.rating-filter::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.brand-filter::-webkit-scrollbar-thumb,
+.supplier-filter::-webkit-scrollbar-thumb,
+.rating-filter::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.brand-filter::-webkit-scrollbar-thumb:hover,
+.supplier-filter::-webkit-scrollbar-thumb:hover,
+.rating-filter::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.brand-item,
+.supplier-item,
+.rating-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  color: #334155;
+  font-weight: 500;
+  font-size: 0.95rem;
+  background: #ffffff;
+  border: 2px solid transparent;
+}
+
+.brand-item:hover,
+.supplier-item:hover,
+.rating-option:hover {
+  background: #f0f9ff;
+  border-color: #93c5fd;
+  transform: translateX(4px);
+}
+
+.brand-item.active,
+.supplier-item.active,
+.rating-option.active {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-color: #3b82f6;
+  color: #1e40af;
+  font-weight: 700;
+  transform: translateX(4px);
+}
+
+.brand-logo-small {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  margin-right: 8px;
+}
+
+.brand-count,
+.count {
+  background: #e2e8f0;
+  color: #64748b;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.brand-item.active .brand-count,
+.supplier-item.active .count,
+.rating-option.active .brand-count {
+  background: #3b82f6;
+  color: white;
+}
+
+/* -------- Mobile Responsive Behavior -------- */
+@media (max-width: 991px) {
+  /* Show toggle button */
+  .filter-toggle {
+    display: flex !important;
+  }
+
+  /* Hide filter content by default */
+  .filter-content[hidden],
+  .filter-card[hidden] {
+    display: none;
+  }
+
+  /* Sidebar takes full width on mobile */
+  .filter-sidebar {
+    max-width: 100%;
+    margin-bottom: 20px;
+  }
+
+  /* Slide-in animation for mobile */
+  .filter-content {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: max-height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+                opacity 0.3s ease,
+                transform 0.3s ease;
+  }
+
+  .filter-content:not([hidden]) {
+    max-height: 2000px;
+    opacity: 1;
+    transform: translateY(0);
+    overflow: visible;
+  }
+
+  /* Slide animation class */
+  .filter-content.slide-in {
+    animation: slideDown 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  @keyframes slideDown {
+    from {
+      max-height: 0;
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      max-height: 2000px;
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Reduce spacing on mobile */
+  .filter-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+  }
+
+  .filter-section {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+  }
+}
+
+/* -------- Desktop Behavior -------- */
+@media (min-width: 992px) {
+  /* Always hide toggle on desktop */
+  .filter-toggle {
+    display: none !important;
+  }
+
+  /* Always show content on desktop */
+  .filter-content,
+  .filter-card {
+    display: block !important;
+    max-height: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* Sticky sidebar on desktop */
+  .filter-sidebar {
+    position: sticky;
+    top: 80px;
+    align-self: flex-start;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+  }
+
+  /* Custom scrollbar for sidebar */
+  .filter-sidebar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .filter-sidebar::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+
+  .filter-sidebar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  .filter-sidebar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
+
+/* -------- Prevent body scroll when filter is open on mobile -------- */
+body.no-scroll {
+  overflow: hidden;
+}
+
+/* -------- Loading States -------- */
+.filter-section.loading {
+  opacity: 0.5;
+  pointer-events: none;
+  position: relative;
+}
+
+.filter-section.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* -------- Accessibility -------- */
+.filter-sidebar:focus-within {
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.sort-option:focus,
+.brand-item:focus,
+.supplier-item:focus,
+.rating-option:focus,
+.reset-link:focus {
+  outline: 3px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* -------- Print Styles -------- */
+@media print {
+  .filter-sidebar,
+  .filter-toggle {
+    display: none !important;
+  }
+}

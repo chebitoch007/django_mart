@@ -1,6 +1,4 @@
-// frontend/src/store/main.ts - FIXED: Prevent multiple CartManager initializations
-
-// Store main entry point
+// frontend/src/store/main.ts - UPDATED with filters import
 
 console.log('🟢 STORE main.ts loaded');
 
@@ -8,6 +6,7 @@ import './styles/product-list.css';
 import './styles/product-detail.css';
 import './styles/search.css';
 import './styles/categories.css';
+import './styles/filters.css';
 
 // Import functionality
 import { initProductList } from './product-list';
@@ -25,7 +24,7 @@ let isStoreInitialized = false;
 // Initialize based on current page
 function initializeStorePage() {
   if (isStoreInitialized) {
-    console.warn('⚠️  Store already initialized, skipping...');
+    console.warn('⚠️ Store already initialized, skipping...');
     return;
   }
 
@@ -35,7 +34,7 @@ function initializeStorePage() {
   console.log(`🛒 Store main script loaded. Page: ${pageName}`);
 
   if (pageName === 'product-detail') {
-    console.log('🔍 Detected product detail page');
+    console.log('📝 Detected product detail page');
     initProductDetail();
   }
   else if (pageName === 'product-list') {
@@ -43,7 +42,7 @@ function initializeStorePage() {
     initProductList();
   }
   else if (pageName === 'search') {
-    console.log('🔎 Detected search page');
+    console.log('🔍 Detected search page');
     initSearch();
   }
   else if (pageName === 'categories') {

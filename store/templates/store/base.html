@@ -118,9 +118,9 @@
             {% endif %}
 
             <a href="{% url 'orders:order_list' %}" class="nav-link-box premium-hover" aria-label="Returns and Orders">
-                <div class="nav-link-top">Returns</div>
+                <div class="nav-link-top">Returns &</div>
                 <!-- Use &amp; for correct HTML encoding -->
-                <div class="nav-link-bottom">&amp; Orders</div>
+                <div class="nav-link-bottom">Orders</div>
             </a>
 
             <a href="{% url 'cart:cart_detail' %}" class="cart-box premium-hover" aria-label="Shopping Cart"
@@ -452,6 +452,9 @@
 
 <!-- Base JavaScript -->
 <script src="{% static 'js/base.js' %}"></script>
+
+<!-- Filter JavaScript -->
+<script src="{% static 'js/filters.js' %}"></script>
 
 <!-- Footer JavaScript -->
 <script src="{% static 'js/footer.js' %}"></script>

@@ -836,31 +836,45 @@ body {
   box-shadow: 0 2px 15px rgba(67, 56, 202, 0.4);
 }
 
-/* Top Navigation Row */
+
 .nav-top-row {
   display: flex;
   align-items: center;
-  /* justify-content: space-between; <-- REMOVED */
+  justify-content: space-between; /* Changed back to space-between */
   padding: var(--spacing-sm) var(--spacing-md);
   width: 100%;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
   min-height: 60px;
+  flex-wrap: nowrap; /* Prevent wrapping on larger screens */
 }
 
-/* Logo Section */
+/* Logo Section - Always stays left */
 .nav-logo {
-  flex: 0 0 auto; /* Will not grow, will not shrink */
+  flex: 0 0 auto;
   transition: transform 0.3s ease;
+  order: 1;
 }
+
+
 
 .nav-logo:hover {
   transform: scale(1.05);
 }
 
 .asai-logo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  min-width: 80px;
+}
+
+/* Ensure nav-right items never wrap */
+.nav-link-box,
+.cart-box {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Currency selector container should not shrink */
+.currency-selector-container {
+  flex-shrink: 0;
 }
 
 .asai-text {
@@ -890,14 +904,15 @@ body {
   transform: scale(1.3);
 }
 
-/* Search Container */
+
+
 .search-container {
-  flex: 1 1 auto; /* Will grow and shrink */
-  min-width: 0; /* Important for flex-shrink */
+  flex: 1 1 auto;
+  min-width: 0;
   max-width: 700px;
   position: relative;
-  margin-left: var(--spacing-md); /* Added margin */
-  margin-right: var(--spacing-md); /* Added margin */
+  margin: 0 auto; /* Center the search bar */
+  order: 2;
 }
 
 .search-bar {
@@ -971,15 +986,141 @@ body {
   transform: scale(1.05);
 }
 
-/* Right Navigation */
+
+/* Right Navigation - Always stays right */
 .nav-right {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  flex: 0 0 auto; /* Will not grow, will not shrink */
+  flex: 0 0 auto;
   gap: var(--spacing-xs);
   flex-wrap: nowrap;
+  order: 3;
 }
+
+/* ===== SKIP LINK - ONLY VISIBLE ON TAB FOCUS ===== */
+.skip-link {
+  position: absolute;
+  top: -100px !important; /* Move completely off-screen */
+  left: 0;
+  background: var(--color-primary);
+  color: white !important;
+  padding: 8px 16px;
+  text-decoration: none;
+  z-index: 10001; /* Above everything */
+  transition: top 0.3s ease;
+  font-weight: 600;
+  border-radius: 0 0 8px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  opacity: 0; /* Hidden by default */
+  pointer-events: none; /* Prevent accidental clicks when hidden */
+}
+
+/* Only show skip link when focused via keyboard */
+.skip-link:focus {
+  top: 0 !important;
+  opacity: 1;
+  pointer-events: auto;
+  outline: 3px solid white;
+  outline-offset: 2px;
+}
+
+/* ===== RESPONSIVE BREAKPOINTS ===== */
+
+/* Tablet Landscape (1024px and below) */
+@media (max-width: 1024px) {
+  .nav-top-row {
+    gap: var(--spacing-sm);
+  }
+
+  .search-container {
+    flex: 1 1 auto;
+    min-width: 200px;
+    max-width: 500px; /* Slightly smaller on tablets */
+  }
+}
+
+/* Tablet Portrait (768px and below) - Search moves to second row */
+@media (max-width: 768px) {
+  .nav-top-row {
+    padding: var(--spacing-sm);
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .nav-logo {
+    order: 1;
+    flex: 0 0 auto;
+  }
+
+  .nav-right {
+    order: 2;
+    flex: 0 0 auto;
+  }
+
+  .search-container {
+    order: 3;
+    width: 100%;
+    max-width: 100%;
+    margin: var(--spacing-xs) 0 0 0;
+    flex: 1 1 100%;
+  }
+
+  /* Skip link adjustment for mobile */
+  .skip-link:focus {
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 0 0 8px 8px;
+  }
+}
+
+/* Mobile Landscape (640px and below) */
+@media (max-width: 640px) {
+  .search-bar {
+    height: 44px;
+  }
+
+  .nav-right {
+    gap: 4px;
+  }
+}
+
+/* Mobile Portrait (480px and below) */
+@media (max-width: 480px) {
+  .nav-top-row {
+    gap: var(--spacing-xs);
+  }
+
+  .nav-logo {
+    flex-shrink: 1; /* Allow slight shrinking on very small screens */
+  }
+
+  .nav-right {
+    gap: 2px;
+  }
+}
+
+/* ===== ADDITIONAL ACCESSIBILITY IMPROVEMENTS ===== */
+
+/* Ensure skip link is always accessible */
+.skip-link:focus-visible {
+  top: 0 !important;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .skip-link:focus {
+    border: 3px solid white;
+  }
+}
+
+/* Prevent skip link from interfering with layout */
+body {
+  position: relative;
+}
+
 
 .nav-link-box,
 .cart-box {

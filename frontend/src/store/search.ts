@@ -18,15 +18,14 @@ export function initSearch(): void {
 }
 
 function initSearchFilters(): void {
-  const filterToggle = document.getElementById('filterToggle');
-  const filterContent = document.getElementById('filterContent');
+  // ✅ FilterSidebar from filters.js handles the toggle
+  // We only handle filter-specific logic here
+
   const priceRange = document.getElementById('priceRange') as HTMLInputElement;
   const maxPriceInput = document.getElementById('maxPriceInput') as HTMLInputElement;
   const priceDisplay = document.getElementById('priceDisplay');
   const applyPriceBtn = document.getElementById('applyPriceBtn');
   const inStockCheckbox = document.getElementById('inStock') as HTMLInputElement;
-  const sortSelect = document.getElementById('sortSelect') as HTMLSelectElement;
-
 
 
   // Real-time price filter with debounce
