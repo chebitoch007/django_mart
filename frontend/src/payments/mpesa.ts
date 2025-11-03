@@ -10,15 +10,15 @@ import {
 } from './ui.js';
 import { PaymentSystem } from './payments.js';
 import { MpesaResponse, PaymentResponse } from '@/payments/types/payment.ts';
+import { storage } from './storage.js';
 
 // ✅ Global flag to prevent duplicate payment attempts
 let paymentInProgress = false;
 let activePoller: number | null = null;
 
 export async function initializeMpesa(paymentSystem: PaymentSystem): Promise<boolean> {
-  // ✅ CRITICAL: Prevent duplicate payments
   if (paymentInProgress) {
-    console.warn('[MPESA] Payment already in progress, ignoring duplicate attempt');
+    console.warn('[MPESA] Payment already in progress');
     return false;
   }
 
@@ -28,20 +28,18 @@ export async function initializeMpesa(paymentSystem: PaymentSystem): Promise<boo
     const elements = paymentSystem.getElements();
     const config = paymentSystem.getConfig();
 
-    // Validate phone
     const phoneNumber = elements.phoneInput.value.trim();
     const formattedPhone = validatePhoneNumber(phoneNumber);
+
     if (!formattedPhone) {
       showPaymentError('Please enter a valid phone number', elements.paymentErrors);
       paymentInProgress = false;
       return false;
     }
 
-    // UI: lock submit, show animation
     setSubmitButtonState(true, elements.paymentSubmitButton);
     startProcessingAnimation('mpesa', elements.processingModal, elements.modalTitle, elements.modalText);
 
-    // Build request payload
     const payload = {
       order_id: config.orderId,
       provider: 'MPESA',
@@ -50,68 +48,60 @@ export async function initializeMpesa(paymentSystem: PaymentSystem): Promise<boo
       currency: state.currentCurrency
     };
 
-    console.info('[MPESA] Initiating payment request payload:', payload);
-
-    // Use URL from config
-    const url = config.urls.initiatePayment;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': config.csrfToken,
-        'X-Requested-With': 'XMLHttpRequest'
+    // ✅ Use fetchWithTimeout instead of regular fetch
+    const response = await fetchWithTimeout(
+      config.urls.initiatePayment,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': config.csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(payload)
       },
-      body: JSON.stringify(payload)
-    });
+      30000 // 30 second timeout
+    );
 
     const data: MpesaResponse = await response.json();
-    console.info('[MPESA] Initiate response:', data);
 
     if (!response.ok) {
-      // show server returned error
       stopProcessingAnimation(elements.processingModal);
       setSubmitButtonState(false, elements.paymentSubmitButton);
       paymentInProgress = false;
-      const err = data?.error || data?.message || 'Failed to initiate M-Pesa payment';
-      showPaymentError(err, elements.paymentErrors);
+      showPaymentError(data?.error || 'Failed to initiate M-Pesa payment', elements.paymentErrors);
       return false;
     }
 
     if (data.success && data.checkout_request_id) {
-      // Persist checkout_request_id into client state and hidden input for finalization
       paymentSystem.setState({ lastCheckoutRequestId: data.checkout_request_id });
-      try {
-        const hidden = document.getElementById('checkoutRequestId') as HTMLInputElement;
-        if (hidden) hidden.value = data.checkout_request_id;
-      } catch (e) { /* ignore */ }
 
-      // Optionally store in localStorage for resilience
-      localStorage.setItem('lastCheckoutRequestId', data.checkout_request_id);
+      const hidden = document.getElementById('checkoutRequestId') as HTMLInputElement;
+      if (hidden) hidden.value = data.checkout_request_id;
+
+      // ✅ Use safe storage
+      storage.setItem('lastCheckoutRequestId', data.checkout_request_id);
 
       elements.modalTitle.textContent = 'Payment Sent to Phone';
       elements.modalText.textContent = 'Please check your phone and approve the M-Pesa prompt.';
-      showPaymentStatus('M-Pesa payment requested – awaiting confirmation on phone.', elements.paymentStatus);
 
-      // Start polling
       pollMpesaPaymentStatus(data.checkout_request_id, paymentSystem);
-
       return true;
     } else {
       stopProcessingAnimation(elements.processingModal);
       setSubmitButtonState(false, elements.paymentSubmitButton);
       paymentInProgress = false;
-      const err = data.error || data.message || 'M-Pesa initiation failed';
-      showPaymentError(err, elements.paymentErrors);
+      showPaymentError(data.error || 'M-Pesa initiation failed', elements.paymentErrors);
       return false;
     }
   } catch (error) {
-    console.error('M-PESA error:', error);
-    const err = error instanceof Error ? error : new Error('Unknown error');
+    console.error('[MPESA] Error:', error);
     stopProcessingAnimation(paymentSystem.getElements().processingModal);
-    showPaymentError(err.message || 'Network error. Please try again.', paymentSystem.getElements().paymentErrors);
     setSubmitButtonState(false, paymentSystem.getElements().paymentSubmitButton);
     paymentInProgress = false;
+
+    const errorMessage = error instanceof Error ? error.message : 'Network error. Please try again.';
+    showPaymentError(errorMessage, paymentSystem.getElements().paymentErrors);
     return false;
   }
 }

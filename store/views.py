@@ -88,7 +88,6 @@ class ProductSearchView(ListView):
 
     def get_queryset(self):
         query = self.request.GET.get('q', '')
-        # Default sort to 'relevance' for search results
         sort_key = self.request.GET.get('sort', 'relevance')
 
         # 1. Start with base products
@@ -96,21 +95,24 @@ class ProductSearchView(ListView):
             'category', 'brand', 'supplier'
         ).prefetch_related('additional_images')
 
-        # 2. Apply full-text search (annotates rank/similarity, filters by query)
+        # 2. Apply full-text search
         if query:
-            # This is the advanced search from store.utils.search
+            # This annotates rank and similarity
             products = apply_search_filter(products, query)
         else:
-            # No query, return no results for a search page
-            products = products.none()
+            # ✅ FIX: For empty queries, annotate with default values
+            # This prevents "Cannot resolve keyword 'rank'" error
+            from django.db.models import Value, FloatField
+            products = products.annotate(
+                rank=Value(0.0, output_field=FloatField()),
+                similarity=Value(0.0, output_field=FloatField())
+            ).filter(available=True)
 
         # 3. Apply standard filters (price, brand, category, etc.)
-        # This is from .utils.filters
         products = apply_product_filters(self.request, products)
 
         # 4. Apply sorting
-        # This is from .utils.sorting
-        # It will now correctly apply '-rank', '-similarity' by default
+        # Now rank and similarity are guaranteed to exist
         return get_sorted_products(products, sort_key, is_search=True)
 
     def get_context_data(self, **kwargs):
@@ -122,7 +124,7 @@ class ProductSearchView(ListView):
         context['sort_by'] = sort_key
         context['sort_options'] = SORT_OPTIONS
 
-        # ADDED: Facet counting and filter context (from product_list view)
+        # Facet counting
         paginator, page, queryset, is_paginated = self.paginate_queryset(
             self.get_queryset(),
             self.get_paginate_by(self.get_queryset())
@@ -151,6 +153,7 @@ class ProductSearchView(ListView):
         context['min_rating'] = self.request.GET.get('min_rating', '')
         context['selected_brand'] = self.request.GET.get('brand', '')
         context['selected_supplier'] = self.request.GET.get('supplier', '')
+        context['on_sale'] = self.request.GET.get('on_sale') == 'true'  # ✅ ADD THIS if not present
 
         return context
 
@@ -163,7 +166,6 @@ class ProductSearchView(ListView):
             html = render_to_string('store/product/_results_grid.html', context=context, request=request)
             return HttpResponse(html)
         return super().render_to_response(context, **response_kwargs)
-
 
 @require_GET
 def search_suggestions(request):
@@ -337,6 +339,7 @@ def product_list(request, category_slug=None):
         'suppliers': suppliers,
         'selected_brand': request.GET.get('brand', ''),
         'selected_supplier': request.GET.get('supplier', ''),
+        'on_sale': request.GET.get('on_sale') == 'true',  # ✅ ADD THIS LINE
     }
 
     # Handle HTMX requests

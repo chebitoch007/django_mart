@@ -240,11 +240,6 @@ class ProfileUpdateForm(forms.ModelForm):
 
 
 
-# REMOVED NotificationPreferencesForm
-# class NotificationPreferencesForm(forms.ModelForm):
-#    ...
-
-
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = User

@@ -1,4 +1,4 @@
-{# orders/templates/orders/shipping_form.html #}
+{# orders/templates/orders/shipping_form.html - ENHANCED VERSION #}
 {% load static %}
 {% load crispy_forms_tags %}
 
@@ -7,74 +7,322 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shipping Information | ASAI</title>
+  <meta name="description" content="Enter your shipping information to complete your order">
+  <title>Shipping Information | DjangoMart</title>
 
-  {# Load only the CSS we want for this page #}
-  <link rel="stylesheet" href="{% static 'css/shipping-form.css' %}">
-  {# Optionally load Bootstrap or Tailwind if needed (#) #}
+  {# Bootstrap 5 CSS #}
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
+  {# Custom shipping form styles #}
+  <link rel="stylesheet" href="{% static 'css/shipping-form.css' %}">
+
+  {# Bootstrap Icons (optional) #}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 </head>
+
 <body class="bg-light">
-  <div class="container py-5">
-    <div class="card shadow-sm mx-auto" style="max-width: 700px;">
-      <div class="card-header bg-primary text-white">
-        <h4 class="mb-0">Shipping Information</h4>
+
+  {# Main Container #}
+  <div class="container py-4 py-md-5">
+
+    {# Progress Indicator #}
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="progress-wrapper">
+          <div class="progress-steps">
+            <div class="step completed">
+              <span class="step-number">1</span>
+              <span class="step-label">Cart</span>
+            </div>
+            <div class="step active">
+              <span class="step-number">2</span>
+              <span class="step-label">Shipping</span>
+            </div>
+            <div class="step">
+              <span class="step-number">3</span>
+              <span class="step-label">Payment</span>
+            </div>
+            <div class="step">
+              <span class="step-number">4</span>
+              <span class="step-label">Confirmation</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="card-body p-4">
-        <form method="post" novalidate>
+    </div>
+
+    {# Shipping Form Card #}
+    <div class="card form-card shadow-sm mx-auto">
+
+      {# Card Header #}
+      <div class="card-header form-card-header">
+        <h1 class="h4 mb-0">
+          <i class="bi bi-truck me-2"></i>
+          Shipping Information
+        </h1>
+        <p class="mb-0 mt-1 text-white-50 small">
+          Step 2 of 4: Enter your delivery details
+        </p>
+      </div>
+
+      {# Card Body #}
+      <div class="card-body form-card-body">
+
+        {# Display form errors #}
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {% for error in form.non_field_errors %}
+              <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
+            {% endfor %}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endif %}
+
+        {# Display Django messages #}
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        {# Shipping Form #}
+        <form method="post" novalidate id="shipping-form">
           {% csrf_token %}
-          <div class="row g-3 mb-3">
-            <div class="col-md-6">
-              {{ form.first_name|as_crispy_field }}
+
+          {# Personal Information Section #}
+          <div class="form-section">
+            <h5 class="section-title">
+              <i class="bi bi-person me-2"></i>
+              Personal Information
+            </h5>
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                {{ form.first_name|as_crispy_field }}
+              </div>
+              <div class="col-md-6">
+                {{ form.last_name|as_crispy_field }}
+              </div>
             </div>
-            <div class="col-md-6">
-              {{ form.last_name|as_crispy_field }}
-            </div>
-          </div>
 
-          <div class="mb-3">
-            {{ form.email|as_crispy_field }}
-          </div>
-
-          <div class="mb-3">
-            {{ form.phone|as_crispy_field }}
-          </div>
-
-          <div class="mb-3">
-            {{ form.address|as_crispy_field }}
-          </div>
-
-          <div class="row g-3 mb-3">
-            <div class="col-md-6">
-              {{ form.city|as_crispy_field }}
-            </div>
-            <div class="col-md-6">
-              {{ form.postal_code|as_crispy_field }}
+            <div class="row g-3 mt-2">
+              <div class="col-md-6">
+                {{ form.email|as_crispy_field }}
+              </div>
+              <div class="col-md-6">
+                {{ form.phone|as_crispy_field }}
+              </div>
             </div>
           </div>
 
-          <div class="mb-4">
-            {{ form.country|as_crispy_field }}
+          {# Shipping Address Section #}
+          <div class="form-section mt-4">
+            <h5 class="section-title">
+              <i class="bi bi-geo-alt me-2"></i>
+              Shipping Address
+            </h5>
+
+            <div class="mb-3">
+              {{ form.address|as_crispy_field }}
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                {{ form.city|as_crispy_field }}
+              </div>
+              <div class="col-md-6">
+                {{ form.postal_code|as_crispy_field }}
+              </div>
+            </div>
+
+            <div class="row g-3 mt-2">
+              <div class="col-md-6">
+                {{ form.state|as_crispy_field }}
+              </div>
+              <div class="col-md-6">
+                {{ form.country|as_crispy_field }}
+              </div>
+            </div>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-lg w-100">
-            Proceed to Payment
-          </button>
+          {# Delivery Options Section #}
+          <div class="form-section mt-4">
+            <h5 class="section-title">
+              <i class="bi bi-box-seam me-2"></i>
+              Delivery Preferences
+            </h5>
+
+            <div class="mb-3">
+              {{ form.delivery_instructions|as_crispy_field }}
+              <small class="form-text text-muted">
+                <i class="bi bi-info-circle me-1"></i>
+                Optional: Add special instructions for the delivery driver
+              </small>
+            </div>
+          </div>
+
+          {# Billing Section #}
+          <div class="form-section mt-4">
+            <h5 class="section-title">
+              <i class="bi bi-credit-card me-2"></i>
+              Billing Address
+            </h5>
+
+            <div class="form-check custom-checkbox">
+              {{ form.billing_same_as_shipping }}
+              <label class="form-check-label" for="{{ form.billing_same_as_shipping.id_for_label }}">
+                {{ form.billing_same_as_shipping.label }}
+              </label>
+              <small class="form-text text-muted d-block mt-1">
+                Most customers use the same address for shipping and billing
+              </small>
+            </div>
+          </div>
+
+          {# Order Summary (if cart is available) #}
+          {% if cart %}
+          <div class="order-summary mt-4 p-3 bg-light rounded">
+            <h6 class="fw-bold mb-3">
+              <i class="bi bi-cart-check me-2"></i>
+              Order Summary
+            </h6>
+            <div class="d-flex justify-content-between mb-2">
+              <span>Items in cart:</span>
+              <span class="fw-semibold">{{ cart.items.count }}</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span>Estimated Total:</span>
+              <span class="fw-bold text-primary">{{ cart.get_total_price }}</span>
+            </div>
+            <small class="text-muted d-block mt-2">
+              * Final total will be calculated on the next page
+            </small>
+          </div>
+          {% endif %}
+
+          {# Form Actions #}
+          <div class="form-actions mt-4">
+            <button type="submit" class="btn btn-primary btn-lg w-100" id="submit-btn">
+              <i class="bi bi-arrow-right-circle me-2"></i>
+              Proceed to Payment
+            </button>
+
+            <a href="{% url 'cart:cart_detail' %}" class="btn btn-outline-secondary btn-lg w-100 mt-3">
+              <i class="bi bi-arrow-left me-2"></i>
+              Back to Cart
+            </a>
+          </div>
+
+          {# Security Note #}
+          <div class="text-center mt-4">
+            <small class="text-muted">
+              <i class="bi bi-shield-check me-1"></i>
+              Your information is secure and encrypted
+            </small>
+          </div>
         </form>
       </div>
     </div>
+
+    {# Help Text Below Form #}
+    <div class="text-center mt-4">
+      <small class="text-muted">
+        Need help? Contact our support team at
+        <a href="mailto:support@djangomart.com">support@djangomart.com</a>
+      </small>
+    </div>
   </div>
 
-  {# Optionally include bootstrap JS or your own scripts #}
+  {# Bootstrap JS Bundle #}
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  {# Custom Form JavaScript #}
   <script>
-    const form = document.querySelector('form');
-    form.addEventListener('submit', function() {
-      const btn = form.querySelector('button[type="submit"]');
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing…';
-      btn.disabled = true;
+    // Form submission handling with loading state
+    const form = document.getElementById('shipping-form');
+    const submitBtn = document.getElementById('submit-btn');
+
+    form.addEventListener('submit', function(e) {
+      // Prevent double submission
+      if (submitBtn.disabled) {
+        e.preventDefault();
+        return;
+      }
+
+      // Show loading state
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+      submitBtn.disabled = true;
+
+      // Re-enable after 5 seconds if form doesn't submit (safety fallback)
+      setTimeout(() => {
+        if (submitBtn.disabled) {
+          submitBtn.innerHTML = '<i class="bi bi-arrow-right-circle me-2"></i>Proceed to Payment';
+          submitBtn.disabled = false;
+        }
+      }, 5000);
     });
+
+    // Phone number formatting helper
+    const phoneInput = document.querySelector('input[name="phone"]');
+    if (phoneInput) {
+      phoneInput.addEventListener('blur', function() {
+        let value = this.value.trim();
+
+        // Auto-add + if missing and starts with digits
+        if (value && !value.startsWith('+') && /^\d/.test(value)) {
+          this.value = '+' + value;
+        }
+      });
+    }
+
+    // Character counter for delivery instructions
+    const deliveryTextarea = document.querySelector('textarea[name="delivery_instructions"]');
+    if (deliveryTextarea) {
+      const maxLength = 200;
+      const counterDiv = document.createElement('div');
+      counterDiv.className = 'text-end text-muted small mt-1';
+      counterDiv.id = 'char-counter';
+      deliveryTextarea.parentNode.appendChild(counterDiv);
+
+      function updateCounter() {
+        const remaining = maxLength - deliveryTextarea.value.length;
+        counterDiv.textContent = `${remaining} characters remaining`;
+        counterDiv.style.color = remaining < 20 ? '#dc3545' : '#6c757d';
+      }
+
+      deliveryTextarea.addEventListener('input', updateCounter);
+      updateCounter();
+    }
+
+    // Auto-dismiss alerts after 5 seconds
+    const alerts = document.querySelectorAll('.alert:not(.alert-danger)');
+    alerts.forEach(alert => {
+      setTimeout(() => {
+        const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+        bsAlert.close();
+      }, 5000);
+    });
+
+    // Form validation feedback
+    form.addEventListener('submit', function(e) {
+      if (!form.checkValidity()) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      form.classList.add('was-validated');
+    });
+
+    // Billing checkbox toggle (for future billing form display)
+    const billingCheckbox = document.querySelector('input[name="billing_same_as_shipping"]');
+    if (billingCheckbox) {
+      billingCheckbox.addEventListener('change', function() {
+        // This can be extended to show/hide billing address fields
+        console.log('Billing same as shipping:', this.checked);
+      });
+    }
   </script>
 </body>
 </html>

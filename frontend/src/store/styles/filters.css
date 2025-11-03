@@ -622,3 +622,276 @@ body.no-scroll {
     display: none !important;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* =======================================
+   MOBILE FILTER TOGGLE BUTTON
+   Add this to your filters.css or base.css
+   ======================================= */
+
+/* Filter Toggle Button - Mobile Only */
+#filterToggle {
+  display: none; /* Hidden by default on desktop */
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #2563eb, #4338ca);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  margin-bottom: 1rem;
+  width: 100%;
+  max-width: 300px;
+}
+
+#filterToggle:hover {
+  background: linear-gradient(135deg, #1d4ed8, #3730a3);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  transform: translateY(-2px);
+}
+
+#filterToggle:active {
+  transform: translateY(0);
+}
+
+#filterToggle i {
+  font-size: 1.1rem;
+}
+
+/* Show filter toggle on mobile (below 992px) */
+@media (max-width: 991px) {
+  #filterToggle {
+    display: flex;
+  }
+}
+
+/* =======================================
+   FILTER SIDEBAR RESPONSIVE STYLES
+   ======================================= */
+
+.filter-sidebar {
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Mobile: Hide filters by default */
+@media (max-width: 991px) {
+  #filterContent {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 85%;
+    max-width: 320px;
+    height: 100vh;
+    background: var(--card-bg, #ffffff);
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    padding: 1.5rem;
+  }
+
+  /* Slide in animation when active */
+  #filterContent.slide-in {
+    transform: translateX(0);
+  }
+
+  /* Hidden state */
+  #filterContent[hidden] {
+    display: block !important; /* Override hidden attribute for animation */
+    transform: translateX(-100%);
+    pointer-events: none;
+  }
+
+  /* Backdrop overlay when filters are open */
+  #filterContent:not([hidden])::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: -1;
+    animation: fadeIn 0.3s ease;
+  }
+}
+
+/* Desktop: Always show filters */
+@media (min-width: 992px) {
+  #filterContent {
+    display: block !important;
+    position: static;
+    transform: none;
+    height: auto;
+  }
+
+  #filterContent[hidden] {
+    display: block !important;
+  }
+}
+
+/* =======================================
+   FILTER BUTTON ICON ANIMATION
+   ======================================= */
+
+#filterToggle[aria-expanded="true"] i.fa-sliders-h,
+#filterToggle[aria-expanded="true"] i.fa-filter {
+  transform: rotate(180deg);
+  transition: transform 0.3s ease;
+}
+
+#filterToggle[aria-expanded="false"] i.fa-sliders-h,
+#filterToggle[aria-expanded="false"] i.fa-filter {
+  transform: rotate(0deg);
+  transition: transform 0.3s ease;
+}
+
+/* =======================================
+   PREVENT BODY SCROLL WHEN FILTERS OPEN
+   ======================================= */
+
+body.no-scroll {
+  overflow: hidden;
+}
+
+/* =======================================
+   FADE IN ANIMATION FOR BACKDROP
+   ======================================= */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* =======================================
+   ACCESSIBILITY & TOUCH IMPROVEMENTS
+   ======================================= */
+
+/* Larger tap target on mobile */
+@media (max-width: 991px) {
+  #filterToggle {
+    min-height: 48px;
+    padding: 1rem 1.5rem;
+  }
+}
+
+/* Focus visible for keyboard navigation */
+#filterToggle:focus-visible {
+  outline: 3px solid var(--color-primary, #2563eb);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  #filterToggle {
+    border: 2px solid currentColor;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  #filterToggle,
+  #filterContent,
+  #filterToggle i {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* =======================================
+   FILTER CONTENT CLOSE BUTTON (OPTIONAL)
+   ======================================= */
+
+.filter-close-btn {
+  display: none;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: var(--text-primary, #0f172a);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+@media (max-width: 991px) {
+  .filter-close-btn {
+    display: block;
+  }
+}
+
+.filter-close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  transform: rotate(90deg);
+}
+
+/* =======================================
+   RESPONSIVE BREAKPOINTS
+   ======================================= */
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  #filterContent {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #filterToggle {
+    font-size: 0.9rem;
+    padding: 0.875rem 1.25rem;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  #filterContent {
+    width: 60%;
+    max-width: 280px;
+  }
+}
+
+/* =======================================
+   DARK MODE SUPPORT
+   ======================================= */
+
+@media (prefers-color-scheme: dark) {
+  #filterContent {
+    background: var(--bg-secondary, #1e293b);
+  }
+
+  .filter-close-btn {
+    color: var(--text-primary, #f8fafc);
+  }
+
+  .filter-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}

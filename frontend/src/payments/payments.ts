@@ -135,7 +135,7 @@ export class PaymentSystem {
       this.handleResize();
     });
 
-    // ✅ NEW: Prevent accidental page navigation during payment
+    // ✅ NEW: Prevent accidental navigation during payment
     window.addEventListener('beforeunload', (e) => {
       if (this.formSubmitted) {
         e.preventDefault();
@@ -143,7 +143,29 @@ export class PaymentSystem {
         return e.returnValue;
       }
     });
+
+    // ✅ NEW: Clear storage on successful completion
+    window.addEventListener('unload', () => {
+      if (!this.formSubmitted) {
+        storage.removeItem('paymentFormState');
+      }
+    });
+
+    // ✅ NEW: Handle browser back button
+    window.addEventListener('popstate', (e) => {
+      if (this.formSubmitted) {
+        const confirmLeave = confirm('Payment is in progress. Are you sure you want to go back?');
+        if (!confirmLeave) {
+          // Push state again to stay on page
+          window.history.pushState(null, '', window.location.href);
+        }
+      }
+    });
   }
+
+
+
+
 
   private restoreState(): void {
     const savedState = restoreFormState();

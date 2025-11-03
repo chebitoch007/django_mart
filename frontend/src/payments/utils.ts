@@ -1,4 +1,10 @@
+// ===================================================================
+// UPDATED: utils.ts - Replace localStorage with safe storage
+// ===================================================================
+
+
 import { PaymentMethod } from '@/payments/types/payment.js';
+import { storage } from './storage.js';
 
 // Phone number validation
 export function validatePhoneNumber(phoneNumber: string): string | false {
@@ -21,7 +27,7 @@ export function formatCurrency(amount: number, currency: string): string {
   });
 }
 
-// Form state management
+// Form state management - NOW USING SAFE STORAGE
 interface FormState {
   method?: PaymentMethod;
   currency?: string;
@@ -30,24 +36,46 @@ interface FormState {
 }
 
 export function saveFormState(state: FormState): void {
-  localStorage.setItem('paymentFormState', JSON.stringify(state));
+  try {
+    storage.setItem('paymentFormState', JSON.stringify(state));
+  } catch (error) {
+    console.warn('[Storage] Failed to save form state:', error);
+  }
 }
 
 export function restoreFormState(): FormState {
-  return JSON.parse(localStorage.getItem('paymentFormState') || '{}');
+  try {
+    const saved = storage.getItem('paymentFormState');
+    return saved ? JSON.parse(saved) : {};
+  } catch (error) {
+    console.warn('[Storage] Failed to restore form state:', error);
+    return {};
+  }
 }
 
-// Server communication
-export function updateServerPaymentMethod(method: PaymentMethod, csrfToken: string): void {
-  // This would be updated with your actual endpoint
-  fetch('/api/update-payment-method', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'X-CSRFToken': csrfToken
-    },
-    body: `method=${method}`
-  }).catch(console.error);
+// Fetch with timeout
+export async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs: number = 30000
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    return response;
+  } catch (error) {
+    clearTimeout(timeout);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your connection.');
+    }
+    throw error;
+  }
 }
 
 // Payment method display names

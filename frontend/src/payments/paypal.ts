@@ -12,6 +12,7 @@ import {
 } from './ui.js';
 import { PaymentSystem } from './payments.js';
 import { PaymentResponse, PayPalButtons } from '@/payments/types/payment.js';
+import { storage } from './storage.js';
 
 let paymentInProgress = false;
 let finalizationInProgress = false;
@@ -232,11 +233,16 @@ function submitPaymentForm(formData: FormData, paymentSystem: PaymentSystem): vo
 
   function handlePaymentResponse(response: Response): Promise<void> {
     if (!response.ok) return Promise.reject(response);
+
     return response.json().then((data: PaymentResponse) => {
       if (data.success) {
-        localStorage.removeItem('paymentFormState');
+        // ✅ Clear safe storage
+        storage.removeItem('paymentFormState');
+        storage.removeItem('lastCheckoutRequestId');
+
         elements.modalTitle.textContent = 'Payment Successful!';
         elements.modalText.textContent = 'Redirecting you to your order confirmation...';
+
         setTimeout(() => {
           stopProcessingAnimation(elements.processingModal);
           window.location.href = data.redirect_url || config.urls.orderSuccess;
@@ -251,25 +257,20 @@ function submitPaymentForm(formData: FormData, paymentSystem: PaymentSystem): vo
 
   function handlePaymentError(error: any): void {
     stopProcessingAnimation(elements.processingModal);
-
-    // ✅ USE IMPORTED FUNCTION
     setSubmitButtonState(false, elements.paymentSubmitButton);
 
     if (error.json) {
       error.json().then((errorData: PaymentResponse) => {
-        // ✅ USE IMPORTED FUNCTION
         showPaymentError(errorData.error_message || 'Unexpected error occurred', elements.paymentErrors);
       }).catch(() => {
-        // ✅ USE IMPORTED FUNCTION
         showPaymentError('Network error. Please check your connection.', elements.paymentErrors);
       });
     } else {
-      // ✅ USE IMPORTED FUNCTION
       showPaymentError('Network error. Please check your connection.', elements.paymentErrors);
     }
   }
-
 }
+
 
 // --- Reset PayPal State ---
 export function resetPayPalPaymentState(): void {

@@ -344,15 +344,6 @@ FIELD_ENCRYPTION_KEY_PREVIOUS = env.str(
 PAYMENT_TIMEOUT = env.int('PAYMENT_TIMEOUT', default=300)
 
 
-# Currency Formatting
-CURRENCY_FORMATS = {
-    'KES': {'format': 'KSh{amount:.2f}', 'decimal_places': 2},
-    'UGX': {'format': 'UGX{amount:.0f}', 'decimal_places': 0},
-    'TZS': {'format': 'TSh{amount:.0f}', 'decimal_places': 0},
-    'USD': {'format': '${amount:.2f}', 'decimal_places': 2},
-    'EUR': {'format': '€{amount:.2f}', 'decimal_places': 2},
-}
-
 # Order settings
 ORDER_EXPIRY_DAYS = env.int('ORDER_EXPIRY_DAYS', default=3)
 

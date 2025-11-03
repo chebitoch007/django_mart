@@ -8,11 +8,14 @@ class FilterSidebar {
     this.filterToggle = document.getElementById('filterToggle');
     this.filterContent = document.getElementById('filterContent');
     this.filterSidebar = document.querySelector('.filter-sidebar');
+    this.filterCloseBtn = document.querySelector('.filter-close-btn');
     this.MOBILE_BREAKPOINT = 992;
     this.isInitialized = false;
 
     if (this.filterToggle && this.filterContent) {
       this.init();
+    } else {
+      console.warn('⚠️ Filter toggle or content not found');
     }
   }
 
@@ -36,10 +39,21 @@ class FilterSidebar {
       this.toggleFilters();
     });
 
+    // Close button click (if exists)
+    if (this.filterCloseBtn) {
+      this.filterCloseBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.closeFilters();
+      });
+    }
+
     // Close filters when clicking outside on mobile
     document.addEventListener('click', (e) => {
       if (this.isMobile() && this.isFiltersOpen()) {
-        if (!this.filterSidebar.contains(e.target) && e.target !== this.filterToggle) {
+        const isClickInsideFilters = this.filterContent.contains(e.target);
+        const isClickOnToggle = this.filterToggle.contains(e.target);
+
+        if (!isClickInsideFilters && !isClickOnToggle) {
           this.closeFilters();
         }
       }
@@ -181,7 +195,6 @@ class PriceFilter {
 
     if (this.minPriceInput) {
       this.minPriceInput.addEventListener('input', () => {
-        // Handle min price if needed
         console.log('Min price:', this.minPriceInput.value);
       });
     }

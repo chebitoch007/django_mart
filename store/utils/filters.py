@@ -3,6 +3,7 @@ from typing import Iterable, Optional
 from django.db.models import Q, Avg, Count, QuerySet
 from django.db.models.functions import Coalesce
 from django.http import HttpRequest
+from django.db.models import F, Q
 
 # Helper to interpret "truthy" GET params
 _TRUTHY = {'1', 'true', 'yes', 'on', 't'}
@@ -96,6 +97,13 @@ def apply_product_filters(request: HttpRequest, queryset):
             queryset = queryset.filter(available=True)
         else:
             queryset = queryset.filter(available=False)
+
+    on_sale = _is_truthy(GET.get('on_sale'))
+    if on_sale:
+        queryset = queryset.filter(
+            discount_price__isnull=False,
+            discount_price__lt=F('price')
+        )
 
     # If you want to prevent N+1 later, caller/view should add select_related/prefetch_related as needed.
     return queryset
