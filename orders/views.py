@@ -31,8 +31,7 @@ logger = logging.getLogger(__name__)
 def create_order(request):
     """
     Creates an Order and related OrderItems from the user's cart.
-
-    FIXED: Enhanced error handling and redirect reliability
+    FIXED: Ensures consistent redirect to checkout page
     """
     # Get user's shopping cart
     cart = get_cart(request)
@@ -136,10 +135,12 @@ def create_order(request):
                     # Clear user's cart after successful order creation
                     cart.items.all().delete()
 
-                    # Store order ID in session for checkout page
+                    # CRITICAL FIX: Store order ID in session BEFORE any redirect
                     request.session['order_id'] = order.id
-                    # Force session save to ensure persistence
                     request.session.modified = True
+
+                    # Force session save to ensure persistence across requests
+                    request.session.save()
 
                     # Send order confirmation email asynchronously
                     try:
@@ -156,8 +157,9 @@ def create_order(request):
 
                     logger.info(f"Order {order.id} created successfully for user {request.user.username}")
 
-                    # Redirect to checkout/payment page
-                    return redirect('orders:checkout')
+                    # CRITICAL FIX: Always redirect to checkout with order_id parameter as backup
+                    # This ensures checkout page can retrieve order even if session fails
+                    return redirect('orders:checkout_order', order_id=order.id)
 
             except ValueError as ve:
                 # Stock validation error - form error already added
@@ -167,6 +169,7 @@ def create_order(request):
                     "Unable to complete order. Please check item availability."
                 )
                 # Transaction automatically rolled back
+                # Re-render form with errors
 
             except Exception as e:
                 # Catch all other errors
@@ -176,6 +179,7 @@ def create_order(request):
                     "An unexpected error occurred. Please try again or contact support."
                 )
                 # Transaction automatically rolled back
+                # Re-render form
 
         else:
             # Form validation failed

@@ -1,16 +1,11 @@
-//users_src/auth/register.ts
+// users_src/auth/register.ts
+import '../utils/password-toggle';
+import '../utils/password-validation';
 
 interface RegisterFormElements {
     form: HTMLFormElement | null;
     password1: HTMLInputElement | null;
     password2: HTMLInputElement | null;
-    strengthBars: {
-        lengthBar: HTMLElement | null;
-        numberBar: HTMLElement | null;
-        caseBar: HTMLElement | null;
-        specialBar: HTMLElement | null;
-        strengthText: HTMLElement | null;
-    };
 }
 
 class RegisterForm {
@@ -22,43 +17,14 @@ class RegisterForm {
             form: document.querySelector('form') as HTMLFormElement,
             password1: document.querySelector('[name="password1"]') as HTMLInputElement,
             password2: document.querySelector('[name="password2"]') as HTMLInputElement,
-            strengthBars: {
-                lengthBar: document.getElementById('length-strength'),
-                numberBar: document.getElementById('number-strength'),
-                caseBar: document.getElementById('case-strength'),
-                specialBar: document.getElementById('special-strength'),
-                strengthText: document.getElementById('password-strength-text')
-            }
         };
 
         this.initialize();
     }
 
     private initialize(): void {
-        PasswordToggle.initialize();
-        this.initializePasswordStrengthMeter();
+        // Password utilities are auto-initialized from their modules
         this.enhanceFormValidation();
-    }
-
-    private initializePasswordStrengthMeter(): void {
-        if (this.elements.password1) {
-            this.elements.password1.addEventListener('input', () => {
-                if (this.elements.password1) {
-                    this.updatePasswordStrength(this.elements.password1.value);
-                }
-            });
-
-            // Initialize with current value if any
-            if (this.elements.password1.value) {
-                this.updatePasswordStrength(this.elements.password1.value);
-            }
-        }
-    }
-
-    private updatePasswordStrength(password: string): void {
-        const requirements = PasswordValidator.validatePassword(password);
-        PasswordValidator.updateStrengthBars(password, this.elements.strengthBars);
-        PasswordValidator.updateRequirementsList(requirements);
     }
 
     private enhanceFormValidation(): void {
@@ -73,8 +39,8 @@ class RegisterForm {
                         return;
                     }
 
-                    // Check password strength
-                    if (!PasswordValidator.isPasswordStrong(this.elements.password1.value)) {
+                    // Check password strength using global PasswordValidator
+                    if (window.PasswordValidator && !window.PasswordValidator.isPasswordStrong(this.elements.password1.value)) {
                         e.preventDefault();
                         this.showError('Please ensure your password meets all the strength requirements.');
                         this.elements.password1.focus();

@@ -38,7 +38,6 @@ class Command(BaseCommand):
         print(f"  Affiliate link: {affiliate_link}")
         print(f"  Ship to: {order.first_name} {order.last_name}, {order.address}, {order.city}")
 
-        # Mark as processed (in a real app, you'd store tracking + call API)
         order_item.mark_as_processed(
             order_id="ALX123456",  # Simulated dropship order ID
             tracking="TRK987654321",  # Simulated tracking

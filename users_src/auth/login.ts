@@ -1,3 +1,6 @@
+// users_src/auth/login.ts
+import '../utils/password-toggle';
+
 class LoginForm {
     private form: HTMLFormElement | null;
 
@@ -7,7 +10,7 @@ class LoginForm {
     }
 
     private initialize(): void {
-        PasswordToggle.initialize();
+        // Password toggle is auto-initialized from its module
         this.enhanceFormValidation();
     }
 

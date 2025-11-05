@@ -1,0 +1,15 @@
+{
+  "name": "django-mart-users",
+  "version": "1.0.0",
+  "description": "TypeScript frontend for Django Mart users app",
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "watch": "vite build --watch",
+    "dev": "vite build --watch --mode development",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf ../users/static/js/*"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}

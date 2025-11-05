@@ -5,8 +5,9 @@
   "scripts": {
     "build:payments": "cd src && npm run build",
     "build:payments:watch": "cd src && npm run build:watch",
-    "build:users": "cd users_src && node build.js",
-    "build:users:watch": "cd users_src && tsc --watch",
+    "build:users": "vite build --config users_src/vite.config.js",
+    "build:users:watch": "vite build --config users_src/vite.config.js --watch",
+    "build:users:dev": "vite build --config users_src/vite.config.js --watch --mode development",
     "build:frontend": "cd frontend && npm run build",
     "build:frontend:dev": "cd frontend && npm run dev",
     "build:all": "npm run build:users && npm run build:payments && npm run build:frontend",
@@ -18,7 +19,9 @@
     "clean:build": "npm run clean:all && npm run build:all",
     "dev": "npm run build:users && npm run build:payments && python manage.py runserver",
     "dev:frontend": "cd frontend && npm run dev",
-    "dev:full": "concurrently \"npm run dev:frontend\" \"python manage.py runserver\""
+    "dev:full": "concurrently \"npm run dev:frontend\" \"python manage.py runserver\"",
+    "dev:users": "concurrently \"npm run build:users:watch\" \"python manage.py runserver\"",
+    "type-check:users": "cd users_src && tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "^20.19.23",

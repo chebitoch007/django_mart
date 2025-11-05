@@ -173,7 +173,6 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
     BASE_DIR / 'cart/static',  # Include cart static files
     BASE_DIR / 'users/static', # Include users static files
-    #BASE_DIR / 'orders/static', # Include orders static files
     BASE_DIR / 'orders' / 'static',
     BASE_DIR / 'payment/static', # Include payment static files
     BASE_DIR / 'static/frontend',
