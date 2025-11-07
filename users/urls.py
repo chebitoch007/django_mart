@@ -1,5 +1,6 @@
 # users/urls.py
-from .views import session_keepalive, CustomPasswordResetView, CustomPasswordResetConfirmView # Import new view
+from .views import session_keepalive, CustomPasswordResetView, CustomPasswordResetConfirmView, \
+    remove_profile_image  # Import new view
 from django.contrib.auth import views as auth_views
 from . import views
 from .views import (
@@ -45,11 +46,6 @@ urlpatterns = [
     # UPDATED to use function-based view
     path('profile/update/', views.profile_update_view, name='profile_update'),
 
-    # REMOVED notification_prefs URL
-    # path('profile/notifications/',
-    #      NotificationPreferencesView.as_view(),
-    #      name='notification_prefs'),
-
     # Address management
     path('address/add/', AddressCreateView.as_view(), name='add_address'),
     path('address/<int:pk>/edit/', AddressUpdateView.as_view(), name='edit_address'),
@@ -58,6 +54,7 @@ urlpatterns = [
 
     # Profile image update
     path('profile/image/', views.update_profile_image, name='update_profile_image'),
+    path('profile/image/remove/', remove_profile_image, name='remove_profile_image'),
 
     # Password management
     path('password-change/', CustomPasswordChangeView.as_view(), name='password_change'),

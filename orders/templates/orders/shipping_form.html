@@ -1,4 +1,3 @@
-{# orders/templates/orders/shipping_form.html - ENHANCED VERSION #}
 {% load static %}
 {% load crispy_forms_tags %}
 
@@ -7,25 +6,86 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Enter your shipping information to complete your order">
-  <title>Shipping Information | DjangoMart</title>
+  <title>Shipping Information | ASAI</title>
 
-  {# Bootstrap 5 CSS #}
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-  {# Custom shipping form styles #}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="{% static 'css/shipping-form.css' %}">
 
-  {# Bootstrap Icons (optional) #}
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    .address-card {
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .address-card:hover {
+      border-color: #cbd5e1;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .address-card.selected {
+      border-color: #2563eb;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(67, 56, 202, 0.05));
+    }
+
+    .address-card .default-badge {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .address-card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2563eb, #4338ca);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1rem;
+    }
+
+    .new-address-section {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .new-address-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .save-address-section {
+      background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+      border-left: 4px solid #2563eb;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+  </style>
 </head>
 
 <body class="bg-light">
-
-  {# Main Container #}
   <div class="container py-4 py-md-5">
 
-    {# Progress Indicator #}
+    <!-- Progress Indicator -->
     <div class="row mb-4">
       <div class="col-12">
         <div class="progress-wrapper">
@@ -51,142 +111,218 @@
       </div>
     </div>
 
-    {# Shipping Form Card #}
+    <!-- Main Form Card -->
     <div class="card form-card shadow-sm mx-auto">
-
-      {# Card Header #}
       <div class="card-header form-card-header">
         <h1 class="h4 mb-0">
-          <i class="bi bi-truck me-2"></i>
+          <i class="fas fa-shipping-fast me-2"></i>
           Shipping Information
         </h1>
         <p class="mb-0 mt-1 text-white-50 small">
-          Step 2 of 4: Enter your delivery details
+          Step 2 of 4: Choose delivery address
         </p>
       </div>
 
-      {# Card Body #}
       <div class="card-body form-card-body">
 
-        {# Display form errors #}
-        {% if form.non_field_errors %}
-          <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {% for error in form.non_field_errors %}
-              <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
-            {% endfor %}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        {% endif %}
-
-        {# Display Django messages #}
+        <!-- Messages -->
         {% if messages %}
           {% for message in messages %}
             <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
               {{ message }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
           {% endfor %}
         {% endif %}
 
-        {# Shipping Form #}
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {% for error in form.non_field_errors %}
+              <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+            {% endfor %}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endif %}
+
         <form method="post" novalidate id="shipping-form">
           {% csrf_token %}
 
-          {# Personal Information Section #}
-          <div class="form-section">
+          <!-- Saved Addresses Section (if user has addresses) -->
+          {% if has_addresses %}
+          <div class="form-section mb-4">
             <h5 class="section-title">
-              <i class="bi bi-person me-2"></i>
-              Personal Information
+              <i class="fas fa-bookmark me-2"></i>
+              Saved Addresses
             </h5>
+            <p class="text-muted small mb-3">Select a saved address or enter a new one below</p>
 
-            <div class="row g-3">
-              <div class="col-md-6">
-                {{ form.first_name|as_crispy_field }}
+            <div id="saved-addresses-list">
+              {% for address in saved_addresses %}
+              <div class="address-card" data-address-id="{{ address.id }}" onclick="selectAddress({{ address.id }})">
+                {% if address.is_default %}
+                <span class="default-badge">
+                  <i class="fas fa-star me-1"></i>Default
+                </span>
+                {% endif %}
+
+                <div class="d-flex align-items-start">
+                  <div class="address-card-icon">
+                    <i class="fas fa-{% if address.address_type == 'home' %}home{% elif address.address_type == 'work' %}briefcase{% else %}map-marker-alt{% endif %}"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1 fw-bold">
+                      {{ address.nickname|default:address.get_address_type_display }}
+                    </h6>
+                    <p class="mb-1 text-muted small">
+                      <strong>{{ address.full_name }}</strong>
+                    </p>
+                    <p class="mb-1 small">
+                      {{ address.street_address }}<br>
+                      {{ address.city }}, {{ address.state }} {{ address.postal_code }}<br>
+                      {{ address.country.name }}
+                    </p>
+                    {% if address.phone %}
+                    <p class="mb-0 small text-muted">
+                      <i class="fas fa-phone me-1"></i>{{ address.phone }}
+                    </p>
+                    {% endif %}
+                  </div>
+                  <div class="form-check ms-2">
+                    <input class="form-check-input" type="radio" name="saved_address"
+                           value="{{ address.id }}" id="address-{{ address.id }}"
+                           {% if address.is_default and not form.saved_address.value %}checked{% endif %}
+                           {% if form.saved_address.value == address.id|stringformat:"s" %}checked{% endif %}>
+                  </div>
+                </div>
               </div>
-              <div class="col-md-6">
-                {{ form.last_name|as_crispy_field }}
-              </div>
+              {% endfor %}
             </div>
 
-            <div class="row g-3 mt-2">
-              <div class="col-md-6">
-                {{ form.email|as_crispy_field }}
-              </div>
-              <div class="col-md-6">
-                {{ form.phone|as_crispy_field }}
+            <!-- Option to enter new address -->
+            <div class="address-card" onclick="selectNewAddress()">
+              <div class="d-flex align-items-center">
+                <div class="address-card-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                  <i class="fas fa-plus"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <h6 class="mb-0 fw-bold">Use a different address</h6>
+                  <p class="mb-0 small text-muted">Enter new shipping details</p>
+                </div>
+                <div class="form-check ms-2">
+                  <input class="form-check-input" type="radio" name="saved_address"
+                         value="" id="address-new">
+                </div>
               </div>
             </div>
           </div>
+          {% endif %}
 
-          {# Shipping Address Section #}
-          <div class="form-section mt-4">
-            <h5 class="section-title">
-              <i class="bi bi-geo-alt me-2"></i>
-              Shipping Address
-            </h5>
+          <!-- New Address Form (shown when no saved addresses or "new address" selected) -->
+          <div id="new-address-form" class="new-address-section {% if not has_addresses %}active{% endif %}">
 
-            <div class="mb-3">
-              {{ form.address|as_crispy_field }}
+            <!-- Personal Information -->
+            <div class="form-section">
+              <h5 class="section-title">
+                <i class="fas fa-user me-2"></i>
+                Personal Information
+              </h5>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  {{ form.first_name|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                  {{ form.last_name|as_crispy_field }}
+                </div>
+              </div>
+
+              <div class="row g-3 mt-2">
+                <div class="col-md-6">
+                  {{ form.email|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                  {{ form.phone|as_crispy_field }}
+                </div>
+              </div>
             </div>
 
-            <div class="row g-3">
-              <div class="col-md-6">
-                {{ form.city|as_crispy_field }}
+            <!-- Shipping Address -->
+            <div class="form-section mt-4">
+              <h5 class="section-title">
+                <i class="fas fa-map-marked-alt me-2"></i>
+                Shipping Address
+              </h5>
+
+              <div class="mb-3">
+                {{ form.address|as_crispy_field }}
               </div>
-              <div class="col-md-6">
-                {{ form.postal_code|as_crispy_field }}
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  {{ form.city|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                  {{ form.postal_code|as_crispy_field }}
+                </div>
+              </div>
+
+              <div class="row g-3 mt-2">
+                <div class="col-md-6">
+                  {{ form.state|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                  {{ form.country|as_crispy_field }}
+                </div>
               </div>
             </div>
 
-            <div class="row g-3 mt-2">
-              <div class="col-md-6">
-                {{ form.state|as_crispy_field }}
+            <!-- Delivery Preferences -->
+            <div class="form-section mt-4">
+              <h5 class="section-title">
+                <i class="fas fa-clipboard-list me-2"></i>
+                Delivery Preferences
+              </h5>
+
+              <div class="mb-3">
+                {{ form.delivery_instructions|as_crispy_field }}
               </div>
-              <div class="col-md-6">
-                {{ form.country|as_crispy_field }}
+
+              <div class="form-check">
+                {{ form.billing_same_as_shipping }}
+                <label class="form-check-label" for="{{ form.billing_same_as_shipping.id_for_label }}">
+                  {{ form.billing_same_as_shipping.label }}
+                </label>
               </div>
             </div>
+
+            <!-- Save Address Option (only for authenticated users) -->
+            {% if user.is_authenticated %}
+            <div class="save-address-section mt-4">
+              <div class="form-check mb-3">
+                {{ form.save_address }}
+                <label class="form-check-label fw-medium" for="{{ form.save_address.id_for_label }}">
+                  <i class="fas fa-save me-2"></i>
+                  Save this address for future orders
+                </label>
+              </div>
+
+              <div id="address-nickname-field" style="display: none;">
+                {{ form.address_nickname|as_crispy_field }}
+                <small class="text-muted">
+                  <i class="fas fa-lightbulb me-1"></i>
+                  Give it a memorable name like "Home", "Office", or "Parents' House"
+                </small>
+              </div>
+            </div>
+            {% endif %}
           </div>
 
-          {# Delivery Options Section #}
-          <div class="form-section mt-4">
-            <h5 class="section-title">
-              <i class="bi bi-box-seam me-2"></i>
-              Delivery Preferences
-            </h5>
-
-            <div class="mb-3">
-              {{ form.delivery_instructions|as_crispy_field }}
-              <small class="form-text text-muted">
-                <i class="bi bi-info-circle me-1"></i>
-                Optional: Add special instructions for the delivery driver
-              </small>
-            </div>
-          </div>
-
-          {# Billing Section #}
-          <div class="form-section mt-4">
-            <h5 class="section-title">
-              <i class="bi bi-credit-card me-2"></i>
-              Billing Address
-            </h5>
-
-            <div class="form-check custom-checkbox">
-              {{ form.billing_same_as_shipping }}
-              <label class="form-check-label" for="{{ form.billing_same_as_shipping.id_for_label }}">
-                {{ form.billing_same_as_shipping.label }}
-              </label>
-              <small class="form-text text-muted d-block mt-1">
-                Most customers use the same address for shipping and billing
-              </small>
-            </div>
-          </div>
-
-          {# Order Summary (if cart is available) #}
+          <!-- Order Summary -->
           {% if cart %}
           <div class="order-summary mt-4 p-3 bg-light rounded">
             <h6 class="fw-bold mb-3">
-              <i class="bi bi-cart-check me-2"></i>
+              <i class="fas fa-shopping-cart me-2"></i>
               Order Summary
             </h6>
             <div class="d-flex justify-content-between mb-2">
@@ -203,23 +339,23 @@
           </div>
           {% endif %}
 
-          {# Form Actions #}
+          <!-- Form Actions -->
           <div class="form-actions mt-4">
             <button type="submit" class="btn btn-primary btn-lg w-100" id="submit-btn">
-              <i class="bi bi-arrow-right-circle me-2"></i>
+              <i class="fas fa-arrow-right-circle me-2"></i>
               Proceed to Payment
             </button>
 
             <a href="{% url 'cart:cart_detail' %}" class="btn btn-outline-secondary btn-lg w-100 mt-3">
-              <i class="bi bi-arrow-left me-2"></i>
+              <i class="fas fa-arrow-left me-2"></i>
               Back to Cart
             </a>
           </div>
 
-          {# Security Note #}
+          <!-- Security Note -->
           <div class="text-center mt-4">
             <small class="text-muted">
-              <i class="bi bi-shield-check me-1"></i>
+              <i class="fas fa-shield-check me-1"></i>
               Your information is secure and encrypted
             </small>
           </div>
@@ -227,51 +363,97 @@
       </div>
     </div>
 
-    {# Help Text Below Form #}
+    <!-- Help Text -->
     <div class="text-center mt-4">
       <small class="text-muted">
-        Need help? Contact our support team at
-        <a href="mailto:support@djangomart.com">support@djangomart.com</a>
+        Need help? <a href="mailto:support@asai.co.ke">Contact Support</a>
       </small>
     </div>
   </div>
 
-  {# Bootstrap JS Bundle #}
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-  {# Custom Form JavaScript #}
   <script>
-    // Form submission handling with loading state
+    // Address selection logic
+    function selectAddress(addressId) {
+      // Unselect all cards
+      document.querySelectorAll('.address-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+
+      // Select clicked card
+      const clickedCard = document.querySelector(`[data-address-id="${addressId}"]`);
+      if (clickedCard) {
+        clickedCard.classList.add('selected');
+      }
+
+      // Check the radio button
+      document.getElementById(`address-${addressId}`).checked = true;
+
+      // Hide new address form
+      document.getElementById('new-address-form').classList.remove('active');
+    }
+
+    function selectNewAddress() {
+      // Unselect all cards
+      document.querySelectorAll('.address-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+
+      // Select new address option
+      const newAddressCard = document.querySelector('[onclick="selectNewAddress()"]');
+      if (newAddressCard) {
+        newAddressCard.classList.add('selected');
+      }
+
+      // Check the "new address" radio
+      document.getElementById('address-new').checked = true;
+
+      // Show new address form
+      document.getElementById('new-address-form').classList.add('active');
+    }
+
+    // Save address checkbox toggle
+    const saveAddressCheckbox = document.getElementById('{{ form.save_address.id_for_label }}');
+    const nicknameField = document.getElementById('address-nickname-field');
+
+    if (saveAddressCheckbox && nicknameField) {
+      saveAddressCheckbox.addEventListener('change', function() {
+        nicknameField.style.display = this.checked ? 'block' : 'none';
+      });
+
+      // Initial state
+      if (saveAddressCheckbox.checked) {
+        nicknameField.style.display = 'block';
+      }
+    }
+
+    // Form submission
     const form = document.getElementById('shipping-form');
     const submitBtn = document.getElementById('submit-btn');
 
     form.addEventListener('submit', function(e) {
-      // Prevent double submission
       if (submitBtn.disabled) {
         e.preventDefault();
         return;
       }
 
-      // Show loading state
-      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
       submitBtn.disabled = true;
 
-      // Re-enable after 5 seconds if form doesn't submit (safety fallback)
       setTimeout(() => {
         if (submitBtn.disabled) {
-          submitBtn.innerHTML = '<i class="bi bi-arrow-right-circle me-2"></i>Proceed to Payment';
+          submitBtn.innerHTML = '<i class="fas fa-arrow-right-circle me-2"></i>Proceed to Payment';
           submitBtn.disabled = false;
         }
       }, 5000);
     });
 
-    // Phone number formatting helper
+    // Phone number formatting
     const phoneInput = document.querySelector('input[name="phone"]');
     if (phoneInput) {
       phoneInput.addEventListener('blur', function() {
         let value = this.value.trim();
-
-        // Auto-add + if missing and starts with digits
         if (value && !value.startsWith('+') && /^\d/.test(value)) {
           this.value = '+' + value;
         }
@@ -297,32 +479,14 @@
       updateCounter();
     }
 
-    // Auto-dismiss alerts after 5 seconds
-    const alerts = document.querySelectorAll('.alert:not(.alert-danger)');
+    // Auto-dismiss success alerts
+    const alerts = document.querySelectorAll('.alert-success');
     alerts.forEach(alert => {
       setTimeout(() => {
         const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
         bsAlert.close();
       }, 5000);
     });
-
-    // Form validation feedback
-    form.addEventListener('submit', function(e) {
-      if (!form.checkValidity()) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      form.classList.add('was-validated');
-    });
-
-    // Billing checkbox toggle (for future billing form display)
-    const billingCheckbox = document.querySelector('input[name="billing_same_as_shipping"]');
-    if (billingCheckbox) {
-      billingCheckbox.addEventListener('change', function() {
-        // This can be extended to show/hide billing address fields
-        console.log('Billing same as shipping:', this.checked);
-      });
-    }
   </script>
 </body>
 </html>

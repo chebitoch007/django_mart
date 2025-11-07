@@ -1,6 +1,6 @@
 //mpesa.ts
 
-import { validatePhoneNumber } from './utils.js';
+import { validatePhoneNumber, fetchWithTimeout } from './utils.js';
 import {
   setSubmitButtonState,
   startProcessingAnimation,
@@ -218,7 +218,7 @@ function finalizeMpesaPayment(checkoutRequestId: string, paymentSystem: PaymentS
     checkoutRequestId ||
     state.lastCheckoutRequestId ||
     (document.getElementById('checkoutRequestId') as HTMLInputElement)?.value ||
-    localStorage.getItem('lastCheckoutRequestId');
+    storage.getItem('lastCheckoutRequestId');
 
   console.info('[MPESA] Finalizing payment with checkout_request_id:', finalCheckoutRequestId);
 
@@ -271,9 +271,9 @@ function finalizeMpesaPayment(checkoutRequestId: string, paymentSystem: PaymentS
       }
 
       if (data.success || data.status === 'success') {
-        // ✅ Clear localStorage
-        localStorage.removeItem('lastCheckoutRequestId');
-        localStorage.removeItem('paymentFormState');
+        // ✅ Clear storage
+        storage.removeItem('lastCheckoutRequestId');
+        storage.removeItem('paymentFormState');
 
         elements.modalTitle.textContent = 'Payment Successful!';
         elements.modalText.textContent = 'Redirecting to your order confirmation...';

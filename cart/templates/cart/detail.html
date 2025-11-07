@@ -192,7 +192,7 @@
             {% endif %}
         </div>
 
-        <!-- ✅ Restored Original Order Summary Design -->
+        <!-- ✅ Updated Order Summary Design -->
         <div class="cart-summary-section">
             <div class="summary-card" id="cart-summary" aria-labelledby="summary-title">
                 <div class="summary-content">
@@ -204,10 +204,19 @@
                             {{ cart.total_price.currency }} {{ cart.total_price.amount|intcomma }}
                         </span>
                     </div>
+
+                    <!-- NEW: Add shipping row -->
                     <div class="summary-row">
                         <span>Shipping:</span>
-                        <span>Calculated at checkout</span>
+                        <span id="cart-shipping" aria-live="polite">
+                            {% if cart.has_free_shipping %}
+                                <span style="color: #10b981; font-weight: 600;">FREE</span>
+                            {% else %}
+                                {{ cart.total_price.currency }} {{ cart.estimated_shipping|default:"0.00"|intcomma }}
+                            {% endif %}
+                        </span>
                     </div>
+
                     <div class="summary-row">
                         <span>Estimated Tax:</span>
                         <span>{{ cart.total_price.currency }} 0.00</span>
@@ -216,7 +225,7 @@
                     <div class="summary-total-row" aria-live="polite">
                         <span>Total:</span>
                         <span id="cart-total">
-                            {{ cart.total_price.currency }} {{ cart.total_price.amount|intcomma }}
+                            {{ cart.total_price.currency }} {{ cart.grand_total|intcomma }}
                         </span>
                     </div>
 

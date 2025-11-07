@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Update Profile - ASAI</title>
-    <!-- Assuming your custom CSS handles form styling -->
     <link rel="stylesheet" href="{% static 'css/asai-forms.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
@@ -41,7 +40,6 @@
                 <p class="asai-page-subtitle">Keep your personal information up to date</p>
             </div>
 
-            <!-- Display form errors -->
             {% if user_form.errors or profile_form.errors %}
                 <div class="alert alert-danger mb-4"> {# Assuming Bootstrap alert styles or similar #}
                     <strong>Please correct the errors below:</strong>
@@ -66,7 +64,6 @@
                         <i class="fas fa-user me-2"></i>Personal Details
                     </div>
                     <div class="asai-card-body">
-                        <!-- Render UserForm fields manually -->
                         <div class="form-section">
                             <label for="{{ user_form.first_name.id_for_label }}" class="form-label">{{ user_form.first_name.label }}</label>
                             {{ user_form.first_name }}
@@ -99,21 +96,7 @@
                         <i class="fas fa-cog me-2"></i>Profile & Preferences
                     </div>
                     <div class="asai-card-body">
-                        <!-- Render ProfileForm fields manually -->
-                        {% if profile_form.profile_image %}
-                            <div class="form-section">
-                                <label for="{{ profile_form.profile_image.id_for_label }}" class="form-label">{{ profile_form.profile_image.label }}</label>
-                                {% if profile_form.instance.profile_image %}
-                                    <div class="current-picture">
-                                        Current: <img src="{{ profile_form.instance.profile_image.url }}" alt="Profile" class="profile-preview">
-                                    </div>
-                                {% endif %}
-                                {{ profile_form.profile_image }}
-                                {% if profile_form.profile_image.help_text %}<small class="helptext">{{ profile_form.profile_image.help_text|safe }}</small>{% endif %}
-                                {% if profile_form.profile_image.errors %}<div class="errorlist">{{ profile_form.profile_image.errors }}</div>{% endif %}
-                            </div>
-                        {% endif %}
-                         <div class="form-section">
+                        <div class="form-section">
                             <label for="{{ profile_form.date_of_birth.id_for_label }}" class="form-label">{{ profile_form.date_of_birth.label }}</label>
                             {{ profile_form.date_of_birth }}
                             {% if profile_form.date_of_birth.help_text %}<small class="helptext">{{ profile_form.date_of_birth.help_text|safe }}</small>{% endif %}
@@ -125,8 +108,7 @@
                             {% if profile_form.preferred_language.help_text %}<small class="helptext">{{ profile_form.preferred_language.help_text|safe }}</small>{% endif %}
                             {% if profile_form.preferred_language.errors %}<div class="errorlist">{{ profile_form.preferred_language.errors }}</div>{% endif %}
                         </div>
-                        <!-- Render Checkboxes differently for better styling -->
-                         <div class="form-section form-check"> {# Assuming form-check class for checkbox styling #}
+                        <div class="form-section form-check"> {# Assuming form-check class for checkbox styling #}
                             {{ profile_form.dark_mode }}
                             <label for="{{ profile_form.dark_mode.id_for_label }}" class="form-check-label">{{ profile_form.dark_mode.label }}</label>
                              {% if profile_form.dark_mode.help_text %}<small class="helptext">{{ profile_form.dark_mode.help_text|safe }}</small>{% endif %}

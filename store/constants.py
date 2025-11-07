@@ -1,6 +1,7 @@
 CATEGORIES = {
     "Gaming Hardware": {
         "Consoles": [],
+        "Controllers": [],
         "Gaming PCs & Laptops": [],
         "Graphics Cards & Components": [],
     },

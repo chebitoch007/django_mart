@@ -1,4 +1,6 @@
 # users/forms.py
+
+from django_countries.widgets import CountrySelectWidget
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from django.contrib.auth.forms import PasswordChangeForm as AuthPasswordChangeForm
@@ -275,75 +277,127 @@ class UserProfileForm(forms.ModelForm):
         return phone_number
 
 
-
-
 class AddressForm(forms.ModelForm):
+    """Form for creating and updating user addresses."""
+
     class Meta:
         model = Address
-        fields = ['nickname', 'address_type', 'full_name', 'street_address',
-                  'city', 'state', 'postal_code', 'country', 'phone', 'is_default']
+        fields = [
+            'nickname',
+            'address_type',
+            'full_name',
+            'street_address',
+            'city',
+            'state',
+            'postal_code',
+            'country',
+            'phone',
+            'is_default',
+        ]
+
         widgets = {
             'nickname': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Home, Work, etc.',
-                'aria-label': 'Address nickname'
+                'placeholder': 'e.g., Home, Office',
             }),
             'address_type': forms.Select(attrs={
                 'class': 'form-select',
-                'aria-label': 'Address type'
             }),
             'full_name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Full Name',
-                'aria-label': 'Full name'
+                'placeholder': 'John Doe',
             }),
             'street_address': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': '123 Main Street',
-                'aria-label': 'Street address'
+                'placeholder': '123 Main Street, Apt 4B',
             }),
             'city': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'e.g. Nairobi',
-                'aria-label': 'City'
+                'placeholder': 'Nairobi',
             }),
             'state': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'e.g. Nairobi County',
-                'aria-label': 'State'
+                'placeholder': 'Nairobi County',
             }),
             'postal_code': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Postal code',
-                'aria-label': 'Postal code'
+                'placeholder': '00100',
             }),
-            'country': forms.Select(attrs={
+            'country': CountrySelectWidget(attrs={
                 'class': 'form-select',
-                'aria-label': 'Country'
             }),
             'phone': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': '+2547XXXXXXXX',
-                'data-mask': '+254000000000',
-                'aria-label': 'Phone number'
+                'placeholder': '+254712345678',
             }),
             'is_default': forms.CheckboxInput(attrs={
-                'aria-label': 'Set as default shipping address'
+                'class': 'form-check-input',
             }),
         }
-        labels = {
-            'is_default': _('Set as default shipping address'),
-        }
 
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
+        """Initialize form with user context."""
+        self.user = user
         super().__init__(*args, **kwargs)
-        # Set address_type default to 'shipping'
-        if 'address_type' in self.fields:
-            self.fields['address_type'].initial = 'shipping'
 
+    def clean_nickname(self):
+        """Validate nickname uniqueness for the user."""
+        nickname = self.cleaned_data.get('nickname', '').strip()
 
+        if not nickname:
+            return nickname
 
+        # Check if nickname already exists for this user (excluding current instance)
+        queryset = Address.objects.filter(
+            user=self.user,
+            nickname__iexact=nickname
+        )
+
+        # Exclude current instance when editing
+        if self.instance and self.instance.pk:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        if queryset.exists():
+            raise forms.ValidationError(
+                f'You already have an address with the nickname "{nickname}". '
+                'Please choose a different name.'
+            )
+
+        return nickname
+
+    def clean_phone(self):
+        """Validate and normalize phone number."""
+        phone = self.cleaned_data.get('phone', '').strip()
+
+        if not phone:
+            return phone
+
+        phone_digits = phone.replace(' ', '').replace('-', '')
+
+        if not phone_digits.startswith('+'):
+            raise forms.ValidationError(
+                "Phone number must start with country code (e.g., +254712345678)"
+            )
+
+        if len(phone_digits) < 10 or len(phone_digits) > 17:
+            raise forms.ValidationError(
+                "Phone number must be between 9 and 16 digits (plus country code)"
+            )
+
+        return phone_digits
+
+    def save(self, commit=True):
+        """Save address with proper default handling."""
+        address = super().save(commit=False)
+
+        # If this address is being set as default, unset other defaults
+        if address.is_default and self.user:
+            Address.objects.filter(user=self.user).update(is_default=False)
+
+        if commit:
+            address.save()
+
+        return address
 
 class PasswordUpdateForm(PasswordChangeForm):
     def __init__(self, *args, **kwargs):

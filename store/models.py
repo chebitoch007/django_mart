@@ -10,6 +10,9 @@ from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
 import secrets
+
+from djmoney.money import Money
+
 from .constants import CATEGORIES
 from mptt.models import MPTTModel, TreeForeignKey
 from django.contrib.postgres.indexes import GinIndex
@@ -153,8 +156,7 @@ class Product(models.Model):
 
     # New normalized relations
     brand = models.ForeignKey(Brand, null=True, blank=True, related_name='products', on_delete=models.SET_NULL)
-  #  supplier = models.ForeignKey(Supplier, null=True, blank=True, related_name='products', on_delete=models.SET_NULL)
-    # OLD supplier name stored temporarily
+
     supplier_name = models.CharField(max_length=150, blank=True, null=True)
 
     # NEW relational supplier model
@@ -165,6 +167,23 @@ class Product(models.Model):
         on_delete=models.SET_NULL,
         related_name='products'
     )
+
+    shipping_cost = MoneyField(
+        max_digits=10,
+        decimal_places=2,
+        default_currency='KES',
+        default=0.00,
+        blank=True,
+        null=True,
+        help_text="Shipping cost for this product (leave blank for free shipping)"
+    )
+
+    # NEW: Free shipping flag
+    free_shipping = models.BooleanField(
+        default=False,
+        help_text="Check if this product qualifies for free shipping"
+    )
+
     supplier_url = models.URLField(blank=True)
 
     # Dropship extras
@@ -286,6 +305,16 @@ class Product(models.Model):
             except Exception:
                 return 0
         return 0
+
+    def get_shipping_cost(self):
+        """Returns the shipping cost or 0 if free shipping"""
+        if self.free_shipping:
+            return Money(0, settings.DEFAULT_CURRENCY)
+        return self.shipping_cost or Money(0, settings.DEFAULT_CURRENCY)
+
+    def has_free_shipping(self):
+        """Check if product has free shipping"""
+        return self.free_shipping or (self.shipping_cost and self.shipping_cost.amount == 0)
 
 
     @property

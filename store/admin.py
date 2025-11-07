@@ -1,12 +1,20 @@
-# store/admin.py - COMPLETE FIXED VERSION
+# store/admin.py - MERGED ENHANCED VERSION
+
+from django import forms
+from moneyed import Money
+from decimal import Decimal
+from core.utils import get_exchange_rate
+from django.conf import settings
 from django.contrib import admin
 from django.db import models
-from django.db.models import Count, F, ExpressionWrapper, FloatField, Sum
+from django.db.models import Count, F, ExpressionWrapper, FloatField, Sum, Q
 from django.utils.html import format_html
-from django.urls import reverse
+from django.urls import reverse, path
 from django.contrib.admin import SimpleListFilter
 from django.db.models import Case, When, Value, IntegerField
 from django.utils import timezone
+from django.shortcuts import render, redirect
+from django.contrib import messages
 from .forms import ProductForm
 from .models import (
     Category, Product, NewsletterSubscription,
@@ -47,6 +55,179 @@ for model in [Category, Product, NewsletterSubscription, SearchLog,
         admin.site.unregister(model)
 
 
+# ===== QUICK EDIT FORM FOR INLINE EDITING =====
+
+class QuickEditProductForm(forms.ModelForm):
+    """Simplified form for quick product updates"""
+
+    # Currency conversion fields
+    input_currency = forms.ChoiceField(
+        choices=[(c, c) for c in settings.CURRENCIES],
+        initial='USD',
+        label='Input Currency',
+        help_text='Select the currency you want to input the price in'
+    )
+
+    input_price = forms.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        required=False,
+        label='Price',
+        help_text='Enter price in your selected currency'
+    )
+
+    input_discount_price = forms.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        required=False,
+        label='Discount Price',
+        help_text='Enter discount price (optional)'
+    )
+
+    target_currency = forms.ChoiceField(
+        choices=[(c, c) for c in settings.CURRENCIES],
+        initial=settings.DEFAULT_CURRENCY,
+        label='Convert To',
+        help_text='Price will be converted to this currency'
+    )
+
+    shipping_cost = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        label='Shipping Cost',
+        help_text='Enter shipping cost (0 for free shipping)',
+        widget=forms.NumberInput(attrs={
+            'style': 'width: 150px; padding: 8px;',
+            'step': '0.01',
+            'min': '0'
+        })
+    )
+
+    free_shipping = forms.BooleanField(
+        required=False,
+        label='Free Shipping',
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input',
+        })
+    )
+
+    class Meta:
+        model = Product
+        fields = [
+            'name', 'short_description', 'description',
+            'input_currency', 'input_price', 'input_discount_price', 'target_currency',
+            'stock', 'available', 'featured', 'category', 'brand',
+            'shipping_cost', 'free_shipping'
+        ]
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'style': 'width: 100%; padding: 8px; font-size: 14px;'
+            }),
+            'short_description': forms.Textarea(attrs={
+                'rows': 2,
+                'style': 'width: 100%; padding: 8px; font-size: 13px;'
+            }),
+            'description': forms.Textarea(attrs={
+                'rows': 4,
+                'style': 'width: 100%; padding: 8px; font-size: 13px;'
+            }),
+            'stock': forms.NumberInput(attrs={
+                'style': 'width: 100px; padding: 8px;'
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Pre-fill with existing values if editing
+        if self.instance and self.instance.pk:
+            if hasattr(self.instance.price, 'amount'):
+                self.fields['input_price'].initial = self.instance.price.amount
+                self.fields['input_currency'].initial = str(self.instance.price.currency)
+
+            if self.instance.discount_price and hasattr(self.instance.discount_price, 'amount'):
+                self.fields['input_discount_price'].initial = self.instance.discount_price.amount
+
+            if self.instance.shipping_cost:
+                self.fields['shipping_cost'].initial = self.instance.shipping_cost.amount
+
+            self.fields['free_shipping'].initial = self.instance.free_shipping
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        # --- Currency conversion logic ---
+        input_curr = self.cleaned_data.get('input_currency')
+        target_curr = self.cleaned_data.get('target_currency')
+        input_price = self.cleaned_data.get('input_price')
+        input_discount = self.cleaned_data.get('input_discount_price')
+
+        if input_price:
+            if input_curr == target_curr:
+                converted_price = input_price
+            else:
+                rate = get_exchange_rate(input_curr, target_curr)
+                converted_price = Decimal(str(input_price)) * rate
+            instance.price = Money(converted_price, target_curr)
+
+        if input_discount:
+            if input_curr == target_curr:
+                converted_discount = input_discount
+            else:
+                rate = get_exchange_rate(input_curr, target_curr)
+                converted_discount = Decimal(str(input_discount)) * rate
+            instance.discount_price = Money(converted_discount, target_curr)
+
+        # --- Shipping logic ---
+        shipping_cost = self.cleaned_data.get('shipping_cost')
+        free_shipping = self.cleaned_data.get('free_shipping')
+
+        if free_shipping:
+            instance.shipping_cost = Money(0, settings.DEFAULT_CURRENCY)
+            instance.free_shipping = True
+        elif shipping_cost is not None:
+            instance.shipping_cost = Money(shipping_cost, settings.DEFAULT_CURRENCY)
+            instance.free_shipping = False
+
+        if commit:
+            instance.save()
+
+        return instance
+
+
+# ===== BULK PRICE UPDATE FORM =====
+
+class BulkPriceUpdateForm(forms.Form):
+    """Form for updating multiple product prices at once"""
+
+    input_currency = forms.ChoiceField(
+        choices=[(c, c) for c in settings.CURRENCIES],
+        initial='USD',
+        label='From Currency'
+    )
+
+    target_currency = forms.ChoiceField(
+        choices=[(c, c) for c in settings.CURRENCIES],
+        initial=settings.DEFAULT_CURRENCY,
+        label='To Currency'
+    )
+
+    markup_percentage = forms.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        initial=0,
+        label='Markup %',
+        help_text='Add this percentage to the converted price (e.g., 20 for 20% markup)'
+    )
+
+    apply_to_discount = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='Also convert discount prices'
+    )
+
+
 # ===== CUSTOM FILTERS =====
 
 class DiscountFilter(SimpleListFilter):
@@ -76,6 +257,25 @@ class DiscountFilter(SimpleListFilter):
                     output_field=FloatField()
                 )
             ).filter(discount_percent__gt=30)
+        return queryset
+
+
+class NoPriceFilter(SimpleListFilter):
+    """Filter for products without prices set"""
+    title = 'price status'
+    parameter_name = 'price_status'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('no_price', 'No Price Set'),
+            ('has_price', 'Has Price'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'no_price':
+            return queryset.filter(Q(price=0) | Q(price__isnull=True))
+        if self.value() == 'has_price':
+            return queryset.filter(price__gt=0)
         return queryset
 
 
@@ -219,35 +419,56 @@ class SupplierAdmin(admin.ModelAdmin):
     product_count.short_description = 'Products'
 
 
-# ===== PRODUCT ADMIN =====
+# ===== ENHANCED PRODUCT ADMIN =====
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductForm
+
     list_display = [
         'image_preview', 'name', 'category_link', 'brand', 'price_display',
-        'discount_badge', 'stock_status', 'available', 'rating_display', 'review_count'
+        'discount_badge', 'shipping_display', 'stock_status', 'available',
+        'rating_display', 'review_count', 'quick_edit_button'
     ]
+
     list_filter = [
         'available', 'featured', 'is_dropship',
-        'category__parent', 'brand', DiscountFilter
+        NoPriceFilter, DiscountFilter,
+        'category__parent', 'brand'
     ]
+
     list_editable = ['available']
     prepopulated_fields = {'slug': ('name',)}
+
     readonly_fields = [
         'rating', 'review_count', 'created', 'updated',
         'search_vector_info', 'product_images_preview', 'variants_preview',
-        'image_preview_large'
+        'image_preview_large', 'price_conversion_calculator'
     ]
+
     search_fields = ['name', 'description', 'short_description', 'slug']
     autocomplete_fields = ['category', 'brand', 'supplier']
+
+    actions = [
+        'bulk_price_update',
+        'convert_prices_to_kes',
+        'apply_markup',
+        'duplicate_products'
+    ]
 
     fieldsets = (
         ('Basic Information', {
             'fields': ('category', 'brand', 'name', 'slug', 'short_description', 'description')
         }),
-        ('Pricing & Inventory', {
-            'fields': ('price', 'discount_price', 'stock', 'available')
+        ('💰 Pricing & Currency Conversion', {
+            'fields': ('price_conversion_calculator', 'price', 'discount_price')
+        }),
+        ('📦 Shipping Information', {
+            'fields': ('shipping_cost', 'free_shipping', 'shipping_time'),
+            'classes': ('collapse',)
+        }),
+        ('Inventory', {
+            'fields': ('stock', 'available', 'featured')
         }),
         ('Main Image', {
             'fields': ('image', 'image_preview_large')
@@ -257,12 +478,12 @@ class ProductAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('Product Features', {
-            'fields': ('featured', 'rating', 'review_count')
+            'fields': ('rating', 'review_count')
         }),
-        ('Dropshipping', {
+        ('Dropshipping & Supplier', {
             'fields': (
                 'is_dropship', 'supplier', 'supplier_url',
-                'shipping_time', 'commission_rate', 'supplier_product_id'
+                'commission_rate', 'supplier_product_id'
             ),
             'classes': ('collapse',)
         }),
@@ -271,6 +492,133 @@ class ProductAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+    def shipping_display(self, obj):
+        """Display shipping cost with badge"""
+        if obj.free_shipping or (obj.shipping_cost and obj.shipping_cost.amount == 0):
+            return format_html(
+                '<span style="background: #10b981; color: white; padding: 4px 8px; '
+                'border-radius: 4px; font-size: 12px; font-weight: 600;">FREE</span>'
+            )
+        elif obj.shipping_cost:
+            return format_html(
+                '<span style="font-weight: 600; color: #059669;">{} {}</span>',
+                obj.shipping_cost.currency,
+                f"{obj.shipping_cost.amount:,.2f}"
+            )
+        return format_html('<span style="color: #9ca3af;">Not set</span>')
+
+    shipping_display.short_description = 'Shipping'
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                '<path:object_id>/quick-edit/',
+                self.admin_site.admin_view(self.quick_edit_view),
+                name='store_product_quickedit'
+            ),
+            path(
+                'bulk_price_update/',
+                self.admin_site.admin_view(self.bulk_price_update_view),
+                name='store_product_bulkprice'
+            ),
+        ]
+        return custom_urls + urls
+
+    def quick_edit_view(self, request, object_id):
+        """Quick edit view with currency conversion"""
+        product = self.get_object(request, object_id)
+
+        if request.method == 'POST':
+            form = QuickEditProductForm(request.POST, instance=product)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f'✅ Successfully updated {product.name}')
+                return redirect('admin:store_product_changelist')
+        else:
+            form = QuickEditProductForm(instance=product)
+
+        context = {
+            'form': form,
+            'product': product,
+            'title': f'Quick Edit: {product.name}',
+            'opts': self.model._meta,
+            'has_view_permission': self.has_view_permission(request, product),
+            'has_change_permission': self.has_change_permission(request, product),
+        }
+
+        return render(request, 'admin/store/product/quick_edit.html', context)
+
+    def bulk_price_update_view(self, request):
+        """Bulk update prices for selected products"""
+
+        if request.method == 'POST':
+            form = BulkPriceUpdateForm(request.POST)
+            if form.is_valid():
+                # --- POST Logic ---
+                product_ids_str = request.POST.get('product_ids')
+                if not product_ids_str:
+                    messages.error(request, "No products were selected.")
+                    return redirect('admin:store_product_changelist')
+
+                product_ids = product_ids_str.split(',')
+                products = Product.objects.filter(id__in=product_ids)
+
+                input_curr = form.cleaned_data['input_currency']
+                target_curr = form.cleaned_data['target_currency']
+                markup = form.cleaned_data['markup_percentage']
+                apply_discount = form.cleaned_data['apply_to_discount']
+
+                rate = get_exchange_rate(input_curr, target_curr)
+                updated_count = 0
+
+                for product in products:
+                    if hasattr(product.price, 'amount') and product.price.amount > 0:
+                        base_amount = product.price.amount
+                        converted = Decimal(str(base_amount)) * rate
+
+                        if markup > 0:
+                            converted = converted * (1 + markup / 100)
+
+                        product.price = Money(converted, target_curr)
+
+                        if apply_discount and product.discount_price:
+                            discount_amount = product.discount_price.amount
+                            converted_discount = Decimal(str(discount_amount)) * rate
+                            if markup > 0:
+                                converted_discount = converted_discount * (1 + markup / 100)
+                            product.discount_price = Money(converted_discount, target_curr)
+
+                        product.save()
+                        updated_count += 1
+
+                messages.success(
+                    request,
+                    f'✅ Successfully updated prices for {updated_count} products from {input_curr} to {target_curr}'
+                )
+                return redirect('admin:store_product_changelist')
+
+            else:
+                # --- Invalid POST Logic ---
+                # Form is invalid, get IDs from the POST to re-render
+                product_ids = request.POST.get('product_ids')
+
+        else:
+            # --- GET Logic ---
+            form = BulkPriceUpdateForm()
+            # Get the IDs from the URL query string
+            product_ids = request.GET.get('ids')
+
+        # --- Shared Render Logic (for GET and invalid POST) ---
+        context = {
+            'form': form,
+            'title': 'Bulk Price Update with Currency Conversion',
+            'opts': self.model._meta,
+            'product_ids': product_ids,  # <-- Pass the IDs to the template
+        }
+
+        return render(request, 'admin/store/product/bulk_price_update.html', context)
 
     def image_preview(self, obj):
         """Safe image preview"""
@@ -305,7 +653,12 @@ class ProductAdmin(admin.ModelAdmin):
 
     def price_display(self, obj):
         """Display price with proper Money handling - BULLETPROOF VERSION"""
-        # Extract raw values, no HTML at all
+        if not obj.price or (hasattr(obj.price, 'amount') and obj.price.amount == 0):
+            return format_html(
+                '<span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; '
+                'border-radius: 4px; font-weight: 600;">⚠️ No Price</span>'
+            )
+
         if hasattr(obj.price, 'amount'):
             price_val = f"{obj.price.currency} {obj.price.amount:,.2f}"
         else:
@@ -317,7 +670,6 @@ class ProductAdmin(admin.ModelAdmin):
             else:
                 discount_val = str(obj.discount_price)
 
-            # Now safely pass plain strings to format_html
             return format_html(
                 '<span style="text-decoration: line-through; color: #9ca3af;">{}</span><br>'
                 '<span style="color: #dc2626; font-weight: 600;">{}</span>',
@@ -325,7 +677,7 @@ class ProductAdmin(admin.ModelAdmin):
                 discount_val
             )
 
-        return format_html('<span style="font-weight: 600;">{}</span>', price_val)
+        return format_html('<span style="font-weight: 600; color: #059669;">{}</span>', price_val)
 
     price_display.short_description = 'Price'
 
@@ -364,21 +716,65 @@ class ProductAdmin(admin.ModelAdmin):
 
     def rating_display(self, obj):
         stars = '★' * int(obj.rating) + '☆' * (5 - int(obj.rating))
-
-        # --- FIX ---
-        # Pre-format the rating number into a plain string first.
-        # This avoids passing a Decimal/float directly into format_html's
-        # formatter, which is causing the ValueError.
         rating_str = f"{float(obj.rating):.1f}"
 
         return format_html(
             '<span style="color: #fbbf24; font-size: 16px;">{}</span> <span style="color: #6b7280;">({})</span>',
-            stars, rating_str  # Pass the pre-formatted string
+            stars, rating_str
         )
-        # --- END FIX ---
 
     rating_display.short_description = 'Rating'
 
+    def quick_edit_button(self, obj):
+        """Display quick edit button"""
+        url = reverse('admin:store_product_quickedit', args=[obj.pk])
+        return format_html(
+            '<a href="{}" class="button" style="background: #3b82f6; color: white; '
+            'padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 12px;">'
+            '⚡ Quick Edit</a>',
+            url
+        )
+
+    quick_edit_button.short_description = 'Actions'
+
+    def price_conversion_calculator(self, obj):
+        """Display interactive price conversion calculator"""
+        current_price = safe_money_display(obj.price) if obj.price else "Not set"
+        current_discount = safe_money_display(obj.discount_price) if obj.discount_price else "Not set"
+
+        currencies = ', '.join(settings.CURRENCIES)
+
+        return format_html(
+            '''
+            <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 10px 0;">
+                <h3 style="margin-top: 0; color: #1f2937;">💱 Currency Conversion Calculator</h3>
+
+                <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                    <strong>Current Prices:</strong><br>
+                    Regular: <span style="color: #059669; font-weight: 600;">{}</span><br>
+                    Discount: <span style="color: #dc2626; font-weight: 600;">{}</span>
+                </div>
+
+                <div style="background: #dbeafe; padding: 15px; border-radius: 6px;">
+                    <p style="margin-top: 0;"><strong>💡 How to update prices:</strong></p>
+                    <ol style="margin: 10px 0; padding-left: 20px;">
+                        <li>Use the form fields to enter prices in any currency (USD, EUR, etc.)</li>
+                        <li>Select your target currency (default: {})</li>
+                        <li>Prices will be automatically converted when you save</li>
+                    </ol>
+                    <p style="margin-bottom: 0; font-size: 12px; color: #1e40af;">
+                        📌 Supported currencies: {}
+                    </p>
+                </div>
+            </div>
+            ''',
+            current_price,
+            current_discount,
+            settings.DEFAULT_CURRENCY,
+            currencies
+        )
+
+    price_conversion_calculator.short_description = 'Price Calculator'
 
     def search_vector_info(self, obj):
         if obj.search_vector:
@@ -433,6 +829,74 @@ class ProductAdmin(admin.ModelAdmin):
         return format_html(html)
 
     variants_preview.short_description = 'Product Variants'
+
+    # ===== ADMIN ACTIONS =====
+    @admin.action(description='🔄 Convert prices (bulk)')
+    def bulk_price_update(self, request, queryset):
+        """Redirect to bulk price update page"""
+        selected = queryset.values_list('id', flat=True)
+
+        # Use reverse() to find the correct URL by its name
+        base_url = reverse('admin:store_product_bulkprice')
+
+        # Build the URL with the query parameters
+        redirect_url = f"{base_url}?ids={','.join(map(str, selected))}"
+
+        return redirect(redirect_url)
+
+    @admin.action(description='💱 Convert all to KES')
+    def convert_prices_to_kes(self, request, queryset):
+        """Quick convert to KES"""
+        updated = 0
+        for product in queryset:
+            if product.price and hasattr(product.price, 'currency'):
+                if str(product.price.currency) != 'KES':
+                    rate = get_exchange_rate(str(product.price.currency), 'KES')
+                    converted = Decimal(str(product.price.amount)) * rate
+                    product.price = Money(converted, 'KES')
+
+                    if product.discount_price:
+                        disc_rate = get_exchange_rate(str(product.discount_price.currency), 'KES')
+                        converted_disc = Decimal(str(product.discount_price.amount)) * disc_rate
+                        product.discount_price = Money(converted_disc, 'KES')
+
+                    product.save()
+                    updated += 1
+
+        self.message_user(request, f'✅ Converted {updated} products to KES')
+
+        # store/admin.py (ProductAdmin class)
+
+    @admin.action(description='📈 Apply 20%% markup')
+    def apply_markup(self, request, queryset):
+        """Apply 20% markup to selected products"""
+        updated = 0
+        for product in queryset:
+            if product.price and hasattr(product.price, 'amount'):
+                new_amount = product.price.amount * Decimal('1.20')
+                product.price = Money(new_amount, product.price.currency)
+
+                if product.discount_price:
+                    new_discount = product.discount_price.amount * Decimal('1.20')
+                    product.discount_price = Money(new_discount, product.discount_price.currency)
+
+                product.save()
+                updated += 1
+
+        self.message_user(request, f'✅ Applied 20% markup to {updated} products')
+
+    @admin.action(description='📋 Duplicate selected products')
+    def duplicate_products(self, request, queryset):
+        """Duplicate products for quick variations"""
+        duplicated = 0
+        for product in queryset:
+            product.pk = None
+            product.slug = None
+            product.name = f"{product.name} (Copy)"
+            product.save()
+            duplicated += 1
+
+        self.message_user(request, f'✅ Duplicated {duplicated} products')
 
 
 # ===== PRODUCT IMAGE ADMIN =====
@@ -631,8 +1095,8 @@ class SearchLogAdmin(admin.ModelAdmin):
 
     def result_estimate(self, obj):
         count = Product.objects.filter(
-            models.Q(name__icontains=obj.query) |
-            models.Q(description__icontains=obj.query)
+            Q(name__icontains=obj.query) |
+            Q(description__icontains=obj.query)
         ).count()
         return f"~{count} results"
 

@@ -19,7 +19,7 @@
     "clean:build": "npm run clean:all && npm run build:all",
     "dev": "npm run build:users && npm run build:payments && python manage.py runserver",
     "dev:frontend": "cd frontend && npm run dev",
-    "dev:full": "concurrently \"npm run dev:frontend\" \"python manage.py runserver\"",
+    "dev:full": "concurrently \"npm run dev:frontend\" \"npm run build:users:dev\" \"python manage.py runserver\"",
     "dev:users": "concurrently \"npm run build:users:watch\" \"python manage.py runserver\"",
     "type-check:users": "cd users_src && tsc --noEmit"
   },

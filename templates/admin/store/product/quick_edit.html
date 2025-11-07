@@ -1,0 +1,330 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .quick-edit-container {
+        max-width: 900px;
+        margin: 20px auto;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        padding: 30px;
+    }
+
+    .form-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        background: #f9fafb;
+        border-radius: 6px;
+    }
+
+    .form-section h3 {
+        margin-top: 0;
+        color: #1f2937;
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+
+    .form-row {
+        margin-bottom: 20px;
+    }
+
+    .form-row label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #374151;
+    }
+
+    .form-row input,
+    .form-row select,
+    .form-row textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+
+    .form-row textarea {
+        resize: vertical;
+        font-family: inherit;
+        min-height: 120px; /* ADDED: Give textareas a bit more space */
+    }
+
+    .help-text {
+        font-size: 12px;
+        color: #4b5563;
+        margin-top: 4px;
+    }
+
+    /* ADDED: A flexible grid for form rows */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px 20px;
+    }
+
+    /* Full-width span for grid items */
+    .grid-col-span-2 {
+        grid-column: 1 / -1;
+    }
+
+    .currency-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 15px;
+    }
+
+    /* IMPROVED: Checkbox styling */
+    .checkbox-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px; /* Space between checkbox and text */
+        padding: 10px;
+        background: white;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 10px;
+        cursor: pointer;
+    }
+    .checkbox-wrapper input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        flex-shrink: 0;
+    }
+    .checkbox-wrapper span {
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0;
+    }
+    /* End Checkbox styles */
+
+    .submit-row {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .button {
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        border: none;
+        font-size: 14px;
+    }
+
+    .button-primary {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .button-primary:hover {
+        background: #2563eb;
+    }
+
+    .button-secondary {
+        background: #e5e7eb;
+        color: #374151;
+    }
+
+    .button-secondary:hover {
+        background: #d1d5db;
+    }
+
+    .info-box {
+        background: #dbeafe;
+        border-left: 4px solid #3b82f6;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        color: #1e40af;
+    }
+
+    .conversion-preview {
+        background: #f0fdf4;
+        border: 1px solid #86efac;
+        padding: 15px;
+        border-radius: 6px;
+        margin-top: 15px;
+    }
+
+    .conversion-preview h4 {
+        margin-top: 0;
+        color: #166534;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="quick-edit-container">
+    <h1>⚡ Quick Edit: {{ product.name }}</h1>
+
+    <div class="info-box">
+        <strong>💡 Quick Edit Mode:</strong> Update product details and prices with automatic currency conversion.
+        All changes are saved immediately when you click "Save Changes".
+    </div>
+
+    <form method="post" id="quick-edit-form">
+        {% csrf_token %}
+
+        <div class="form-section">
+            <h3>📝 Basic Information</h3>
+
+            <div class="form-grid">
+                <div class="form-row grid-col-span-2"> <label for="id_name">Product Name *</label>
+                    {{ form.name }}
+                    {% if form.name.help_text %}
+                    <p class="help-text">{{ form.name.help_text }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="form-row grid-col-span-2"> <label for="id_short_description">Short Description</label>
+                    {{ form.short_description }}
+                    <p class="help-text">Brief product summary (shown in listings)</p>
+                </div>
+
+                <div class="form-row grid-col-span-2"> <label for="id_description">Full Description</label>
+                    {{ form.description }}
+                    <p class="help-text">Detailed product information</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>💰 Pricing with Currency Conversion</h3>
+
+            <div class="currency-grid">
+                <div class="form-row">
+                    <label for="id_input_currency">From Currency</label>
+                    {{ form.input_currency }}
+                </div>
+
+                <div class="form-row">
+                    <label for="id_input_price">Price *</label>
+                    {{ form.input_price }}
+                </div>
+
+                <div class="form-row">
+                    <label for="id_input_discount_price">Discount Price</label>
+                    {{ form.input_discount_price }}
+                </div>
+
+                <div class="form-row">
+                    <label for="id_target_currency">Convert To</label>
+                    {{ form.target_currency }}
+                </div>
+            </div>
+
+            <div class="conversion-preview" id="conversion-preview" style="display: none;">
+                <h4>🔄 Conversion Preview</h4>
+                <p id="preview-text"></p>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>🏷️ Classification</h3>
+
+            <div class="form-grid">
+                <div class="form-row">
+                    <label for="id_category">Category</label>
+                    {{ form.category }}
+                </div>
+
+                <div class="form-row">
+                    <label for="id_brand">Brand</label>
+                    {{ form.brand }}
+                </div>
+
+                <div class="form-row">
+                    <label for="id_stock">Stock Quantity</label>
+                    {{ form.stock }}
+                </div>
+
+                <div class="form-row">
+                    <label>Status</label> <label class="checkbox-wrapper">
+                        {{ form.available }}
+                        <span>Available for Sale</span>
+                    </label>
+                    <label class="checkbox-wrapper" style="margin-bottom: 0;">
+                        {{ form.featured }}
+                        <span>Featured Product</span>
+                    </label>
+                </div>
+                </div>
+        </div>
+
+        <div class="submit-row">
+            <a href="{% url 'admin:store_product_changelist' %}" class="button button-secondary">
+                Cancel
+            </a>
+            <button type="submit" class="button button-primary">
+                💾 Save Changes
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('quick-edit-form');
+    const inputCurrency = document.getElementById('id_input_currency');
+    const targetCurrency = document.getElementById('id_target_currency');
+    const inputPrice = document.getElementById('id_input_price');
+    const inputDiscount = document.getElementById('id_input_discount_price');
+    const preview = document.getElementById('conversion-preview');
+    const previewText = document.getElementById('preview-text');
+
+    // Simple exchange rates (you can fetch real-time rates via AJAX)
+    const exchangeRates = {
+        'USD': {'KES': 129.20, 'EUR': 0.93, 'GBP': 0.79, 'USD': 1.0, 'UGX': 3700, 'TZS': 2500},
+        'EUR': {'KES': 140.00, 'USD': 1.07, 'EUR': 1.0, 'GBP': 0.85, 'UGX': 4200, 'TZS': 2700},
+        'GBP': {'KES': 174.50, 'USD': 1.27, 'EUR': 1.18, 'GBP': 1.0, 'UGX': 4700, 'TZS': 3500},
+        'KES': {'USD': 0.0077, 'EUR': 0.0071, 'GBP': 0.00573, 'KES': 1.0, 'UGX': 27.30, 'TZS': 19.20},
+        'UGX': {'USD': 0.00027, 'EUR': 0.00024, 'GBP': 0.00021, 'KES': 0.0367, 'UGX': 1.0, 'TZS': 0.67},
+        'TZS': {'USD': 0.00040, 'EUR': 0.00037, 'GBP': 0.00029, 'KES': 0.052, 'UGX': 1.49, 'TZS': 1.0}
+    };
+
+    function updatePreview() {
+        const from = inputCurrency.value;
+        const to = targetCurrency.value;
+        const price = parseFloat(inputPrice.value);
+        const discount = parseFloat(inputDiscount.value);
+
+        if (!price || from === to) {
+            preview.style.display = 'none';
+            return;
+        }
+
+        const rate = exchangeRates[from][to];
+        const convertedPrice = (price * rate).toFixed(2);
+        const convertedDiscount = discount ? (discount * rate).toFixed(2) : null;
+
+        let previewHTML = `<strong>${price} ${from}</strong> = <strong style="color: #059669;">${convertedPrice} ${to}</strong>`;
+
+        if (convertedDiscount) {
+            previewHTML += `<br><strong>${discount} ${from}</strong> = <strong style="color: #dc2626;">${convertedDiscount} ${to}</strong> (discount)`;
+        }
+
+        previewText.innerHTML = previewHTML;
+        preview.style.display = 'block';
+    }
+
+    inputPrice.addEventListener('input', updatePreview);
+    inputDiscount.addEventListener('input', updatePreview);
+    inputCurrency.addEventListener('change', updatePreview);
+    targetCurrency.addEventListener('change', updatePreview);
+
+    // Initial preview
+    updatePreview();
+});
+</script>
+{% endblock %}

@@ -895,3 +895,45 @@ body.no-scroll {
     background: rgba(255, 255, 255, 0.1);
   }
 }
+
+/* Filter Toggle Button - Mobile Only */
+#filterToggle {
+  display: none; /* Hidden by default on desktop */
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #2563eb, #4338ca);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  margin-bottom: 1rem;
+  width: 100%;
+  max-width: 300px;
+}
+
+/* Filter Close Button - Mobile Only */
+.filter-close-btn {
+  display: none; /* Hidden by default */
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid #e2e8f0;
+  color: #1e293b;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  transition: all 0.3s ease;
+  z-index: 10;
+  align-items: center;
+  justify-content: center;
+}

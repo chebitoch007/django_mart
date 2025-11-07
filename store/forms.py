@@ -106,6 +106,28 @@ class ProductForm(forms.ModelForm):
         help_text="Paste the AliExpress product link to auto-fill details"
     )
 
+    shipping_cost = forms.DecimalField(
+        required=False,
+        max_digits=10,
+        decimal_places=2,
+        initial=0.00,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': '0.00',
+            'step': '0.01',
+            'min': '0'
+        }),
+        label='Shipping Cost',
+        help_text='Enter shipping cost (leave 0 for free shipping)'
+    )
+
+    free_shipping = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='Free Shipping',
+        help_text='Check if this product has free shipping'
+    )
+
     shipping_time = forms.CharField(
         required=False,
         max_length=50,
@@ -128,8 +150,12 @@ class ProductForm(forms.ModelForm):
             'name', 'category', 'description', 'short_description',
             'price', 'discount_price', 'stock', 'image',
             'available', 'featured', 'slug_preview',
-            'is_dropship', 'aliexpress_url', 'shipping_time', 'commission_rate'
+            'brand', 'supplier',  # supplier field already exists
+            'is_dropship', 'aliexpress_url', 'supplier_url',  # supplier_url already exists
+            'shipping_time', 'commission_rate',
+            'shipping_cost', 'free_shipping'  # NEW fields
         ]
+
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'short_description': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
@@ -137,6 +163,22 @@ class ProductForm(forms.ModelForm):
             'discount_price': forms.NumberInput(attrs={'class': 'form-control pl-12'}),
             'stock': forms.NumberInput(attrs={'class': 'form-control'}),
             'image': forms.FileInput(attrs={'class': 'form-control'}),
+            'supplier_url': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'https://supplier.com/product-page'
+            }),
+        }
+
+        labels = {
+            'supplier_url': 'Supplier Product URL',
+            'shipping_cost': 'Shipping Cost',
+            'free_shipping': 'Free Shipping',
+        }
+
+        help_texts = {
+            'supplier_url': 'Direct link to the product on supplier\'s website',
+            'shipping_cost': 'Cost to ship this product (in KES)',
+            'free_shipping': 'Check if this product qualifies for free shipping',
         }
 
     def __init__(self, *args, **kwargs):
@@ -155,27 +197,37 @@ class ProductForm(forms.ModelForm):
         else:
             self.fields['image'].required = False
 
+
     def clean_aliexpress_url(self):
         url = self.cleaned_data.get('aliexpress_url')
         if url:
             parsed = urlparse(url)
-            if 'aliexpress.com' not in parsed.netloc:
+            if 'aliexpress' not in parsed.netloc:
                 raise ValidationError("Please enter a valid AliExpress URL")
         return url
 
     def clean(self):
         cleaned_data = super().clean()
+
+        # --- Dropshipping validation ---
         is_dropship = cleaned_data.get('is_dropship')
         aliexpress_url = cleaned_data.get('aliexpress_url')
-
         if is_dropship and not aliexpress_url:
             self.add_error(
                 'aliexpress_url',
                 "AliExpress URL is required for dropshipping products"
             )
 
-        return cleaned_data
+        # --- Free shipping validation ---
+        free_shipping = cleaned_data.get('free_shipping')
+        shipping_cost = cleaned_data.get('shipping_cost')
+        if free_shipping and shipping_cost and shipping_cost > 0:
+            self.add_error(
+                'shipping_cost',
+                'Shipping cost should be 0 when free shipping is enabled'
+            )
 
+        return cleaned_data
 
     def clean_price(self):
         price = self.cleaned_data.get('price')
@@ -191,16 +243,6 @@ class ProductForm(forms.ModelForm):
             raise ValidationError("Discount price must be lower than the regular price.")
         return discount_price
 
-    def clean(self):
-        cleaned_data = super().clean()
-        discount_price = cleaned_data.get('discount_price')
-        price = cleaned_data.get('price')
-
-        # Ensure discount price is less than regular price
-        if discount_price and price and discount_price >= price:
-            self.add_error('discount_price', "Discount price must be lower than regular price")
-
-        return cleaned_data
 
     def save(self, commit=True):
         # Generate slug only for new products

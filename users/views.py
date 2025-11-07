@@ -40,6 +40,7 @@ from django.views.generic import TemplateView, UpdateView, CreateView, DeleteVie
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.http import JsonResponse
 from django.db.models import Sum, Count
+from django.views.decorators.http import require_http_methods
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -214,6 +215,51 @@ def profile_update_view(request):
     }
     return render(request, 'users/profile_update.html', context)
 
+@require_http_methods(["POST"])
+@login_required
+def remove_profile_image(request):
+    """Handle profile image removal via AJAX"""
+    try:
+        # Get or create profile
+        profile, created = Profile.objects.get_or_create(user=request.user)
+
+        # Check if there's a custom image to remove
+        if not profile.profile_image:
+            return JsonResponse({
+                'success': False,
+                'error': 'No custom profile picture to remove'
+            }, status=400)
+
+        # Delete the image file
+        try:
+            profile.profile_image.delete(save=False)
+        except Exception as e:
+            logger.warning(f"Could not delete profile image file: {e}")
+
+        # Clear the profile_image field
+        profile.profile_image = None
+        profile.save()
+
+        # Log the activity
+        ActivityLog.objects.create(
+            user=request.user,
+            activity_type='profile_update',
+            ip_address=get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
+            additional_info={'action': 'profile_image_removed'}
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Profile picture removed successfully'
+        })
+
+    except Exception as e:
+        logger.error(f"Error removing profile image for {request.user.email}: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while removing the image'
+        }, status=500)
 
 @method_decorator(login_required, name='dispatch')
 class AccountDeleteView(FormView):
@@ -471,18 +517,52 @@ def set_default_address(request, pk):
     return redirect('users:account')
 
 
-@login_required(login_url='/accounts/login/')
-@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
 def update_profile_image(request):
-    if request.method == 'POST' and request.FILES.get('profile_image'):
-        profile, _ = Profile.objects.get_or_create(user=request.user)
+    """Handle profile image upload via AJAX"""
+    try:
+        if not request.FILES.get('profile_image'):
+            return JsonResponse({
+                'success': False,
+                'error': 'No image file provided'
+            }, status=400)
+
+        # Get or create profile
+        profile, created = Profile.objects.get_or_create(user=request.user)
+
+        # Delete old image if exists
+        if profile.profile_image:
+            try:
+                profile.profile_image.delete(save=False)
+            except Exception as e:
+                logger.warning(f"Could not delete old profile image: {e}")
+
+        # Save new image
         profile.profile_image = request.FILES['profile_image']
         profile.save()
+
+        # Log the activity
+        ActivityLog.objects.create(
+            user=request.user,
+            activity_type='profile_update',
+            ip_address=get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
+            additional_info={'action': 'profile_image_upload'}
+        )
+
         return JsonResponse({
             'success': True,
-            'profile_image_url': profile.profile_image.url
+            'profile_image_url': profile.profile_image.url,
+            'message': 'Profile image updated successfully'
         })
-    return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+    except Exception as e:
+        logger.error(f"Error updating profile image for {request.user.email}: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while uploading the image'
+        }, status=500)
 
 
 class TermsView(TemplateView):
@@ -507,18 +587,23 @@ class AccountView(TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
 
-        # ADDED: Get user addresses
-        addresses = Address.objects.filter(user=user)
+        # Get user addresses - ensure proper ordering
+        addresses = Address.objects.filter(user=user).order_by('-is_default', '-created')
 
-        # Get recent orders (last 5)
-        orders = Order.objects.filter(user=user).order_by('-created')[:5]
+        # Get recent orders (last 5) - only select_related available fields
+        orders = Order.objects.filter(user=user).select_related(
+            'user',
+            'payment'
+        ).prefetch_related(
+            'items__product'
+        ).order_by('-created')[:5]
 
-        # Calculate total spent - use 'total' instead of 'total_amount'
+        # Calculate total spent - use 'total' field from Order model
         total_spent = Order.objects.filter(
             user=user,
-            status='completed'
+            status__in=['completed', 'paid', 'COMPLETED', 'PAID']  # Handle both cases
         ).aggregate(
-            total=Sum('total')  # Changed from 'total_amount'
+            total=Sum('total')
         )['total'] or Decimal('0.00')
 
         # Get last order
@@ -534,7 +619,7 @@ class AccountView(TemplateView):
         avg_order = total_spent / order_count if order_count > 0 else Decimal('0.00')
 
         context.update({
-            'addresses': addresses,  # ADDED
+            'addresses': addresses,
             'orders': orders,
             'total_spent': total_spent,
             'last_order': last_order.created if last_order else None,

@@ -1,4 +1,4 @@
-// frontend/src/store/main.ts - UPDATED with filters import
+// frontend/src/store/main.ts - UPDATED
 
 console.log('🟢 STORE main.ts loaded');
 
@@ -55,15 +55,22 @@ function initializeStorePage() {
   // Additional: handle HTMX swaps so page-specific initialisation fires after swap
   document.body.addEventListener('htmx:afterSwap', (evt: any) => {
     const target = evt.detail?.target as HTMLElement | null;
-    if (!target) return;
 
-    // If the results container was swapped in (for product list), re-initialise
-    if (pageName === 'product-list' && target.id === 'resultsRoot') {
-      console.log('↻ HTMX afterSwap on resultsRoot – re-init product list logic');
+    // ✅ IMPROVEMENT: Only proceed if the swap target is the results grid
+    if (!target || target.id !== 'resultsRoot') return;
+
+    console.log(`↻ HTMX afterSwap on resultsRoot – re-init page: ${pageName}`);
+
+    // ✅ IMPROVEMENT: Re-run the correct initializer for the current page
+    // This ensures filter JS (like the price slider) is re-wired
+    // after the content is replaced by HTMX.
+    if (pageName === 'product-list') {
       initProductList();
+    } else if (pageName === 'search') {
+      initSearch();
+    } else if (pageName === 'categories') {
+      initCategories();
     }
-
-    // If other page types need re-init after swap, add here as needed
   });
 }
 

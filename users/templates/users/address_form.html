@@ -1,4 +1,4 @@
-{% load crispy_forms_filters static humanize %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,14 +13,251 @@
     </title>
 
     <link rel="shortcut icon" href="{% static 'store/images/favicon.ico' %}" type="image/x-icon">
-
     <link rel="stylesheet" href="{% static 'css/asai-forms.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <style>
+        /* Additional enhancements */
+        .form-step {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideIn 0.4s ease forwards;
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-step:nth-child(1) { animation-delay: 0.1s; }
+        .form-step:nth-child(2) { animation-delay: 0.2s; }
+        .form-step:nth-child(3) { animation-delay: 0.3s; }
+        .form-step:nth-child(4) { animation-delay: 0.4s; }
+
+        .input-icon-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .input-with-icon {
+            padding-left: 2.75rem;
+        }
+
+        .form-control:focus ~ .input-icon,
+        .form-select:focus ~ .input-icon {
+            color: var(--color-primary);
+        }
+
+        .required-indicator {
+            color: var(--color-danger);
+            font-weight: bold;
+            margin-left: 0.25rem;
+        }
+
+        .field-hint {
+            font-size: 0.8125rem;
+            color: #64748b;
+            margin-top: 0.375rem;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .field-hint i {
+            font-size: 0.75rem;
+        }
+
+        .progress-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .progress-step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .progress-step::before {
+            content: '';
+            position: absolute;
+            top: 1.25rem;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e2e8f0;
+            z-index: 0;
+        }
+
+        .progress-step:first-child::before {
+            left: 50%;
+        }
+
+        .progress-step:last-child::before {
+            right: 50%;
+        }
+
+        .progress-number {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #e2e8f0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #94a3b8;
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s ease;
+        }
+
+        .progress-step.active .progress-number {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+            color: white;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        }
+
+        .progress-step.completed .progress-number {
+            background: var(--color-success);
+            border-color: var(--color-success);
+            color: white;
+        }
+
+        .progress-step.completed::before {
+            background: var(--color-success);
+        }
+
+        .progress-label {
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #94a3b8;
+        }
+
+        .progress-step.active .progress-label {
+            color: var(--color-primary);
+        }
+
+        .address-type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .address-type-option {
+            display: none;
+        }
+
+        .address-type-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .address-type-label i {
+            font-size: 1.5rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+        }
+
+        .address-type-label span {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--color-dark);
+        }
+
+        .address-type-option:checked + .address-type-label {
+            border-color: var(--color-primary);
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(67, 56, 202, 0.05));
+        }
+
+        .address-type-option:checked + .address-type-label i {
+            color: var(--color-primary);
+        }
+
+        .address-type-label:hover {
+            border-color: #cbd5e1;
+            transform: translateY(-2px);
+        }
+
+        .character-count {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-align: right;
+            margin-top: 0.25rem;
+        }
+
+        .character-count.warning {
+            color: var(--color-accent);
+        }
+
+        .character-count.danger {
+            color: var(--color-danger);
+        }
+
+        .default-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px solid #fbbf24;
+            border-radius: var(--border-radius-sm);
+            margin-top: 0.5rem;
+        }
+
+        .default-badge i {
+            color: #f59e0b;
+            font-size: 1.125rem;
+        }
+
+        .save-btn-wrapper {
+            position: sticky;
+            bottom: 1rem;
+            z-index: 10;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .progress-indicator {
+                display: none;
+            }
+
+            .address-type-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
 </head>
 <body class="bg-light">
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-12 col-lg-7">
+        <div class="col-12 col-lg-8">
+            <!-- Header -->
             <div class="asai-page-header mb-4">
                 <h1 class="asai-page-title">
                     {% if 'add' in request.path %}
@@ -31,72 +268,486 @@
                 </h1>
                 <p class="asai-page-subtitle">
                     {% if 'add' in request.path %}
-                        Add a new delivery or billing address
+                        Save a new delivery or billing address for quick checkout
                     {% else %}
                         Update your address information
                     {% endif %}
                 </p>
             </div>
 
+            <!-- Progress Indicator -->
+            <div class="progress-indicator">
+                <div class="progress-step active" data-step="1">
+                    <span class="progress-number">1</span>
+                    <span class="progress-label">Basic Info</span>
+                </div>
+                <div class="progress-step" data-step="2">
+                    <span class="progress-number">2</span>
+                    <span class="progress-label">Location</span>
+                </div>
+                <div class="progress-step" data-step="3">
+                    <span class="progress-number">3</span>
+                    <span class="progress-label">Details</span>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Form Card -->
             <div class="asai-card animate-fade-in">
                 <div class="asai-card-header">
-                    <i class="fas fa-map-marker-alt me-2"></i>Address Details
+                    <i class="fas fa-map-marker-alt me-2"></i>Address Information
                 </div>
                 <div class="asai-card-body">
-                    <form method="post" class="asai-form">
+                    <form method="post" class="asai-form" id="addressForm">
                         {% csrf_token %}
 
-                        {% if form.nickname %}
-                            <div class="form-section">
-                                {{ form.nickname|as_crispy_field }}
-                                <small class="form-text text-muted">e.g., "Home", "Office"</small>
-                            </div>
-                        {% endif %}
-                        <div class="form-section">{{ form.full_name|as_crispy_field }}</div>
-                        {% if form.phone_number %}
-                            <div class="form-section">{{ form.phone_number|as_crispy_field }}</div>
-                        {% endif %}
-                        <div class="form-section">{{ form.street_address|as_crispy_field }}</div>
-                        {% if form.apartment %}
-                            <div class="form-section">{{ form.apartment|as_crispy_field }}</div>
-                        {% endif %}
-                        <div class="form-group-inline">
-                            <div class="form-section flex-grow-2">{{ form.city|as_crispy_field }}</div>
-                            <div class="form-section flex-grow-1">{{ form.state|as_crispy_field }}</div>
-                        </div>
-                        <div class="form-section">{{ form.postal_code|as_crispy_field }}</div>
-                        {% if form.country %}
-                            <div class="form-section">{{ form.country|as_crispy_field }}</div>
-                        {% endif %}
-                        {% if form.is_default %}
-                            <div class="form-section mt-4 pt-3 border-top">
-                                <div class="form-check asai-checkbox">
-                                    {{ form.is_default }}
-                                    <label class="form-check-label fw-medium" for="{{ form.is_default.id_for_label }}">
-                                        Set as default address
+                        <!-- Step 1: Basic Info -->
+                        <div class="form-step">
+                            <h5 class="mb-3 text-primary">
+                                <i class="fas fa-info-circle me-2"></i>Basic Information
+                            </h5>
+
+                            <div class="row">
+                                <!-- Nickname -->
+                                <div class="col-12 mb-3">
+                                    <label for="{{ form.nickname.id_for_label }}" class="form-label">
+                                        Address Nickname
                                     </label>
+                                    <div class="input-icon-wrapper">
+                                        <input type="text"
+                                               name="nickname"
+                                               id="{{ form.nickname.id_for_label }}"
+                                               class="form-control input-with-icon"
+                                               placeholder="e.g., Home, Office, Mom's Place"
+                                               value="{{ form.nickname.value|default:'' }}"
+                                               maxlength="50">
+                                        <i class="fas fa-tag input-icon"></i>
+                                    </div>
+                                    <div class="field-hint">
+                                        <i class="fas fa-lightbulb"></i>
+                                        <span>Give this address a memorable name for easy identification</span>
+                                    </div>
+                                    {% if form.nickname.errors %}
+                                        <div class="text-danger small mt-1">{{ form.nickname.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Address Type -->
+                                <div class="col-12 mb-4">
+                                    <label class="form-label">
+                                        Address Type <span class="required-indicator">*</span>
+                                    </label>
+                                    <div class="address-type-grid">
+                                        <div>
+                                            <input type="radio"
+                                                   name="address_type"
+                                                   value="home"
+                                                   id="type_home"
+                                                   class="address-type-option"
+                                                   {% if form.address_type.value == 'home' or not form.address_type.value %}checked{% endif %}>
+                                            <label for="type_home" class="address-type-label">
+                                                <i class="fas fa-home"></i>
+                                                <span>Home</span>
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <input type="radio"
+                                                   name="address_type"
+                                                   value="work"
+                                                   id="type_work"
+                                                   class="address-type-option"
+                                                   {% if form.address_type.value == 'work' %}checked{% endif %}>
+                                            <label for="type_work" class="address-type-label">
+                                                <i class="fas fa-briefcase"></i>
+                                                <span>Work</span>
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <input type="radio"
+                                                   name="address_type"
+                                                   value="shipping"
+                                                   id="type_shipping"
+                                                   class="address-type-option"
+                                                   {% if form.address_type.value == 'shipping' %}checked{% endif %}>
+                                            <label for="type_shipping" class="address-type-label">
+                                                <i class="fas fa-truck"></i>
+                                                <span>Shipping</span>
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <input type="radio"
+                                                   name="address_type"
+                                                   value="billing"
+                                                   id="type_billing"
+                                                   class="address-type-option"
+                                                   {% if form.address_type.value == 'billing' %}checked{% endif %}>
+                                            <label for="type_billing" class="address-type-label">
+                                                <i class="fas fa-credit-card"></i>
+                                                <span>Billing</span>
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <input type="radio"
+                                                   name="address_type"
+                                                   value="other"
+                                                   id="type_other"
+                                                   class="address-type-option"
+                                                   {% if form.address_type.value == 'other' %}checked{% endif %}>
+                                            <label for="type_other" class="address-type-label">
+                                                <i class="fas fa-map-pin"></i>
+                                                <span>Other</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% if form.address_type.errors %}
+                                        <div class="text-danger small mt-2">{{ form.address_type.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Full Name -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.full_name.id_for_label }}" class="form-label">
+                                        Full Name <span class="required-indicator">*</span>
+                                    </label>
+                                    <div class="input-icon-wrapper">
+                                        <input type="text"
+                                               name="full_name"
+                                               id="{{ form.full_name.id_for_label }}"
+                                               class="form-control input-with-icon"
+                                               placeholder="John Doe"
+                                               value="{{ form.full_name.value|default:'' }}"
+                                               required>
+                                        <i class="fas fa-user input-icon"></i>
+                                    </div>
+                                    {% if form.full_name.errors %}
+                                        <div class="text-danger small mt-1">{{ form.full_name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Phone Number -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                        Phone Number
+                                    </label>
+                                    <div class="input-icon-wrapper">
+                                        <input type="tel"
+                                               name="phone"
+                                               id="{{ form.phone.id_for_label }}"
+                                               class="form-control input-with-icon"
+                                               placeholder="+254712345678"
+                                               value="{{ form.phone.value|default:'' }}">
+                                        <i class="fas fa-phone input-icon"></i>
+                                    </div>
+                                    <div class="field-hint">
+                                        <i class="fas fa-info-circle"></i>
+                                        <span>International format: +254712345678</span>
+                                    </div>
+                                    {% if form.phone.errors %}
+                                        <div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>
+                                    {% endif %}
                                 </div>
                             </div>
-                        {% endif %}
+                        </div>
 
-                        <div class="asai-form-actions mt-4">
-                            <button type="submit" class="asai-btn asai-btn-primary">
-                                <i class="fas fa-save me-2"></i>Save Address
-                            </button>
-                            <a href="{% url 'users:account' %}" class="asai-btn asai-btn-secondary">
-                                <i class="fas fa-times me-2"></i>Cancel
-                            </a>
+                        <hr class="my-4">
+
+                        <!-- Step 2: Location -->
+                        <div class="form-step">
+                            <h5 class="mb-3 text-primary">
+                                <i class="fas fa-map-marked-alt me-2"></i>Location Details
+                            </h5>
+
+                            <div class="row">
+                                <!-- Street Address -->
+                                <div class="col-12 mb-3">
+                                    <label for="{{ form.street_address.id_for_label }}" class="form-label">
+                                        Street Address <span class="required-indicator">*</span>
+                                    </label>
+                                    <div class="input-icon-wrapper">
+                                        <input type="text"
+                                               name="street_address"
+                                               id="{{ form.street_address.id_for_label }}"
+                                               class="form-control input-with-icon"
+                                               placeholder="123 Main Street, Apt 4B"
+                                               value="{{ form.street_address.value|default:'' }}"
+                                               required>
+                                        <i class="fas fa-road input-icon"></i>
+                                    </div>
+                                    <div class="field-hint">
+                                        <i class="fas fa-lightbulb"></i>
+                                        <span>Include building name, floor, or apartment number if applicable</span>
+                                    </div>
+                                    {% if form.street_address.errors %}
+                                        <div class="text-danger small mt-1">{{ form.street_address.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- City -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.city.id_for_label }}" class="form-label">
+                                        City <span class="required-indicator">*</span>
+                                    </label>
+                                    <div class="input-icon-wrapper">
+                                        <input type="text"
+                                               name="city"
+                                               id="{{ form.city.id_for_label }}"
+                                               class="form-control input-with-icon"
+                                               placeholder="Nairobi"
+                                               value="{{ form.city.value|default:'' }}"
+                                               required>
+                                        <i class="fas fa-city input-icon"></i>
+                                    </div>
+                                    {% if form.city.errors %}
+                                        <div class="text-danger small mt-1">{{ form.city.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- State/Province -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.state.id_for_label }}" class="form-label">
+                                        State/Province <span class="required-indicator">*</span>
+                                    </label>
+                                    <div class="input-icon-wrapper">
+                                        <input type="text"
+                                               name="state"
+                                               id="{{ form.state.id_for_label }}"
+                                               class="form-control input-with-icon"
+                                               placeholder="Nairobi County"
+                                               value="{{ form.state.value|default:'' }}"
+                                               required>
+                                        <i class="fas fa-map input-icon"></i>
+                                    </div>
+                                    {% if form.state.errors %}
+                                        <div class="text-danger small mt-1">{{ form.state.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Step 3: Additional Details -->
+                        <div class="form-step">
+                            <h5 class="mb-3 text-primary">
+                                <i class="fas fa-clipboard-list me-2"></i>Additional Details
+                            </h5>
+
+                            <div class="row">
+                                <!-- Postal Code -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.postal_code.id_for_label }}" class="form-label">
+                                        Postal Code <span class="required-indicator">*</span>
+                                    </label>
+                                    <div class="input-icon-wrapper">
+                                        <input type="text"
+                                               name="postal_code"
+                                               id="{{ form.postal_code.id_for_label }}"
+                                               class="form-control input-with-icon"
+                                               placeholder="00100"
+                                               value="{{ form.postal_code.value|default:'' }}"
+                                               required>
+                                        <i class="fas fa-envelope input-icon"></i>
+                                    </div>
+                                    {% if form.postal_code.errors %}
+                                        <div class="text-danger small mt-1">{{ form.postal_code.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Country -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.country.id_for_label }}" class="form-label">
+                                        Country <span class="required-indicator">*</span>
+                                    </label>
+                                    <div class="input-icon-wrapper">
+                                        {{ form.country }}
+                                        <i class="fas fa-globe input-icon"></i>
+                                    </div>
+                                    {% if form.country.errors %}
+                                        <div class="text-danger small mt-1">{{ form.country.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Default Address -->
+                                <div class="col-12 mt-3">
+                                    <div class="form-check asai-checkbox">
+                                        <input type="checkbox"
+                                               name="is_default"
+                                               id="{{ form.is_default.id_for_label }}"
+                                               class="form-check-input"
+                                               {% if form.is_default.value %}checked{% endif %}>
+                                        <label class="form-check-label fw-medium" for="{{ form.is_default.id_for_label }}">
+                                            <i class="fas fa-star text-warning me-2"></i>
+                                            Set as my default address
+                                        </label>
+                                    </div>
+                                    <div class="default-badge" id="defaultBadge" style="display: none;">
+                                        <i class="fas fa-star"></i>
+                                        <span>This address will be automatically selected during checkout</span>
+                                    </div>
+                                    {% if form.is_default.errors %}
+                                        <div class="text-danger small mt-1">{{ form.is_default.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="save-btn-wrapper">
+                            <div class="asai-form-actions">
+                                <button type="submit" class="asai-btn asai-btn-primary" id="saveBtn">
+                                    <i class="fas fa-save me-2"></i>
+                                    <span>{% if 'add' in request.path %}Save Address{% else %}Update Address{% endif %}</span>
+                                </button>
+                                <a href="{% url 'users:account' %}" class="asai-btn asai-btn-secondary">
+                                    <i class="fas fa-times me-2"></i>Cancel
+                                </a>
+                            </div>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <div class="asai-help-banner mt-3 animate-fade-in" style="animation-delay: 0.1s;">
-                <i class="fas fa-info-circle me-2"></i>
-                <span>Make sure your address is complete and accurate for smooth delivery</span>
+            <!-- Help Banner -->
+            <div class="asai-help-banner mt-3 animate-fade-in" style="animation-delay: 0.5s;">
+                <i class="fas fa-shield-alt me-2"></i>
+                <span>Your address information is encrypted and securely stored</span>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('addressForm');
+        const progressSteps = document.querySelectorAll('.progress-step');
+        const saveBtn = document.getElementById('saveBtn');
+        const defaultCheckbox = document.getElementById('{{ form.is_default.id_for_label }}');
+        const defaultBadge = document.getElementById('defaultBadge');
+
+        // Progress tracking
+        const formInputs = form.querySelectorAll('input[required], select[required]');
+
+        function updateProgress() {
+            const step1Fields = ['full_name', 'phone'];
+            const step2Fields = ['street_address', 'city', 'state'];
+            const step3Fields = ['postal_code', 'country'];
+
+            const isStep1Complete = step1Fields.some(name => {
+                const field = form.querySelector(`[name="${name}"]`);
+                return field && field.value.trim() !== '';
+            });
+
+            const isStep2Complete = step2Fields.every(name => {
+                const field = form.querySelector(`[name="${name}"]`);
+                return field && field.value.trim() !== '';
+            });
+
+            const isStep3Complete = step3Fields.every(name => {
+                const field = form.querySelector(`[name="${name}"]`);
+                return field && field.value.trim() !== '';
+            });
+
+            // Update step indicators
+            progressSteps[0].classList.toggle('completed', isStep1Complete);
+            progressSteps[1].classList.toggle('active', isStep1Complete && !isStep2Complete);
+            progressSteps[1].classList.toggle('completed', isStep2Complete);
+            progressSteps[2].classList.toggle('active', isStep2Complete && !isStep3Complete);
+            progressSteps[2].classList.toggle('completed', isStep3Complete);
+        }
+
+        // Track input changes
+        formInputs.forEach(input => {
+            input.addEventListener('input', updateProgress);
+            input.addEventListener('change', updateProgress);
+        });
+
+        // Default checkbox handler
+        if (defaultCheckbox && defaultBadge) {
+            defaultCheckbox.addEventListener('change', function() {
+                defaultBadge.style.display = this.checked ? 'flex' : 'none';
+            });
+
+            // Initial state
+            if (defaultCheckbox.checked) {
+                defaultBadge.style.display = 'flex';
+            }
+        }
+
+        // Form validation feedback
+        form.addEventListener('submit', function(e) {
+            const requiredFields = form.querySelectorAll('[required]');
+            let hasErrors = false;
+
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    hasErrors = true;
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+
+            if (hasErrors) {
+                e.preventDefault();
+                alert('Please fill in all required fields');
+                return false;
+            }
+
+            // Show loading state
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i><span>Saving...</span>';
+        });
+
+        // Real-time validation
+        formInputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                if (this.hasAttribute('required') && !this.value.trim()) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+
+            input.addEventListener('input', function() {
+                if (this.classList.contains('is-invalid') && this.value.trim()) {
+                    this.classList.remove('is-invalid');
+                }
+            });
+        });
+
+        // Phone number formatting
+        const phoneInput = form.querySelector('[name="phone"]');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\s/g, '');
+                if (value && !value.startsWith('+')) {
+                    value = '+' + value;
+                }
+                e.target.value = value;
+            });
+        }
+
+        // Initial progress check
+        updateProgress();
+
+        // Smooth scroll to errors
+        const errorElements = document.querySelectorAll('.text-danger');
+        if (errorElements.length > 0) {
+            errorElements[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+</script>
 </body>
 </html>

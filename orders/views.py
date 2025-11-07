@@ -1,11 +1,12 @@
 # orders/views.py - FIXED VERSION
 
+from users.models import Address
 from djmoney.money import Money
 from decimal import Decimal
 import logging
 from django.conf import settings
 from django.core.cache import cache
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.http import Http404, JsonResponse
 from django.views.decorators.http import require_POST
 from django.views.generic import ListView, DetailView, TemplateView
@@ -14,7 +15,6 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Prefetch
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-
 from cart.utils import get_cart
 from payment.models import Payment
 from store.models import Product
@@ -30,71 +30,80 @@ logger = logging.getLogger(__name__)
 @login_required
 def create_order(request):
     """
-    Creates an Order and related OrderItems from the user's cart.
-    FIXED: Ensures consistent redirect to checkout page
+    Creates an Order from cart with shipping cost calculation and saved address handling.
     """
-    # Get user's shopping cart
     cart = get_cart(request)
 
-    # Redirect if cart is empty
     if not cart.items.exists():
         messages.info(request, "Your cart is empty. Add items before checkout.")
         return redirect('cart:cart_detail')
 
     if request.method == 'POST':
-        form = ShippingForm(request.POST)
+        form = ShippingForm(request.POST, user=request.user)
 
         if form.is_valid():
             try:
-                # Use atomic transaction with explicit handling
                 with transaction.atomic():
-                    # Create order instance without saving to DB yet
-                    order = form.save(commit=False)
+                    # Check if user selected a saved address
+                    saved_address = form.cleaned_data.get('saved_address')
 
-                    # Associate authenticated user with order
-                    if request.user.is_authenticated:
-                        order.user = request.user
+                    # Create order instance
+                    order = form.save(commit=False)
+                    order.user = request.user
+
+                    # Populate order fields from saved address if selected
+                    if saved_address:
+                        if saved_address.full_name:
+                            parts = saved_address.full_name.split()
+                            order.first_name = parts[0]
+                            order.last_name = ' '.join(parts[1:]) if len(parts) > 1 else ''
+                        else:
+                            order.first_name = request.user.first_name
+                            order.last_name = request.user.last_name
+
+                        order.phone = saved_address.phone or getattr(request.user, 'phone_number', '')
+                        order.address = saved_address.street_address
+                        order.city = saved_address.city
+                        order.state = saved_address.state
+                        order.postal_code = saved_address.postal_code
+                        order.country = saved_address.country
 
                     # Save order to generate primary key
                     order.save()
 
-                    # Initialize order total
-                    order_total = Money(0, settings.DEFAULT_CURRENCY)
+                    # Initialize totals
+                    order_subtotal = Money(0, settings.DEFAULT_CURRENCY)
+                    order_shipping = Money(0, settings.DEFAULT_CURRENCY)
                     items_to_create = []
                     products_to_update = []
 
-                    # Process each cart item
+                    # Process cart items
                     for cart_item in cart.items.select_related('product'):
                         product = cart_item.product
 
-                        # CRITICAL: Validate stock availability
+                        # Check stock
                         if cart_item.quantity > product.stock:
-                            form.add_error(
-                                None,
+                            raise ValueError(
                                 f"Insufficient stock for {product.name}. "
                                 f"Only {product.stock} available."
                             )
-                            # Explicitly raise to trigger rollback
-                            raise ValueError(f"Insufficient stock for {product.name}")
 
-                        # Get current product price as Money object
+                        # Get current price
                         current_price = product.get_display_price()
-
-                        # Ensure price is Money type for consistency
                         if not isinstance(current_price, Money):
-                            logger.warning(
-                                f"Product {product.id} price is {type(current_price)}, "
-                                f"converting to Money"
-                            )
                             current_price = Money(
                                 Decimal(str(current_price)),
                                 settings.DEFAULT_CURRENCY
                             )
 
-                        # Accumulate order total
-                        order_total += current_price * cart_item.quantity
+                        # Subtotal
+                        order_subtotal += current_price * cart_item.quantity
 
-                        # Prepare OrderItem for bulk creation
+                        # Shipping
+                        if not product.free_shipping and product.shipping_cost:
+                            order_shipping += product.shipping_cost * cart_item.quantity
+
+                        # Prepare order item
                         items_to_create.append(OrderItem(
                             order=order,
                             product=product,
@@ -106,17 +115,16 @@ def create_order(request):
                         product.stock -= cart_item.quantity
                         products_to_update.append(product)
 
-                    # Bulk create order items
+                    # Bulk operations
                     OrderItem.objects.bulk_create(items_to_create)
-
-                    # Bulk update product stock
                     Product.objects.bulk_update(products_to_update, ['stock'])
 
-                    # Save calculated total to order
-                    order.total = order_total
-                    order.save(update_fields=['total'])
+                    # Save totals
+                    order.shipping_cost = order_shipping
+                    order.total = order_subtotal + order_shipping
+                    order.save(update_fields=['shipping_cost', 'total'])
 
-                    # Create Payment object for order
+                    # Create payment record
                     try:
                         Payment.objects.create(
                             order=order,
@@ -126,117 +134,203 @@ def create_order(request):
                             phone_number=order.phone,
                             status='PENDING',
                         )
-                        logger.info(f"Payment record created for order {order.id}")
                     except Exception as payment_error:
-                        logger.error(f"Failed to create payment for order {order.id}: {payment_error}")
-                        # Don't fail the entire order, payment can be created later
-                        pass
+                        logger.error(f"Failed to create payment: {payment_error}")
 
-                    # Clear user's cart after successful order creation
+                    # Handle saving new address - FIXED
+                    save_address = form.cleaned_data.get('save_address')
+                    address_nickname = form.cleaned_data.get('address_nickname', '').strip()
+
+                    # Only save if requested AND not using a saved address
+                    if save_address and address_nickname and not saved_address:
+                        try:
+                            # Check for duplicate address
+                            from users.utils import duplicate_address_check
+
+                            existing = duplicate_address_check(
+                                request.user,
+                                order.address,
+                                order.city,
+                                order.postal_code
+                            )
+
+                            if existing:
+                                messages.info(
+                                    request,
+                                    f"You already have this address saved as '{existing.nickname}'"
+                                )
+                            else:
+                                # Check if nickname already exists
+                                nickname_exists = Address.objects.filter(
+                                    user=request.user,
+                                    nickname__iexact=address_nickname
+                                ).exists()
+
+                                if nickname_exists:
+                                    # Generate unique nickname
+                                    base_nickname = address_nickname
+                                    counter = 1
+                                    while Address.objects.filter(
+                                        user=request.user,
+                                        nickname__iexact=f"{base_nickname} {counter}"
+                                    ).exists():
+                                        counter += 1
+                                    address_nickname = f"{base_nickname} {counter}"
+                                    logger.info(
+                                        f"Nickname '{base_nickname}' exists, using '{address_nickname}' instead"
+                                    )
+
+                                # Determine address type
+                                nickname_lower = address_nickname.lower()
+                                if 'home' in nickname_lower:
+                                    address_type = 'home'
+                                elif 'work' in nickname_lower or 'office' in nickname_lower:
+                                    address_type = 'work'
+                                elif 'bill' in nickname_lower:
+                                    address_type = 'billing'
+                                else:
+                                    address_type = 'shipping'
+
+                                # Check if this should be default
+                                existing_addresses = Address.objects.filter(user=request.user)
+                                is_default = not existing_addresses.exists()
+
+                                # Create the address
+                                new_address = Address.objects.create(
+                                    user=request.user,
+                                    nickname=address_nickname,
+                                    address_type=address_type,
+                                    full_name=f"{order.first_name} {order.last_name}",
+                                    street_address=order.address,
+                                    city=order.city,
+                                    state=order.state,
+                                    postal_code=order.postal_code,
+                                    country=order.country,
+                                    phone=order.phone,
+                                    is_default=is_default,
+                                )
+
+                                logger.info(
+                                    f"Saved new address '{address_nickname}' (ID: {new_address.id}) "
+                                    f"for user {request.user.id}"
+                                )
+                                messages.success(
+                                    request,
+                                    f"✓ Address '{address_nickname}' saved to your account!"
+                                )
+
+                        except IntegrityError as integrity_error:
+                            # Handle unique constraint violation gracefully
+                            logger.warning(
+                                f"Could not save address due to constraint: {integrity_error}"
+                            )
+                            messages.info(
+                                request,
+                                "Order created successfully. Address was not saved (may already exist)."
+                            )
+                        except Exception as addr_error:
+                            logger.warning(f"Failed to save address: {addr_error}")
+                            messages.warning(
+                                request,
+                                "Order created successfully but address could not be saved."
+                            )
+
+                    # Clear cart
                     cart.items.all().delete()
 
-                    # CRITICAL FIX: Store order ID in session BEFORE any redirect
+                    # Store order in session
                     request.session['order_id'] = order.id
                     request.session.modified = True
 
-                    # Force session save to ensure persistence across requests
-                    request.session.save()
-
-                    # Send order confirmation email asynchronously
+                    # Send confirmation email
                     try:
                         order_created_email.delay(order.id)
                     except Exception as email_error:
                         logger.warning(f"Failed to queue order email: {email_error}")
-                        # Don't fail order for email issues
 
                     # Success message
                     messages.success(
                         request,
-                        f"Order #{order.id} created successfully! Proceeding to payment."
+                        f"Order #{order.id} created successfully!"
                     )
 
-                    logger.info(f"Order {order.id} created successfully for user {request.user.username}")
+                    logger.info(
+                        f"Order {order.id} created successfully for user {request.user.email}"
+                    )
 
-                    # CRITICAL FIX: Always redirect to checkout with order_id parameter as backup
-                    # This ensures checkout page can retrieve order even if session fails
                     return redirect('orders:checkout_order', order_id=order.id)
 
             except ValueError as ve:
-                # Stock validation error - form error already added
                 logger.warning(f"Order creation validation error: {str(ve)}")
-                messages.error(
-                    request,
-                    "Unable to complete order. Please check item availability."
-                )
-                # Transaction automatically rolled back
-                # Re-render form with errors
+                messages.error(request, str(ve))
 
             except Exception as e:
-                # Catch all other errors
                 logger.error(f"Unexpected error during order creation: {str(e)}", exc_info=True)
                 messages.error(
                     request,
                     "An unexpected error occurred. Please try again or contact support."
                 )
-                # Transaction automatically rolled back
-                # Re-render form
 
         else:
-            # Form validation failed
             logger.warning(f"Shipping form validation failed: {form.errors}")
-            messages.error(
-                request,
-                "Please correct the errors in the form below."
-            )
+            messages.error(request, "Please correct the errors in the form below.")
 
     else:
-        # GET request: Prepopulate form with user data
-        initial_data = {}
+        # GET request – prepopulate form
+        initial_data = {
+            'first_name': request.user.first_name,
+            'last_name': request.user.last_name,
+            'email': request.user.email,
+            'phone': getattr(request.user, 'phone_number', ''),
+        }
 
-        if request.user.is_authenticated:
-            # Fetch user profile data for form prepopulation
-            initial_data = {
-                'first_name': request.user.first_name,
-                'last_name': request.user.last_name,
-                'email': request.user.email,
-                'phone': getattr(request.user, 'phone_number', ''),
-            }
+        # Load default or latest address
+        default_address = (
+            Address.objects.filter(user=request.user, is_default=True).first()
+            or Address.objects.filter(user=request.user).order_by('-created').first()
+        )
 
-            # If user has a profile with saved address, use it
-            if hasattr(request.user, 'profile'):
-                profile = request.user.profile
-                initial_data.update({
-                    'address': getattr(profile, 'address', ''),
-                    'city': getattr(profile, 'city', ''),
-                    'postal_code': getattr(profile, 'postal_code', ''),
-                    'state': getattr(profile, 'state', ''),
-                    'country': getattr(profile, 'country', 'KE'),
-                })
+        if default_address:
+            initial_data.update({
+                'address': default_address.street_address,
+                'city': default_address.city,
+                'postal_code': default_address.postal_code,
+                'state': default_address.state,
+                'country': default_address.country,
+                'phone': default_address.phone or initial_data['phone'],
+            })
 
-        form = ShippingForm(initial=initial_data)
+        form = ShippingForm(initial=initial_data, user=request.user)
 
-    # Render shipping form template
+        # Calculate estimated shipping
+        total_shipping = Money(0, settings.DEFAULT_CURRENCY)
+        for cart_item in cart.items.select_related('product'):
+            if not cart_item.product.free_shipping and cart_item.product.shipping_cost:
+                total_shipping += cart_item.product.shipping_cost * cart_item.quantity
+
+    # Common context (both GET and POST)
+    saved_addresses = Address.objects.filter(user=request.user).order_by('-is_default', '-created')
+
     context = {
         'form': form,
         'cart': cart,
+        'saved_addresses': saved_addresses,
+        'has_addresses': saved_addresses.exists(),
+        'estimated_shipping': locals().get('total_shipping', None),
     }
 
     return render(request, 'orders/shipping_form.html', context)
 
 
 class OrderListView(LoginRequiredMixin, ListView):
-    """
-    Display paginated list of user's orders.
-    """
+    """Display paginated list of user's orders."""
     model = Order
     template_name = 'orders/history.html'
     context_object_name = 'orders'
     paginate_by = 10
 
     def get_queryset(self):
-        """
-        Fetch only current user's orders with optimized queries.
-        """
+        """Fetch only current user's orders with optimized queries."""
         return (
             Order.objects.filter(user=self.request.user)
             .select_related('user')
@@ -248,17 +342,13 @@ class OrderListView(LoginRequiredMixin, ListView):
 
 @login_required
 def order_history(request):
-    """
-    Function-based view for order history.
-    """
+    """Function-based view for order history."""
     orders = Order.objects.filter(user=request.user).order_by('-created')
     return render(request, 'orders/history.html', {'orders': orders})
 
 
 class OrderDetailView(LoginRequiredMixin, DetailView):
-    """
-    Display detailed view of a single order.
-    """
+    """Display detailed view of a single order."""
     model = Order
     template_name = 'orders/order_detail.html'
     context_object_name = 'order'
@@ -279,9 +369,7 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         )
 
     def get_object(self, queryset=None):
-        """
-        Fetch order with security check.
-        """
+        """Fetch order with security check."""
         pk = self.kwargs.get('pk')
         if not pk:
             raise Http404("Order ID not provided")
@@ -310,9 +398,7 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
 
 
 class OrderSuccessView(TemplateView):
-    """
-    Display order confirmation after successful payment.
-    """
+    """Display order confirmation after successful payment."""
     template_name = "orders/success.html"
 
     def get_context_data(self, **kwargs):
@@ -327,17 +413,11 @@ class OrderSuccessView(TemplateView):
 
 
 class CheckoutView(LoginRequiredMixin, TemplateView):
-    """
-    Payment checkout page with multi-currency and payment method selection.
-
-    FIXED: Better session handling and error recovery
-    """
+    """Payment checkout page with multi-currency and payment method selection."""
     template_name = 'orders/checkout.html'
 
     def get(self, request, order_id=None, *args, **kwargs):
-        """
-        Handle GET request for checkout page.
-        """
+        """Handle GET request for checkout page."""
         # If order_id is passed in URL, set it in session
         if order_id:
             try:
@@ -364,9 +444,7 @@ class CheckoutView(LoginRequiredMixin, TemplateView):
         return render(request, self.template_name, self.get_context_data(order=order))
 
     def get_order_from_session(self, request):
-        """
-        Retrieve order from session with validation.
-        """
+        """Retrieve order from session with validation."""
         order_id = request.session.get('order_id')
         if not order_id:
             return None
@@ -391,9 +469,7 @@ class CheckoutView(LoginRequiredMixin, TemplateView):
             return None
 
     def get_context_data(self, order, **kwargs):
-        """
-        Build context with payment options and currency conversion.
-        """
+        """Build context with payment options and currency conversion."""
         context = super().get_context_data(**kwargs)
         request = self.request
         base_currency = settings.DEFAULT_CURRENCY
@@ -474,9 +550,7 @@ class CheckoutView(LoginRequiredMixin, TemplateView):
 @login_required
 @require_POST
 def update_payment_method(request):
-    """
-    AJAX endpoint to update selected payment method.
-    """
+    """AJAX endpoint to update selected payment method."""
     method = request.POST.get('method')
 
     # Validate payment method

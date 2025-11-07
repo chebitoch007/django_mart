@@ -1,4 +1,4 @@
-{% load static humanize %} {# Added humanize #}
+{% load static humanize %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,26 +11,101 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+    <link rel="stylesheet" href="{% static 'css/account.css' %}">
 </head>
 <body class="auth-body">
 <div class="min-h-screen w-full py-8 px-4">
     <div class="max-w-6xl mx-auto">
-        <div class="text-center mb-8">
-            <div class="mx-auto h-24 w-24 bg-white rounded-full flex items-center justify-center mb-4 shadow-lg animate-float">
-                <img id="profile-image"
-                     class="w-20 h-20 rounded-full object-cover"
-                     src="{% if user.profile.profile_image %}{{ user.profile.profile_image.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}"
-                     alt="Profile"
-                     data-default-src="{% static 'images/default-profile.png' %}"
-                     onerror="this.src='{% static 'images/default-profile.png' %}'">
-            </div>
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">My Account</h1>
-            <p class="text-gray-600">Welcome back, {{ user.get_full_name|default:user.username }}</p>
-            <div class="inline-flex items-center bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-full px-4 py-2 mt-4">
-                <i class="fas fa-crown mr-2"></i>
-                <span class="font-medium">Member since {{ user.date_joined|date:"F Y" }}</span>
+
+<div class="text-center mb-8">
+    <!-- Desktop: Prominent profile image -->
+    <!-- Mobile: Smaller, less prominent but accessible -->
+    <div class="profile-image-wrapper">
+        <div class="mx-auto profile-image-size bg-white rounded-full flex items-center justify-center mb-4 shadow-lg animate-float profile-image-container relative group"
+             title="Click to change or view profile picture">
+            <img id="profile-image"
+                 class="profile-img-size rounded-full object-cover cursor-pointer"
+                 src="{% if user.profile.profile_image %}{{ user.profile.profile_image.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}"
+                 alt="Profile"
+                 data-default-src="{% static 'images/default-profile.png' %}"
+                 data-has-custom-image="{% if user.profile.profile_image %}true{% else %}false{% endif %}"
+                 onerror="this.src='{% static 'images/default-profile.png' %}'">
+            <div class="profile-image-overlay">
+                <div class="flex flex-col items-center gap-1">
+                    <i class="fas fa-eye text-white profile-icon-size"></i>
+                    <i class="fas fa-camera text-white profile-icon-small"></i>
+                </div>
             </div>
         </div>
+    </div>
+
+    <form id="profileImageForm" method="post" enctype="multipart/form-data" style="display: none;">
+        {% csrf_token %}
+        <input type="file"
+               id="profileImageInput"
+               name="profile_image"
+               accept="image/*">
+    </form>
+
+    <h1 class="profile-title text-gray-900 mb-2">My Account</h1>
+    <p class="profile-subtitle text-gray-600">Welcome back, {{ user.get_full_name|default:user.username }}</p>
+
+    <div class="inline-flex items-center bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-full member-badge">
+        <i class="fas fa-crown mr-2"></i>
+        <span class="font-medium member-text">Member since {{ user.date_joined|date:"F Y" }}</span>
+    </div>
+</div>
+
+<!-- imageViewModal div -->
+<div id="imageViewModal"
+     class="fixed inset-0 bg-black bg-opacity-90 hidden items-center justify-center z-[100]"
+     onclick="hideImageViewModal(event)">
+
+    <div class="relative max-w-4xl max-h-[90vh] w-full mx-4">
+        <!-- Close button -->
+        <button type="button"
+                onclick="hideImageViewModal(event)"
+                class="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors z-20"
+                aria-label="Close modal">
+            <i class="fas fa-times text-3xl"></i>
+        </button>
+
+        <!-- Image -->
+        <img id="fullProfileImage"
+             class="w-full h-auto max-h-[90vh] object-contain rounded-lg shadow-2xl"
+             src=""
+             alt="Profile Picture">
+
+        <!-- Control buttons bar - Now responsive -->
+        <div class="image-controls-bar">
+            <button type="button"
+                    onclick="triggerImageUpload(event)"
+                    class="image-control-btn btn-change"
+                    aria-label="Change profile photo">
+                <i class="fas fa-camera"></i>
+                <span>Change Photo</span>
+            </button>
+
+            <button type="button"
+                    id="removePhotoBtn"
+                    onclick="removeProfileImage(event)"
+                    class="image-control-btn btn-remove"
+                    style="display: none;"
+                    aria-label="Remove profile photo">
+                <i class="fas fa-trash"></i>
+                <span>Remove</span>
+            </button>
+
+            <button type="button"
+                    onclick="downloadProfileImage(event)"
+                    class="image-control-btn btn-download"
+                    aria-label="Download profile photo">
+                <i class="fas fa-download"></i>
+                <span>Download</span>
+            </button>
+        </div>
+    </div>
+</div>
 
         {% if messages %}
         <div class="mb-6 space-y-4">
@@ -44,7 +119,7 @@
                         <h4 class="font-semibold {% if message.tags == 'success' %}text-green-800{% elif message.tags == 'error' %}text-red-800{% else %}text-blue-800{% endif %}">
                             {% if message.tags == 'success' %}Success!{% elif message.tags == 'error' %}Action Required{% else %}Notice{% endif %}
                         </h4>
-                        <p class="mt-1 text-sm {% if message.tags == 'success' %}text-green-700{% elif message.tags == 'error' %}text-red-700{% else %}text-blue-700{% endif %}">
+                        <p class="mt-1 text-sm {% if message.tags == 'success' %}text-green-700{% elif message.tags == 'error' %}text-red-7a00{% else %}text-blue-700{% endif %}">
                             {{ message }}
                         </p>
                     </div>
@@ -59,27 +134,75 @@
                 <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover">
                     <div class="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
                         <h3 class="text-white font-semibold text-lg flex items-center">
-                            <i class="fas fa-user-circle mr-2"></i> Navigation
+                            <i class="fas fa-bars mr-2"></i> Navigation
                         </h3>
                     </div>
                     <div class="p-4">
                         <nav class="space-y-2">
-                            <a href="#profile" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200 account-nav-item">
-                                <i class="fas fa-user mr-3 text-gray-500"></i> Profile Information
-                            </a>
-                            <a href="#orders" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200 account-nav-item">
-                                <i class="fas fa-shopping-bag mr-3 text-gray-500"></i> Order History
-                                <span class="ml-auto bg-indigo-100 text-indigo-800 text-xs font-medium px-2 py-1 rounded-full">
-                                    {{ order_count|default:0 }}
-                                </span>
-                            </a>
-                            <a href="#addresses" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200 account-nav-item">
-                                <i class="fas fa-map-marker-alt mr-3 text-gray-500"></i> Saved Addresses
-                            </a>
-                            <a href="{% url 'users:password_change' %}" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200">
-                                <i class="fas fa-key mr-3 text-gray-500"></i> Change Password
-                            </a>
-                            <div class="border-t pt-2 mt-2 space-y-2">
+                            <!-- Account Section -->
+                            <div class="mb-3">
+                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 mb-2">Account</p>
+                                <a href="#profile" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200 account-nav-item">
+                                    <i class="fas fa-user mr-3 text-gray-500"></i> Profile Information
+                                </a>
+                                <a href="{% url 'users:password_change' %}" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200">
+                                    <i class="fas fa-key mr-3 text-gray-500"></i> Change Password
+                                </a>
+                            </div>
+
+                            <!-- Shopping Section -->
+                            <div class="mb-3 pt-2 border-t">
+                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 mb-2">Shopping</p>
+                                <a href="#orders" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200 account-nav-item">
+                                    <i class="fas fa-shopping-bag mr-3 text-gray-500"></i> Order History
+                                    <span class="ml-auto bg-indigo-100 text-indigo-800 text-xs font-medium px-2 py-1 rounded-full">
+                                        {{ order_count|default:0 }}
+                                    </span>
+                                </a>
+                                <a href="{% url 'cart:cart_detail' %}" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200">
+                                    <i class="fas fa-shopping-cart mr-3 text-gray-500"></i> Shopping Cart
+                                </a>
+                                <a href="{% url 'store:product_list' %}" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200">
+                                    <i class="fas fa-store mr-3 text-gray-500"></i> Continue Shopping
+                                </a>
+                                <a href="{% url 'store:tracking' %}" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200">
+                                    <i class="fas fa-truck mr-3 text-gray-500"></i> Track Order
+                                </a>
+                            </div>
+
+                            <!-- Address Section -->
+                            <div class="mb-3 pt-2 border-t">
+                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 mb-2">Addresses</p>
+                                <a href="#addresses" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200 account-nav-item">
+                                    <i class="fas fa-map-marker-alt mr-3 text-gray-500"></i> Saved Addresses
+                                    <span class="ml-auto bg-indigo-100 text-indigo-800 text-xs font-medium px-2 py-1 rounded-full">
+                                        {{ addresses.count|default:0 }}
+                                    </span>
+                                </a>
+                                <a href="{% url 'users:add_address' %}" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200">
+                                    <i class="fas fa-plus-circle mr-3 text-gray-500"></i> Add New Address
+                                </a>
+                            </div>
+
+                            <!-- Help & Support Section -->
+                            <div class="mb-3 pt-2 border-t">
+                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 mb-2">Support</p>
+                                <a href="{% url 'store:contact' %}" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200">
+                                    <i class="fas fa-envelope mr-3 text-gray-500"></i> Contact Us
+                                </a>
+                                <a href="{% url 'store:faq' %}" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200">
+                                    <i class="fas fa-question-circle mr-3 text-gray-500"></i> FAQ
+                                </a>
+                                <a href="{% url 'store:returns' %}" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200">
+                                    <i class="fas fa-undo mr-3 text-gray-500"></i> Returns & Refunds
+                                </a>
+                                <a href="{% url 'store:shipping' %}" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-200">
+                                    <i class="fas fa-shipping-fast mr-3 text-gray-500"></i> Shipping Info
+                                </a>
+                            </div>
+
+                            <!-- Account Actions -->
+                            <div class="pt-2 border-t space-y-2">
                                 <a href="{% url 'users:account_delete' %}" class="flex items-center px-4 py-3 text-red-600 rounded-lg hover:bg-red-50 transition-colors duration-200">
                                     <i class="fas fa-trash-alt mr-3"></i> Delete Account
                                 </a>
@@ -106,8 +229,7 @@
                                 <span class="text-gray-600">
                                     <i class="fas fa-coins mr-2"></i>Total Spent
                                 </span>
-                                <!-- Corrected: Use humanize -->
-                                <span class="font-semibold text-gray-900">KSh {{ total_spent|intcomma|default:"0.00" }}</span>
+                                <span class="font-semibold text-gray-900">KSh {{ total_spent|floatformat:2|intcomma }}</span>
                             </div>
                             <div class="flex justify-between items-center">
                                 <span class="text-gray-600">
@@ -124,6 +246,33 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Quick Actions Card -->
+                <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl shadow-lg mt-6 overflow-hidden border border-indigo-100">
+                    <div class="p-6">
+                        <h3 class="text-gray-800 font-semibold text-lg mb-4 flex items-center">
+                            <i class="fas fa-bolt mr-2 text-indigo-600"></i> Quick Actions
+                        </h3>
+                        <div class="space-y-3">
+
+
+                            <a href="{% url 'store:categories' %}" class="flex items-center p-3 bg-white rounded-lg hover:shadow-md transition-all duration-200">
+                                <i class="fas fa-th-large text-indigo-500 mr-3"></i>
+                                <span class="text-sm font-medium text-gray-700">Browse Categories</span>
+                            </a>
+
+
+                            <a href="{% url 'store:product_search' %}" class="flex items-center p-3 bg-white rounded-lg hover:shadow-md transition-all duration-200">
+                                <i class="fas fa-search text-indigo-500 mr-3"></i>
+                                <span class="text-sm font-medium text-gray-700">Search Products</span>
+                            </a>
+                            <a href="{% url 'store:warranty' %}" class="flex items-center p-3 bg-white rounded-lg hover:shadow-md transition-all duration-200">
+                                <i class="fas fa-shield-alt text-indigo-500 mr-3"></i>
+                                <span class="text-sm font-medium text-gray-700">Warranty Info</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="lg:col-span-3 space-y-6">
@@ -134,9 +283,8 @@
                                 <i class="fas fa-user mr-2"></i>
                                 Profile Information
                             </h3>
-                            <a href="{% url 'users:profile_update' %}"
-                               class="text-white hover:text-indigo-200 text-sm font-medium flex items-center">
-                                <i class="fas fa-pencil-alt mr-1"></i> Edit
+                            <a href="{% url 'users:profile_update' %}" class="text-white hover:text-indigo-200 text-sm font-medium">
+                                <i class="fas fa-edit mr-1"></i> Edit
                             </a>
                         </div>
                     </div>
@@ -209,20 +357,19 @@
                                 <tbody>
                                 {% for order in orders %}
                                 <tr class="border-b border-gray-100 hover:bg-gray-50">
-                                    <td class="py-3 px-4 text-sm">#{{ order.id }}</td>
+                                    <td class="py-3 px-4 text-sm font-medium">#{{ order.id }}</td>
                                     <td class="py-3 px-4 text-sm">{{ order.created|date:"M d, Y" }}</td>
                                     <td class="py-3 px-4">
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                                {% if order.status == 'COMPLETED' or order.status == 'PAID' %}bg-green-100 text-green-800
-                                                {% elif order.status == 'PROCESSING' %}bg-blue-100 text-blue-800
-                                                {% elif order.status == 'SHIPPED' %}bg-indigo-100 text-indigo-800
-                                                {% elif order.status == 'CANCELLED' or order.status == 'FAILED' %}bg-red-100 text-red-800
+                                                {% if order.status == 'completed' or order.status == 'paid' or order.status == 'COMPLETED' or order.status == 'PAID' %}bg-green-100 text-green-800
+                                                {% elif order.status == 'processing' or order.status == 'PROCESSING' %}bg-blue-100 text-blue-800
+                                                {% elif order.status == 'shipped' or order.status == 'SHIPPED' %}bg-indigo-100 text-indigo-800
+                                                {% elif order.status == 'cancelled' or order.status == 'failed' or order.status == 'CANCELLED' or order.status == 'FAILED' %}bg-red-100 text-red-800
                                                 {% else %}bg-yellow-100 text-yellow-800{% endif %}">
                                                 {{ order.get_status_display }}
                                             </span>
                                     </td>
-                                    <!-- ✅ FIX: Changed get_total_cost to total and added humanize -->
-                                    <td class="py-3 px-4 text-sm font-semibold">{{ order.total }}</td>
+                                    <td class="py-3 px-4 text-sm font-semibold">KSh {{ order.total|floatformat:2|intcomma }}</td>
                                     <td class="py-3 px-4">
                                         <a href="{% url 'orders:order_detail' order.id %}"
                                            class="text-indigo-600 hover:text-indigo-500 text-sm font-medium">
@@ -265,7 +412,7 @@
                         {% if addresses %}
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {% for address in addresses %}
-                            <div class="border-2 {% if address.is_default %}border-indigo-200 bg-indigo-50{% else %}border-gray-200{% endif %} rounded-xl p-6">
+                            <div class="border-2 {% if address.is_default %}border-indigo-200 bg-indigo-50{% else %}border-gray-200{% endif %} rounded-xl p-6 relative">
                                 <div class="flex items-center justify-between mb-4">
                                     <h4 class="font-semibold text-gray-900 flex items-center">
                                         <i class="fas {% if address.address_type == 'home' %}fa-home{% elif address.address_type == 'work' %}fa-briefcase{% else %}fa-map-pin{% endif %} text-indigo-500 mr-2"></i>
@@ -286,7 +433,7 @@
                                         <i class="fas fa-location-dot text-gray-400 mr-3 w-5 pt-1"></i>
                                         <span>{{ address.street_address }}<br>
                                             {{ address.city }}, {{ address.state }} {{ address.postal_code }}<br>
-                                            {{ address.country }} {# Assuming country is stored correctly #}
+                                            {{ address.country.name }}
                                         </span>
                                     </p>
                                     {% if address.phone %}
@@ -297,30 +444,20 @@
                                     {% endif %}
                                 </div>
                                 <div class="mt-6 pt-4 border-t flex items-center gap-4">
-                                    <a href="{% url 'users:edit_address' address.pk %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900">Edit</a>
-                                    <!-- Use a modal trigger for delete confirmation -->
-                                    <button type="button" data-modal-target="delete-address-modal-{{ address.pk }}" class="text-sm font-medium text-red-600 hover:text-red-900">Delete</button>
+                                    <a href="{% url 'users:edit_address' address.pk %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
+                                        <i class="fas fa-edit mr-1"></i>Edit
+                                    </a>
+                                    <button type="button" onclick="showDeleteModal({{ address.pk }}, '{{ address.nickname|default:address.get_address_type_display|escapejs }}')" class="text-sm font-medium text-red-600 hover:text-red-900">
+                                        <i class="fas fa-trash mr-1"></i>Delete
+                                    </button>
                                     {% if not address.is_default %}
                                     <form action="{% url 'users:set_default_address' address.pk %}" method="post" class="inline">
                                         {% csrf_token %}
-                                        <button type="submit" class="text-sm font-medium text-gray-600 hover:text-gray-900">Set as Default</button>
+                                        <button type="submit" class="text-sm font-medium text-gray-600 hover:text-gray-900">
+                                            <i class="fas fa-star mr-1"></i>Set as Default
+                                        </button>
                                     </form>
                                     {% endif %}
-                                </div>
-                            </div>
-
-                            <!-- Delete Confirmation Modal (example structure) -->
-                            <div id="delete-address-modal-{{ address.pk }}" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
-                                <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-                                    <h3 class="text-lg font-medium text-gray-900 mb-4">Confirm Deletion</h3>
-                                    <p class="text-sm text-gray-500 mb-6">Are you sure you want to delete the address "{{ address.nickname|default:address.get_address_type_display }}"?</p>
-                                    <div class="flex justify-end gap-3">
-                                        <button type="button" data-modal-hide="delete-address-modal-{{ address.pk }}" class="btn-secondary">Cancel</button>
-                                        <form action="{% url 'users:delete_address' address.pk %}" method="post">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn-danger">Delete</button>
-                                        </form>
-                                    </div>
                                 </div>
                             </div>
                             {% endfor %}
@@ -347,32 +484,28 @@
     </div>
 </div>
 
-<script>
-    // Simple script for modal functionality (adapt as needed)
-    document.querySelectorAll('[data-modal-target]').forEach(button => {
-        button.addEventListener('click', () => {
-            const targetModalId = button.getAttribute('data-modal-target');
-            const modal = document.getElementById(targetModalId);
-            if (modal) modal.classList.remove('hidden'); modal.classList.add('flex'); // Show modal
-        });
-    });
-    document.querySelectorAll('[data-modal-hide]').forEach(button => {
-        button.addEventListener('click', () => {
-            const targetModalId = button.getAttribute('data-modal-hide');
-            const modal = document.getElementById(targetModalId);
-            if (modal) modal.classList.add('hidden'); modal.classList.remove('flex'); // Hide modal
-        });
-    });
-    // Close modal if clicking outside
-    document.querySelectorAll('.fixed.inset-0').forEach(modalBackdrop => {
-        modalBackdrop.addEventListener('click', (event) => {
-             if (event.target === modalBackdrop) { // Only if clicking the backdrop itself
-                 modalBackdrop.classList.add('hidden');
-                 modalBackdrop.classList.remove('flex');
-             }
-        });
-    });
-</script>
+<div id="deleteAddressModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">
+            <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>Confirm Deletion
+        </h3>
+        <p class="text-sm text-gray-500 mb-6">Are you sure you want to delete the address "<span id="deleteAddressName"></span>"? This action cannot be undone.</p>
+        <div class="flex justify-end gap-3">
+            <button type="button" onclick="hideDeleteModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg">
+                Cancel
+            </button>
+            <form id="deleteAddressForm" method="post" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg">
+                    <i class="fas fa-trash-alt mr-1"></i>Delete
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/account/account.js' %}"></script>
+
 
 </body>
 </html>

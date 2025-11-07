@@ -1,12 +1,12 @@
 # cart/models.py
 
-
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from store.models import Product
-
-
+from decimal import Decimal
+from djmoney.money import Money
+from django.conf import settings
 
 User = get_user_model()
 
@@ -22,7 +22,6 @@ class Cart(models.Model):
     session_key = models.CharField(max_length=40, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
 
     class Meta:
         # ✅ FIXED: Replaced incorrect constraint
@@ -80,6 +79,75 @@ class Cart(models.Model):
 
     def clear(self):
         self.items.all().delete()
+
+    # --- New Methods Added ---
+
+    @property
+    def estimated_shipping(self):
+        """Calculate estimated shipping cost for all items in cart"""
+        total_shipping = Decimal('0.00')
+
+        for item in self.items.select_related('product'):
+            product = item.product
+
+            # Skip if product has free shipping
+            if product.free_shipping:
+                continue
+
+            # Add shipping cost per item
+            if product.shipping_cost:
+                total_shipping += product.shipping_cost.amount * item.quantity
+
+        return Money(total_shipping, settings.DEFAULT_CURRENCY)
+
+    @property
+    def has_free_shipping(self):
+        """Check if all items in cart have free shipping"""
+        # Note: This logic assumes free shipping is achieved if *all* items
+        # either have .free_shipping=True OR .shipping_cost=0
+        # If even one item has a shipping cost > 0, this will return False.
+        for item in self.items.select_related('product'):
+            if not item.product.free_shipping:
+                # If it's not explicitly free, check if it has a cost
+                if item.product.shipping_cost and item.product.shipping_cost.amount > 0:
+                    return False
+        return True
+
+    @property
+    def grand_total(self):
+        """Get cart total including shipping"""
+        subtotal = self.total_price.amount
+        shipping = self.estimated_shipping.amount
+        return subtotal + shipping
+
+    def get_shipping_breakdown(self):
+        """Get detailed shipping breakdown by product"""
+        breakdown = []
+
+        for item in self.items.select_related('product'):
+            product = item.product
+
+            if product.free_shipping:
+                shipping_cost = Money(0, settings.DEFAULT_CURRENCY)
+                status = "Free Shipping"
+            elif product.shipping_cost:
+                shipping_cost = product.shipping_cost * item.quantity
+                status = f"Shipping: {shipping_cost}"
+            else:
+                # Fallback for products with no free_shipping and no shipping_cost
+                shipping_cost = Money(0, settings.DEFAULT_CURRENCY)
+                status = "Shipping TBD"  # Or "Free" if that's the default
+
+            breakdown.append({
+                'product': product,
+                'quantity': item.quantity,
+                'shipping_cost': shipping_cost,
+                'status': status
+            })
+
+        return breakdown
+
+    # -------------------------
 
     def __str__(self):
         if self.user:

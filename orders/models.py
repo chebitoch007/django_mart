@@ -28,7 +28,7 @@ class Order(models.Model):
     Supports multi-currency transactions via django-money.
     """
 
-    # User relationship
+    # --- Relationships ---
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -37,15 +37,15 @@ class Order(models.Model):
         blank=True
     )
 
-    # Personal information
+    # --- Customer Information ---
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     email = models.EmailField()
 
-    # Phone number with validation (international format)
+    # --- Phone Validation ---
     phone_regex = RegexValidator(
-        regex=r'^\+?1?\d{9,15}$',
-        message="Phone number must be in format: '+999999999'. Up to 15 digits allowed."
+        regex=r'^\+?\d{9,15}$',
+        message="Phone number must be in the format: '+999999999'. Up to 15 digits allowed."
     )
     phone = models.CharField(
         validators=[phone_regex],
@@ -53,11 +53,8 @@ class Order(models.Model):
         help_text="International format: +254712345678"
     )
 
-    # Shipping address fields
-    address = models.CharField(
-        max_length=250,
-        help_text="Street address or P.O. Box"
-    )
+    # --- Shipping Address ---
+    address = models.CharField(max_length=250, help_text="Street address or P.O. Box")
     city = models.CharField(max_length=100)
     postal_code = models.CharField(max_length=20)
     state = models.CharField(
@@ -71,20 +68,19 @@ class Order(models.Model):
         help_text="Shipping destination country"
     )
 
-    # NEW: Delivery instructions field
+    # --- Additional Fields ---
     delivery_instructions = models.CharField(
         max_length=200,
         blank=True,
         help_text="Special delivery notes (e.g., 'Leave at door', 'Call on arrival')"
     )
 
-    # NEW: Billing same as shipping checkbox
     billing_same_as_shipping = models.BooleanField(
         default=True,
         help_text="Use shipping address for billing"
     )
 
-    # Order metadata
+    # --- Metadata ---
     created = models.DateTimeField(auto_now_add=True, db_index=True)
     updated = models.DateTimeField(auto_now=True)
 
@@ -102,7 +98,7 @@ class Order(models.Model):
         db_index=True
     )
 
-    # Money field for order total
+    # --- Financials ---
     total = MoneyField(
         max_digits=10,
         decimal_places=2,
@@ -110,6 +106,15 @@ class Order(models.Model):
         default=0.00
     )
 
+    shipping_cost = MoneyField(
+        max_digits=10,
+        decimal_places=2,
+        default_currency=settings.DEFAULT_CURRENCY,
+        default=0.00,
+        help_text="Total shipping cost for this order"
+    )
+
+    # --- Manager ---
     objects = OrderManager()
 
     class Meta:
@@ -123,76 +128,83 @@ class Order(models.Model):
         verbose_name_plural = "Orders"
 
     def __str__(self):
-        return f"Order #{self.id} - {self.get_full_name()} ({self.status})"
+        return f"Order #{self.pk} - {self.get_full_name()} ({self.status})"
 
     def get_full_name(self):
-        """Returns the customer's full name"""
+        """Return the customer's full name"""
         return f"{self.first_name} {self.last_name}"
+
+    # --- Totals ---
+    @property
+    def subtotal(self):
+        """Get subtotal (sum of all item totals, excluding shipping)."""
+        from decimal import Decimal
+        items = self.items.all()
+        subtotal = sum(
+            (item.price.amount * item.quantity for item in items),
+            Decimal('0.00')
+        )
+        return Money(subtotal, self.total.currency)
 
     @property
     def total_cost(self):
-        """Calculate total cost from order items"""
+        """Get total including shipping."""
         from decimal import Decimal
+        subtotal = self.subtotal.amount
+        shipping = self.shipping_cost.amount if self.shipping_cost else Decimal('0.00')
+        return Money(subtotal + shipping, self.total.currency)
 
-        items = self.items.all()
-        if not items:
-            return Money(0, self.total.currency)
+    def calculate_shipping(self):
+        """Calculate total shipping cost for all non-free-shipping items."""
+        from decimal import Decimal
+        total_shipping = Decimal('0.00')
 
-        total = Decimal('0.00')
-        for item in items:
-            item_total = item.price.amount * item.quantity
-            total += item_total
+        for item in self.items.select_related('product'):
+            product = item.product
+            if not product.free_shipping and product.shipping_cost:
+                total_shipping += product.shipping_cost.amount * item.quantity
 
-        return Money(total, self.total.currency)
+        return Money(total_shipping, settings.DEFAULT_CURRENCY)
 
+    # --- Payment + Status Helpers ---
     @property
     def is_payable(self):
-        """Check if order can still be paid (within expiry period)"""
+        """Check if order can still be paid (within expiry period)."""
+        expiry_days = getattr(settings, 'ORDER_EXPIRY_DAYS', 7)
         return (
-                self.status == 'PENDING'
-                and (timezone.now() - self.created).days < settings.ORDER_EXPIRY_DAYS
+            self.status == 'PENDING'
+            and (timezone.now() - self.created).days < expiry_days
         )
 
     @transaction.atomic
     def mark_as_paid(self, payment_method: str):
-        """
-        Mark order as paid with proper validation and idempotency.
-        Thread-safe implementation using select_for_update.
-        """
-        # Reload from database with lock to prevent race conditions
+        """Mark order as paid safely with stock validation."""
         order = Order.objects.select_for_update().get(pk=self.pk)
 
-        # If already paid, just log and return (idempotent)
         if order.status == 'PAID':
-            logger.info(f"Order {order.id} already marked as PAID, skipping")
+            logger.info(f"Order {order.pk} already marked as PAID.")
             return
 
-        # Only allow transition from PENDING or PROCESSING
         if order.status not in ['PENDING', 'PROCESSING']:
-            raise ValidationError(f"Order cannot be paid from {order.status} status")
+            raise ValidationError(f"Cannot mark order as paid from {order.status} status.")
 
-        # Verify stock availability
+        # Validate stock
         for item in order.items.select_for_update().select_related('product'):
             product = item.product
             if product.stock < item.quantity:
                 raise ValidationError(f"Insufficient stock for {product.name}")
 
-        # Update order status
         order.status = 'PAID'
         order.payment_method = payment_method
         order.save(update_fields=['status', 'payment_method', 'updated'])
-
-        logger.info(f"Order {order.id} marked as PAID via {payment_method}")
+        logger.info(f"Order {order.pk} marked as PAID via {payment_method}")
 
     @transaction.atomic
     def cancel_order(self, reason=None):
-        """
-        Cancel order and restore product stock.
-        """
+        """Cancel order and restore product stock."""
         if self.status not in ['PENDING', 'PAID']:
-            raise ValidationError(f"Order cannot be cancelled from {self.status} status")
+            raise ValidationError(f"Cannot cancel order from {self.status} status.")
 
-        # Restore stock for all items
         for item in self.items.select_for_update().select_related('product'):
             Product.objects.filter(pk=item.product.pk).update(
                 stock=F('stock') + item.quantity
@@ -200,24 +212,18 @@ class Order(models.Model):
 
         self.status = 'CANCELLED'
         self.save(update_fields=['status', 'updated'])
-        logger.info(f"Order {self.id} cancelled. Stock restored.")
+        logger.info(f"Order {self.pk} cancelled. Stock restored.")
 
+    # --- Validation ---
     def clean(self):
-        """
-        Model-level validation (called explicitly, not on every save).
-        """
+        """Custom model-level validation."""
         super().clean()
-
-        # Validate phone number format
         if self.phone and not self.phone.startswith('+'):
-            raise ValidationError({
-                'phone': 'Phone number should start with country code (e.g., +254)'
-            })
+            raise ValidationError({'phone': 'Phone number should start with + and country code (e.g. +254)'})
 
+    # --- Dropshipping ---
     def process_dropship_orders(self):
-        """
-        Process dropshipping orders via external fulfillment service.
-        """
+        """Send dropshipping items to external fulfillment service."""
         results = []
         for item in self.items.filter(product__is_dropship=True):
             success, message = fulfill_order(item)
