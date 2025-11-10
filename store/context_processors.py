@@ -9,8 +9,17 @@ def top_level_categories(request):
         )
     }
 
+
 def currency_context(request):
+    """
+    Add currency information to all templates.
+    """
+    user_currency = request.session.get('user_currency', settings.DEFAULT_CURRENCY)
+
     return {
         'DEFAULT_CURRENCY': settings.DEFAULT_CURRENCY,
-        'CURRENCIES': settings.CURRENCIES
+        'CURRENCIES': settings.CURRENCIES,
+        'CURRENCY_NAMES': settings.CURRENCY_NAMES,
+        'CURRENCY_SYMBOLS': settings.CURRENCY_SYMBOLS,
+        'user_currency': user_currency,
     }

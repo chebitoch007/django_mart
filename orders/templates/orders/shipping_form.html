@@ -374,119 +374,224 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // Address selection logic
-    function selectAddress(addressId) {
-      // Unselect all cards
-      document.querySelectorAll('.address-card').forEach(card => {
-        card.classList.remove('selected');
-      });
+    // Enhanced address selection and form population script
+// Add this to replace the existing script section in shipping_form.html
 
-      // Select clicked card
-      const clickedCard = document.querySelector(`[data-address-id="${addressId}"]`);
-      if (clickedCard) {
-        clickedCard.classList.add('selected');
-      }
+// Store address data as a JavaScript object
+const savedAddressesData = {
+  {% for address in saved_addresses %}
+  {{ address.id }}: {
+    full_name: "{{ address.full_name|escapejs }}",
+    email: "{{ user.email|escapejs }}",
+    phone: "{{ address.phone|escapejs }}",
+    address: "{{ address.street_address|escapejs }}",
+    city: "{{ address.city|escapejs }}",
+    state: "{{ address.state|escapejs }}",
+    postal_code: "{{ address.postal_code|escapejs }}",
+    country: "{{ address.country.code|escapejs }}"
+  },
+  {% endfor %}
+};
 
-      // Check the radio button
-      document.getElementById(`address-${addressId}`).checked = true;
+// Process addresses to split full_name into first_name and last_name
+Object.keys(savedAddressesData).forEach(id => {
+  const addr = savedAddressesData[id];
+  const nameParts = addr.full_name.trim().split(/\s+/);
+  addr.first_name = nameParts[0] || '';
+  addr.last_name = nameParts.slice(1).join(' ') || '';
+});
 
-      // Hide new address form
-      document.getElementById('new-address-form').classList.remove('active');
-    }
+// Address selection logic
+function selectAddress(addressId) {
+  // Unselect all cards
+  document.querySelectorAll('.address-card').forEach(card => {
+    card.classList.remove('selected');
+  });
 
-    function selectNewAddress() {
-      // Unselect all cards
-      document.querySelectorAll('.address-card').forEach(card => {
-        card.classList.remove('selected');
-      });
+  // Select clicked card
+  const clickedCard = document.querySelector(`[data-address-id="${addressId}"]`);
+  if (clickedCard) {
+    clickedCard.classList.add('selected');
+  }
 
-      // Select new address option
-      const newAddressCard = document.querySelector('[onclick="selectNewAddress()"]');
-      if (newAddressCard) {
-        newAddressCard.classList.add('selected');
-      }
+  // Check the radio button
+  const radioBtn = document.getElementById(`address-${addressId}`);
+  if (radioBtn) {
+    radioBtn.checked = true;
+  }
 
-      // Check the "new address" radio
-      document.getElementById('address-new').checked = true;
+  // Hide new address form
+  document.getElementById('new-address-form').classList.remove('active');
 
-      // Show new address form
-      document.getElementById('new-address-form').classList.add('active');
-    }
-
-    // Save address checkbox toggle
-    const saveAddressCheckbox = document.getElementById('{{ form.save_address.id_for_label }}');
-    const nicknameField = document.getElementById('address-nickname-field');
-
-    if (saveAddressCheckbox && nicknameField) {
-      saveAddressCheckbox.addEventListener('change', function() {
-        nicknameField.style.display = this.checked ? 'block' : 'none';
-      });
-
-      // Initial state
-      if (saveAddressCheckbox.checked) {
-        nicknameField.style.display = 'block';
-      }
-    }
-
-    // Form submission
-    const form = document.getElementById('shipping-form');
-    const submitBtn = document.getElementById('submit-btn');
-
-    form.addEventListener('submit', function(e) {
-      if (submitBtn.disabled) {
-        e.preventDefault();
-        return;
-      }
-
-      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
-      submitBtn.disabled = true;
-
-      setTimeout(() => {
-        if (submitBtn.disabled) {
-          submitBtn.innerHTML = '<i class="fas fa-arrow-right-circle me-2"></i>Proceed to Payment';
-          submitBtn.disabled = false;
+  // Populate form fields with saved address data
+  const addressData = savedAddressesData[addressId];
+  if (addressData) {
+    // Populate each field
+    Object.keys(addressData).forEach(fieldName => {
+      const field = document.querySelector(`[name="${fieldName}"]`);
+      if (field) {
+        if (field.tagName === 'SELECT') {
+          // For select fields (like country)
+          const option = field.querySelector(`option[value="${addressData[fieldName]}"]`);
+          if (option) {
+            field.value = addressData[fieldName];
+          }
+        } else {
+          field.value = addressData[fieldName];
         }
-      }, 5000);
-    });
 
-    // Phone number formatting
-    const phoneInput = document.querySelector('input[name="phone"]');
-    if (phoneInput) {
-      phoneInput.addEventListener('blur', function() {
-        let value = this.value.trim();
-        if (value && !value.startsWith('+') && /^\d/.test(value)) {
-          this.value = '+' + value;
+        // Remove validation errors if they exist
+        field.classList.remove('is-invalid');
+        const errorDiv = field.closest('.mb-3')?.querySelector('.invalid-feedback');
+        if (errorDiv) {
+          errorDiv.remove();
+        }
+      }
+    });
+  }
+}
+
+function selectNewAddress() {
+  // Unselect all cards
+  document.querySelectorAll('.address-card').forEach(card => {
+    card.classList.remove('selected');
+  });
+
+  // Select new address option
+  const newAddressCard = document.querySelector('[onclick="selectNewAddress()"]');
+  if (newAddressCard) {
+    newAddressCard.classList.add('selected');
+  }
+
+  // Check the "new address" radio
+  const newRadio = document.getElementById('address-new');
+  if (newRadio) {
+    newRadio.checked = true;
+  }
+
+  // Show new address form
+  document.getElementById('new-address-form').classList.add('active');
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Check if there's a default address selected
+  const defaultRadio = document.querySelector('input[name="saved_address"]:checked');
+  if (defaultRadio && defaultRadio.value) {
+    // Populate form with default address
+    selectAddress(defaultRadio.value);
+  } else {
+    // Show new address form if no saved addresses
+    const hasAddresses = {{ has_addresses|lower }};
+    if (!hasAddresses) {
+      selectNewAddress();
+    }
+  }
+
+  // Add click handlers to radio buttons
+  document.querySelectorAll('input[name="saved_address"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (this.value === '') {
+        selectNewAddress();
+      } else {
+        selectAddress(this.value);
+      }
+    });
+  });
+});
+
+// Save address checkbox toggle
+const saveAddressCheckbox = document.getElementById('{{ form.save_address.id_for_label }}');
+const nicknameField = document.getElementById('address-nickname-field');
+
+if (saveAddressCheckbox && nicknameField) {
+  saveAddressCheckbox.addEventListener('change', function() {
+    nicknameField.style.display = this.checked ? 'block' : 'none';
+  });
+
+  // Initial state
+  if (saveAddressCheckbox.checked) {
+    nicknameField.style.display = 'block';
+  }
+}
+
+// Form submission
+const form = document.getElementById('shipping-form');
+const submitBtn = document.getElementById('submit-btn');
+
+form.addEventListener('submit', function(e) {
+  // Check if a saved address is selected
+  const savedAddressRadio = document.querySelector('input[name="saved_address"]:checked');
+
+  if (savedAddressRadio && savedAddressRadio.value && savedAddressRadio.value !== '') {
+    // Ensure form fields are populated before submission
+    const addressId = savedAddressRadio.value;
+    const addressData = savedAddressesData[addressId];
+
+    if (addressData) {
+      Object.keys(addressData).forEach(fieldName => {
+        const field = document.querySelector(`[name="${fieldName}"]`);
+        if (field && !field.value) {
+          field.value = addressData[fieldName];
         }
       });
     }
+  }
 
-    // Character counter for delivery instructions
-    const deliveryTextarea = document.querySelector('textarea[name="delivery_instructions"]');
-    if (deliveryTextarea) {
-      const maxLength = 200;
-      const counterDiv = document.createElement('div');
-      counterDiv.className = 'text-end text-muted small mt-1';
-      counterDiv.id = 'char-counter';
-      deliveryTextarea.parentNode.appendChild(counterDiv);
+  if (submitBtn.disabled) {
+    e.preventDefault();
+    return;
+  }
 
-      function updateCounter() {
-        const remaining = maxLength - deliveryTextarea.value.length;
-        counterDiv.textContent = `${remaining} characters remaining`;
-        counterDiv.style.color = remaining < 20 ? '#dc3545' : '#6c757d';
-      }
+  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+  submitBtn.disabled = true;
 
-      deliveryTextarea.addEventListener('input', updateCounter);
-      updateCounter();
+  setTimeout(() => {
+    if (submitBtn.disabled) {
+      submitBtn.innerHTML = '<i class="fas fa-arrow-right-circle me-2"></i>Proceed to Payment';
+      submitBtn.disabled = false;
     }
+  }, 5000);
+});
 
-    // Auto-dismiss success alerts
-    const alerts = document.querySelectorAll('.alert-success');
-    alerts.forEach(alert => {
-      setTimeout(() => {
-        const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
-        bsAlert.close();
-      }, 5000);
-    });
+// Phone number formatting
+const phoneInput = document.querySelector('input[name="phone"]');
+if (phoneInput) {
+  phoneInput.addEventListener('blur', function() {
+    let value = this.value.trim();
+    if (value && !value.startsWith('+') && /^\d/.test(value)) {
+      this.value = '+' + value;
+    }
+  });
+}
+
+// Character counter for delivery instructions
+const deliveryTextarea = document.querySelector('textarea[name="delivery_instructions"]');
+if (deliveryTextarea) {
+  const maxLength = 200;
+  const counterDiv = document.createElement('div');
+  counterDiv.className = 'text-end text-muted small mt-1';
+  counterDiv.id = 'char-counter';
+  deliveryTextarea.parentNode.appendChild(counterDiv);
+
+  function updateCounter() {
+    const remaining = maxLength - deliveryTextarea.value.length;
+    counterDiv.textContent = `${remaining} characters remaining`;
+    counterDiv.style.color = remaining < 20 ? '#dc3545' : '#6c757d';
+  }
+
+  deliveryTextarea.addEventListener('input', updateCounter);
+  updateCounter();
+}
+
+// Auto-dismiss success alerts
+const alerts = document.querySelectorAll('.alert-success');
+alerts.forEach(alert => {
+  setTimeout(() => {
+    const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+    bsAlert.close();
+  }, 5000);
+});
   </script>
 </body>
 </html>

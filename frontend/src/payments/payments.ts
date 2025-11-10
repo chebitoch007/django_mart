@@ -1,3 +1,6 @@
+// frontend/src/payments/payments.ts
+
+import { storage } from './storage.js'; // ✅ IMPORTED safe storage
 import { initializeMpesa, resetMpesaPaymentState } from './mpesa.js';
 import { initializePayPal, cleanupPayPal, resetPayPalPaymentState } from './paypal.js';
 import {
@@ -26,7 +29,7 @@ export class PaymentSystem {
   private config: PaymentConfig;
   private state: PaymentState;
   private elements: PaymentElements;
-  private formSubmitted: boolean = false; // ✅ Track form submission
+  private formSubmitted: boolean = false; // Track M-Pesa submission
 
   constructor(config: PaymentConfig) {
     this.config = config;
@@ -48,13 +51,14 @@ export class PaymentSystem {
     this.cacheElements();
     this.bindEvents();
     this.restoreState();
-    this.checkExistingPayment(); // ✅ Check if payment already in progress
+    this.checkExistingPayment(); // Check if payment already in progress
     this.initializePaymentMethod(this.state.currentMethod);
   }
 
   // ✅ NEW: Check if a payment is already in progress
   private checkExistingPayment(): void {
-    const existingCheckoutId = localStorage.getItem('lastCheckoutRequestId');
+    // ✅ FIX: Use safe storage singleton
+    const existingCheckoutId = storage.getItem('lastCheckoutRequestId');
     if (existingCheckoutId) {
       console.warn('[PAYMENT] Found existing checkout request ID:', existingCheckoutId);
       showPaymentStatus(
@@ -93,6 +97,11 @@ export class PaymentSystem {
       summaryToggle: document.getElementById('summaryToggle') as HTMLElement,
       summaryContent: document.getElementById('summaryContent') as HTMLElement
     };
+  }
+
+  // ✅ NEW: Helper to check all payment states
+  private isPaymentInProgress(): boolean {
+    return this.formSubmitted || this.state.paypalProcessing;
   }
 
   private bindEvents(): void {
@@ -135,25 +144,25 @@ export class PaymentSystem {
       this.handleResize();
     });
 
-    // ✅ NEW: Prevent accidental navigation during payment
+    // ✅ FIX: Prevent accidental navigation during payment (M-Pesa or PayPal)
     window.addEventListener('beforeunload', (e) => {
-      if (this.formSubmitted) {
+      if (this.isPaymentInProgress()) {
         e.preventDefault();
         e.returnValue = 'Payment is in progress. Are you sure you want to leave?';
         return e.returnValue;
       }
     });
 
-    // ✅ NEW: Clear storage on successful completion
+    // ✅ FIX: Clear storage on successful completion
     window.addEventListener('unload', () => {
-      if (!this.formSubmitted) {
+      if (!this.isPaymentInProgress()) {
         storage.removeItem('paymentFormState');
       }
     });
 
-    // ✅ NEW: Handle browser back button
+    // ✅ FIX: Handle browser back button
     window.addEventListener('popstate', (e) => {
-      if (this.formSubmitted) {
+      if (this.isPaymentInProgress()) {
         const confirmLeave = confirm('Payment is in progress. Are you sure you want to go back?');
         if (!confirmLeave) {
           // Push state again to stay on page
@@ -162,10 +171,6 @@ export class PaymentSystem {
       }
     });
   }
-
-
-
-
 
   private restoreState(): void {
     const savedState = restoreFormState();
@@ -181,11 +186,13 @@ export class PaymentSystem {
   }
 
   private switchPaymentMethod(method: PaymentMethod): void {
-    // ✅ Reset payment states when switching methods
+    // Reset payment states when switching methods
     resetMpesaPaymentState();
     resetPayPalPaymentState();
 
     this.state.currentMethod = method;
+    this.state.paypalProcessing = false; // Explicitly reset PayPal state
+    this.formSubmitted = false; // Explicitly reset M-Pesa state
 
     // Update UI
     updatePaymentMethodUI(method, this.elements.paymentTabs, this.elements.selectedMethodName);
@@ -195,16 +202,12 @@ export class PaymentSystem {
     // Handle section transitions
     this.togglePaymentSections(method);
 
+
     // Handle method-specific initialization
     if (method === 'paypal') {
       showCurrencyTooltip(method, this.state.currentCurrency, this.elements.currencyTooltip, this.elements.tooltipText);
-      console.log("[PAYMENT] Switching to PayPal... Terms checked?", this.elements.termsCheckbox.checked);
-      if (this.elements.termsCheckbox.checked) {
-        console.log("✅ Initializing PayPal...");
-        setTimeout(() => initializePayPal(this), 400);
-      } else {
-        console.warn("⚠️ PayPal not initialized because terms are unchecked.");
-      }
+      console.log("[PAYMENT] Initializing PayPal... (Terms check will happen in onInit)");
+      setTimeout(() => initializePayPal(this), 400);
     }
     else {
       hideCurrencyTooltip(this.elements.currencyTooltip);
@@ -325,18 +328,12 @@ export class PaymentSystem {
       phone: this.elements.phoneInput.value,
       terms: this.elements.termsCheckbox.checked
     });
-
-    if (this.state.currentMethod === 'paypal') {
-      if (this.elements.termsCheckbox.checked) {
-        setTimeout(() => initializePayPal(this), 300);
-      }
-    }
   }
 
   private async handleFormSubmit(e: Event): Promise<void> {
     e.preventDefault();
 
-    // ✅ Prevent double submission
+    // Prevent double submission
     if (this.formSubmitted) {
       console.warn('[PAYMENT] Form already submitted, ignoring duplicate submission');
       return;
@@ -369,7 +366,7 @@ export class PaymentSystem {
       this.formSubmitted = true;
       const success = await initializeMpesa(this);
       if (!success) {
-        this.formSubmitted = false; // ✅ Reset on failure
+        this.formSubmitted = false; // Reset on failure
       }
     }
   }
@@ -434,10 +431,7 @@ export class PaymentSystem {
     }
   }
 
-  private isPaypalCurrencySupported(currency: string): boolean {
-    const paypalSupportedCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY'];
-    return paypalSupportedCurrencies.includes(currency);
-  }
+  // ❌ REMOVED redundant isPaypalCurrencySupported method
 
   private initializePaymentMethod(method: PaymentMethod): void {
     updatePaymentMethodUI(method, this.elements.paymentTabs, this.elements.selectedMethodName);

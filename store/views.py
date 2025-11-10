@@ -1,4 +1,6 @@
 # store/views.py - FIXED VERSION
+from django.views.decorators.csrf import csrf_protect
+from django.conf import settings
 from functools import wraps
 from django.contrib.auth.views import redirect_to_login
 from store.utils.search import apply_search_filter
@@ -46,6 +48,7 @@ TRENDING_CACHE_TIMEOUT = 3600  # seconds
 
 def ajax_login_required(view_func):
     """Custom decorator to return JSON 401 for AJAX requests instead of redirecting."""
+
     @wraps(view_func)
     def wrapped_view(request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -56,7 +59,9 @@ def ajax_login_required(view_func):
                 )
             return redirect_to_login(request.get_full_path())
         return view_func(request, *args, **kwargs)
+
     return wrapped_view
+
 
 # ----- Search Views ----- #
 @require_GET
@@ -116,7 +121,13 @@ class ProductSearchView(ListView):
         return get_sorted_products(products, sort_key, is_search=True)
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        # --- CHANGED: Get full queryset *before* super() for correct facets ---
+        full_queryset = self.get_queryset()
+
+        # Now call super() to get the paginated context
+        context = super().get_context_data(**kwargs, object_list=full_queryset)
+        # --- END CHANGE ---
+
         query = self.request.GET.get('q', '')
         sort_key = self.request.GET.get('sort', 'relevance')
 
@@ -124,13 +135,9 @@ class ProductSearchView(ListView):
         context['sort_by'] = sort_key
         context['sort_options'] = SORT_OPTIONS
 
-        # Facet counting
-        paginator, page, queryset, is_paginated = self.paginate_queryset(
-            self.get_queryset(),
-            self.get_paginate_by(self.get_queryset())
-        )
-
-        product_ids = list(queryset.values_list('id', flat=True))
+        # --- CHANGED: Facet counting now uses the full_queryset ---
+        # Get IDs from the *full* list for correct facets.
+        product_ids = list(full_queryset.values_list('id', flat=True))
 
         brands = Brand.objects.filter(
             products__id__in=product_ids
@@ -143,6 +150,7 @@ class ProductSearchView(ListView):
         ).annotate(
             product_count=Count('products__id', distinct=True)
         ).order_by('-product_count', 'name')
+        # --- END CHANGE ---
 
         context['brands'] = brands
         context['suppliers'] = suppliers
@@ -153,7 +161,7 @@ class ProductSearchView(ListView):
         context['min_rating'] = self.request.GET.get('min_rating', '')
         context['selected_brand'] = self.request.GET.get('brand', '')
         context['selected_supplier'] = self.request.GET.get('supplier', '')
-        context['on_sale'] = self.request.GET.get('on_sale') == 'true'  # ✅ ADD THIS if not present
+        context['on_sale'] = self.request.GET.get('on_sale') == 'true'
 
         return context
 
@@ -166,6 +174,7 @@ class ProductSearchView(ListView):
             html = render_to_string('store/product/_results_grid.html', context=context, request=request)
             return HttpResponse(html)
         return super().render_to_response(context, **response_kwargs)
+
 
 @require_GET
 def search_suggestions(request):
@@ -298,7 +307,7 @@ def product_list(request, category_slug=None):
     products = get_sorted_products(products, sort_key, is_search=False)
     # --- END CORRECTION ---
 
-    # Facet counting
+    # Facet counting (This is correct, `products` is the full filtered list)
     product_ids = list(products.values_list('id', flat=True))
     brands = Brand.objects.filter(
         products__id__in=product_ids
@@ -339,7 +348,7 @@ def product_list(request, category_slug=None):
         'suppliers': suppliers,
         'selected_brand': request.GET.get('brand', ''),
         'selected_supplier': request.GET.get('supplier', ''),
-        'on_sale': request.GET.get('on_sale') == 'true',  # ✅ ADD THIS LINE
+        'on_sale': request.GET.get('on_sale') == 'true',
     }
 
     # Handle HTMX requests
@@ -350,8 +359,6 @@ def product_list(request, category_slug=None):
         })
 
     return render(request, 'store/product/list.html', context)
-
-
 
 
 def product_detail(request, slug):
@@ -432,6 +439,7 @@ def delete_review(request, review_id):
     review.delete()
     messages.success(request, 'Your review was deleted successfully.')
     return JsonResponse({'success': True})
+
 
 @require_POST
 def stock_notification(request):
@@ -1008,3 +1016,39 @@ def import_products(request):
         form = ImportProductsForm()
     return render(request, 'store/dashboard/import_products.html',
                   {'form': form, 'title': 'Import AliExpress Products'})
+
+
+@require_POST
+@csrf_protect
+def set_currency(request):
+    """
+    View to handle currency selection.
+    """
+    currency = request.POST.get('currency', '').strip().upper()
+
+    # Validate currency
+    if currency not in settings.CURRENCIES:
+        return JsonResponse({
+            'success': False,
+            'message': f'Invalid currency: {currency}'
+        }, status=400)
+
+    # Store in session
+    request.session['user_currency'] = currency
+    request.session.modified = True
+
+    # Check if it's a JavaScript fetch request
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    content_type = request.headers.get('Content-Type', '')
+
+    # Return JSON for JavaScript fetch requests
+    if is_ajax or 'application/json' in content_type:
+        return JsonResponse({
+            'success': True,
+            'currency': currency,
+            'message': f'Currency changed to {currency}',
+            'reload': True
+        })
+
+    # For regular form submissions, redirect back
+    return redirect(request.META.get('HTTP_REFERER', 'store:product_list'))

@@ -103,13 +103,16 @@
 }
 
 
-/* NEW: Styles for mobile filter sidebar toggle
+/*
+  🛑 REMOVED: This entire @media block was conflicting with filters.css
+  and causing the "white overlay" bug on mobile.
 */
+/*
 @media (max-width: 991.98px) {
   .filter-sidebar {
     position: fixed;
     top: 0;
-    left: -320px; /* Start off-screen */
+    left: -320px;
     width: 300px;
     height: 100vh;
     z-index: 1001;
@@ -124,6 +127,7 @@
     box-shadow: 0 0 20px rgba(0,0,0,0.2);
   }
 }
+*/
 
 
 /* ... (rest of the file: products-container, empty-state, pagination, brands-section) ... */

@@ -1,4 +1,4 @@
-# store/admin.py - MERGED ENHANCED VERSION
+# store/admin.py
 
 from django import forms
 from moneyed import Money
@@ -6,12 +6,11 @@ from decimal import Decimal
 from core.utils import get_exchange_rate
 from django.conf import settings
 from django.contrib import admin
-from django.db import models
 from django.db.models import Count, F, ExpressionWrapper, FloatField, Sum, Q
 from django.utils.html import format_html
 from django.urls import reverse, path
 from django.contrib.admin import SimpleListFilter
-from django.db.models import Case, When, Value, IntegerField
+from django.db.models import Case, When, Value
 from django.utils import timezone
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -98,7 +97,7 @@ class QuickEditProductForm(forms.ModelForm):
         label='Shipping Cost',
         help_text='Enter shipping cost (0 for free shipping)',
         widget=forms.NumberInput(attrs={
-            'style': 'width: 150px; padding: 8px;',
+            # --- CHANGED: Removed inline style ---
             'step': '0.01',
             'min': '0'
         })
@@ -118,24 +117,26 @@ class QuickEditProductForm(forms.ModelForm):
             'name', 'short_description', 'description',
             'input_currency', 'input_price', 'input_discount_price', 'target_currency',
             'stock', 'available', 'featured', 'category', 'brand',
-            'shipping_cost', 'free_shipping'
+            'shipping_cost', 'free_shipping',
+            'supplier', 'supplier_url'
         ]
         widgets = {
+            # --- CHANGED: Removed all inline styles. Template CSS will handle this. ---
             'name': forms.TextInput(attrs={
-                'style': 'width: 100%; padding: 8px; font-size: 14px;'
+                'class': 'form-control' # Example class, template CSS targets IDs anyway
             }),
             'short_description': forms.Textarea(attrs={
                 'rows': 2,
-                'style': 'width: 100%; padding: 8px; font-size: 13px;'
             }),
             'description': forms.Textarea(attrs={
                 'rows': 4,
-                'style': 'width: 100%; padding: 8px; font-size: 13px;'
             }),
-            'stock': forms.NumberInput(attrs={
-                'style': 'width: 100px; padding: 8px;'
+            'stock': forms.NumberInput(),
+            'supplier_url': forms.URLInput(attrs={
+                'placeholder': 'https://supplier.com/product'
             }),
         }
+        # --- CHANGED: Removed modification comments ---
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

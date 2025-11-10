@@ -38,36 +38,73 @@
         color: #374151;
     }
 
+    /* --- CSS FIX: SPLIT RULES FOR INPUT/SELECT --- */
+
+    /* Common styles for form controls */
     .form-row input,
     .form-row select,
     .form-row textarea {
         width: 100%;
-        padding: 10px;
         border: 1px solid #d1d5db;
         border-radius: 6px;
         font-size: 14px;
+        box-sizing: border-box; /* Ensures padding doesn't affect width */
     }
+
+    /* Styles for inputs and textareas (with padding) */
+    .form-row input,
+    .form-row textarea {
+        padding: 10px;
+    }
+
+    /* Styles for selects (FIX for half-visible text) */
+    .form-row select {
+        height: 40px; /* Explicit height to match padded inputs */
+        padding: 0 10px; /* Horizontal padding only */
+        background-color: white; /* Ensure background is white */
+        -webkit-appearance: none; /* Optional: for more consistent styling */
+        -moz-appearance: none;
+        appearance: none;
+        /* Add a background arrow if appearance is removed */
+        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236B7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20128c3.6%203.6%207.8%205.4%2013%205.4s9.4-1.8%2013-5.4L287%2095.2c3.6-3.6%205.4-7.8%205.4-13%200-5-1.8-9.4-5.4-13z%22%2F%3E%3C%2Fsvg%3E');
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 9px 9px;
+
+        /* --- CONTRAST FIX --- */
+        color: #374151; /* Explicitly set dark text color */
+        /* --- END CONTRAST FIX --- */
+    }
+
+    /* Target select[multiple] specifically if you use them */
+    .form-row select[multiple] {
+        height: auto; /* Let multiple-selects grow */
+        padding: 10px; /* Add padding back */
+        background-image: none; /* Remove arrow */
+    }
+
+    /* --- END CSS FIX --- */
+
 
     .form-row textarea {
         resize: vertical;
         font-family: inherit;
-        min-height: 120px; /* ADDED: Give textareas a bit more space */
+        min-height: 120px;
     }
 
     .help-text {
         font-size: 12px;
-        color: #4b5563;
+        color: #374151;
         margin-top: 4px;
+        line-height: 1.4;
     }
 
-    /* ADDED: A flexible grid for form rows */
     .form-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
         gap: 15px 20px;
     }
 
-    /* Full-width span for grid items */
     .grid-col-span-2 {
         grid-column: 1 / -1;
     }
@@ -78,11 +115,18 @@
         gap: 15px;
     }
 
-    /* IMPROVED: Checkbox styling */
+    .shipping-grid {
+        display: grid;
+        /* CHANGED: Make shipping cost col 1/3 and checkbox col 2/3 */
+        grid-template-columns: 1fr 2fr;
+        gap: 15px 20px;
+        align-items: start;
+    }
+
     .checkbox-wrapper {
         display: flex;
         align-items: center;
-        gap: 10px; /* Space between checkbox and text */
+        gap: 10px;
         padding: 10px;
         background: white;
         border-radius: 6px;
@@ -90,18 +134,23 @@
         margin-bottom: 10px;
         cursor: pointer;
     }
+
+    .form-row .checkbox-wrapper:last-child {
+        margin-bottom: 0;
+    }
+
     .checkbox-wrapper input[type="checkbox"] {
         width: 16px;
         height: 16px;
         margin: 0;
         flex-shrink: 0;
     }
+
     .checkbox-wrapper span {
         font-weight: 500;
         color: #374151;
         margin-bottom: 0;
     }
-    /* End Checkbox styles */
 
     .submit-row {
         display: flex;
@@ -161,6 +210,19 @@
         margin-top: 0;
         color: #166534;
     }
+
+    .shipping-preview {
+        background: #fef3c7;
+        border: 1px solid #fbbf24;
+        padding: 15px;
+        border-radius: 6px;
+        margin-top: 15px;
+    }
+
+    .shipping-preview h4 {
+        margin-top: 0;
+        color: #92400e;
+    }
 </style>
 {% endblock %}
 
@@ -180,19 +242,22 @@
             <h3>📝 Basic Information</h3>
 
             <div class="form-grid">
-                <div class="form-row grid-col-span-2"> <label for="id_name">Product Name *</label>
+                <div class="form-row grid-col-span-2">
+                    <label for="id_name">Product Name *</label>
                     {{ form.name }}
                     {% if form.name.help_text %}
                     <p class="help-text">{{ form.name.help_text }}</p>
                     {% endif %}
                 </div>
 
-                <div class="form-row grid-col-span-2"> <label for="id_short_description">Short Description</label>
+                <div class="form-row grid-col-span-2">
+                    <label for="id_short_description">Short Description</label>
                     {{ form.short_description }}
                     <p class="help-text">Brief product summary (shown in listings)</p>
                 </div>
 
-                <div class="form-row grid-col-span-2"> <label for="id_description">Full Description</label>
+                <div class="form-row grid-col-span-2">
+                    <label for="id_description">Full Description</label>
                     {{ form.description }}
                     <p class="help-text">Detailed product information</p>
                 </div>
@@ -231,6 +296,33 @@
         </div>
 
         <div class="form-section">
+            <h3>📦 Shipping Information</h3>
+
+            <div class="shipping-grid">
+                <div class="form-row">
+                    <label for="id_shipping_cost">Shipping Cost</label>
+                    {{ form.shipping_cost }}
+                    <p class="help-text">Cost in target currency</p>
+                </div>
+
+                <div class="form-row">
+                    <label>&nbsp;</label> <label class="checkbox-wrapper"> {{ form.free_shipping }}
+                        <span>Free Shipping (overrides cost)</span>
+                    </label>
+                    <p class="help-text">&nbsp;</p> </div>
+            </div>
+            <div class="shipping-preview" id="shipping-preview" style="display: none;">
+                <h4>🚚 Shipping Cost Preview</h4>
+                <p id="shipping-preview-text"></p>
+            </div>
+
+            <p class="help-text" style="margin-top: 10px;">
+                💡 <strong>Tip:</strong> Shipping cost will be automatically converted to the target currency ({{ form.target_currency.initial }}).
+                Check "Free Shipping" to set shipping cost to 0.
+            </p>
+        </div>
+
+        <div class="form-section">
             <h3>🏷️ Classification</h3>
 
             <div class="form-grid">
@@ -250,16 +342,28 @@
                 </div>
 
                 <div class="form-row">
-                    <label>Status</label> <label class="checkbox-wrapper">
+                    <label for="id_supplier">Supplier</label>
+                    {{ form.supplier }}
+                </div>
+
+                <div class="form-row grid-col-span-2">
+                    <label for="id_supplier_url">Supplier URL</label>
+                    {{ form.supplier_url }}
+                    <p class="help-text">Direct link to product on supplier's website</p>
+                </div>
+
+                <div class="form-row grid-col-span-2">
+                    <label>Status</label>
+                    <label class="checkbox-wrapper">
                         {{ form.available }}
                         <span>Available for Sale</span>
                     </label>
-                    <label class="checkbox-wrapper" style="margin-bottom: 0;">
+                    <label class="checkbox-wrapper">
                         {{ form.featured }}
                         <span>Featured Product</span>
                     </label>
                 </div>
-                </div>
+            </div>
         </div>
 
         <div class="submit-row">
@@ -274,16 +378,21 @@
 </div>
 
 <script>
+/* ... script is unchanged ... */
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('quick-edit-form');
     const inputCurrency = document.getElementById('id_input_currency');
     const targetCurrency = document.getElementById('id_target_currency');
     const inputPrice = document.getElementById('id_input_price');
     const inputDiscount = document.getElementById('id_input_discount_price');
+    const shippingCost = document.getElementById('id_shipping_cost');
+    const freeShipping = document.getElementById('id_free_shipping');
     const preview = document.getElementById('conversion-preview');
     const previewText = document.getElementById('preview-text');
+    const shippingPreview = document.getElementById('shipping-preview');
+    const shippingPreviewText = document.getElementById('shipping-preview-text');
 
-    // Simple exchange rates (you can fetch real-time rates via AJAX)
+    // Exchange rates (same as before)
     const exchangeRates = {
         'USD': {'KES': 129.20, 'EUR': 0.93, 'GBP': 0.79, 'USD': 1.0, 'UGX': 3700, 'TZS': 2500},
         'EUR': {'KES': 140.00, 'USD': 1.07, 'EUR': 1.0, 'GBP': 0.85, 'UGX': 4200, 'TZS': 2700},
@@ -318,13 +427,57 @@ document.addEventListener('DOMContentLoaded', function() {
         preview.style.display = 'block';
     }
 
+    function updateShippingPreview() {
+        const from = inputCurrency.value;
+        const to = targetCurrency.value;
+        const shipping = parseFloat(shippingCost.value);
+        const isFree = freeShipping.checked;
+
+        if (isFree) {
+            shippingPreviewText.innerHTML = '<strong style="color: #10b981;">✓ FREE SHIPPING</strong> - Shipping cost will be set to 0';
+            shippingPreview.style.display = 'block';
+            shippingCost.disabled = true;
+            shippingCost.style.opacity = '0.5';
+            return;
+        } else {
+            shippingCost.disabled = false;
+            shippingCost.style.opacity = '1';
+        }
+
+        if (!shipping || shipping === 0) {
+            shippingPreview.style.display = 'none';
+            return;
+        }
+
+        if (from === to) {
+            shippingPreviewText.innerHTML = `Shipping: <strong>${shipping} ${to}</strong> (no conversion needed)`;
+        } else {
+            const rate = exchangeRates[from][to];
+            const convertedShipping = (shipping * rate).toFixed(2);
+            shippingPreviewText.innerHTML = `<strong>${shipping} ${from}</strong> = <strong style="color: #f59e0b;">${convertedShipping} ${to}</strong> (shipping)`;
+        }
+
+        shippingPreview.style.display = 'block';
+    }
+
+    // Event listeners
     inputPrice.addEventListener('input', updatePreview);
     inputDiscount.addEventListener('input', updatePreview);
-    inputCurrency.addEventListener('change', updatePreview);
-    targetCurrency.addEventListener('change', updatePreview);
+    inputCurrency.addEventListener('change', function() {
+        updatePreview();
+        updateShippingPreview();
+    });
+    targetCurrency.addEventListener('change', function() {
+        updatePreview();
+        updateShippingPreview();
+    });
 
-    // Initial preview
+    shippingCost.addEventListener('input', updateShippingPreview);
+    freeShipping.addEventListener('change', updateShippingPreview);
+
+    // Initial previews
     updatePreview();
+    updateShippingPreview();
 });
 </script>
 {% endblock %}

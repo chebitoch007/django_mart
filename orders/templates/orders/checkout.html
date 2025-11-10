@@ -20,12 +20,14 @@
   };
 </script>
 
-{% if not paypal_loaded %}
-  <script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&currency={{ order.total.currency.code }}&commit=false&components=buttons" async></script>
-{% endif %}
+<script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&commit=false&components=buttons"></script>
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 {% vite_asset 'src/payments/payments.ts' %}
 {% endblock %}
+
+
+
 
 {% block content %}
 <style>

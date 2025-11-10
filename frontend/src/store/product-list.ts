@@ -1,28 +1,44 @@
-import { StoreUtils, cartManager } from './base';
+// Corrected: src/store/product-list.ts
+
+import { StoreUtils } from './base';
 
 export function initProductList(): void {
+  // ✅ The FilterSidebar class from filters.js handles all the toggle logic
+  // We just need to handle price display updates here, and do it safely.
+
   const priceRange = document.getElementById('priceRange') as HTMLInputElement;
   const priceDisplay = document.getElementById('priceDisplay');
 
-  // ✅ The FilterSidebar class from filters.js handles all the toggle logic
-  // We just need to handle price display updates here
-
   // Live update price display (visual feedback only, HTMX handles submission)
   if (priceRange && priceDisplay) {
-    priceRange.addEventListener('input', () => {
-      priceDisplay.textContent = `${priceRange.value} KES`;
-    });
+    const updateDisplay = () => {
+      // Format the number with a comma for thousands
+      const formattedPrice = parseInt(priceRange.value, 10).toLocaleString();
+      priceDisplay.textContent = `${formattedPrice} KES`;
+    };
+
+    // Set initial value just in case
+    updateDisplay();
+
+    // ✅ Add event listener, ensuring we don't add multiple
+    if (!(priceRange as any)._priceDisplayAdded) {
+      priceRange.addEventListener('input', updateDisplay);
+      (priceRange as any)._priceDisplayAdded = true;
+      console.log('Price range listener added.');
+    }
   }
 
   // Initialize product grid enhancements (non-conflicting)
+  // These functions query content within the swap target, so it's
+  // safe to re-run them.
   initProductGrid();
-
-  // Initialize analytics tracking
   initAnalytics();
 }
 
+// ... (Rest of the file is unchanged) ...
+
 function initProductGrid(): void {
-  const productCards = document.querySelectorAll('.product-card');
+  const productCards = document.querySelectorAll('#resultsRoot .product-card');
 
   productCards.forEach((card) => {
     // Add hover effects for better UX
@@ -159,7 +175,7 @@ function renderQuickView(product: any): void {
       <button class="close-quick-view" aria-label="Close quick view">
         <i class="fas fa-times"></i>
       </button>
-      
+
       <div class="quick-view-nav">
         <button class="nav-btn prev-btn" aria-label="Previous product">
           <i class="fas fa-chevron-left"></i>
@@ -187,7 +203,7 @@ function renderQuickView(product: any): void {
           <p class="description">${product.short_description}</p>
 
           <div class="quick-actions">
-            <button class="btn-primary add-to-cart-quick" 
+            <button class="btn-primary add-to-cart-quick"
                     ${product.stock <= 0 ? 'disabled' : ''}
                     data-product-id="${product.id}">
               <i class="fas fa-shopping-cart"></i>
@@ -231,7 +247,9 @@ function initQuickViewActions(): void {
     const productId = button.getAttribute('data-product-id');
 
     if (productId) {
-      cartManager.quickAdd(parseInt(productId), 1);
+      // Use cartManager from base.ts
+      (window as any).cartManager?.quickAdd(parseInt(productId), 1);
+
       button.innerHTML = '<i class="fas fa-check"></i> Added to Cart';
       button.disabled = true;
 
@@ -448,7 +466,7 @@ function loadMoreProducts(): void {
 
 function initAnalytics(): void {
   // Track product views
-  const productCards = document.querySelectorAll('.product-card');
+  const productCards = document.querySelectorAll('#resultsRoot .product-card');
 
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {

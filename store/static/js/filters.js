@@ -257,109 +257,8 @@ function initFilterSidebar() {
 
   console.log('✅ All filter components initialized');
 
-  function initFilterCloseButton() {
-  const closeBtn = document.querySelector('.filter-close-btn');
-  const filterToggle = document.getElementById('filterToggle');
-  const filterContent = document.getElementById('filterContent');
-
-  if (!closeBtn || !filterToggle || !filterContent) {
-    console.warn('Filter close button elements not found');
-    return;
-  }
-
-  // Close button click handler
-  closeBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Hide filter content
-    filterContent.setAttribute('hidden', '');
-    filterContent.classList.remove('slide-in');
-
-    // Update toggle button state
-    filterToggle.setAttribute('aria-expanded', 'false');
-    filterToggle.querySelector('span').textContent = 'Show Filters';
-
-    // Re-enable body scroll
-    document.body.classList.remove('no-scroll');
-
-    // Add close animation
-    filterContent.style.animation = 'slideOut 0.3s ease-out';
-
-    // Focus back on toggle button for accessibility
-    setTimeout(() => {
-      filterToggle.focus();
-    }, 100);
-  });
-
-  // ESC key to close filters on mobile
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && window.innerWidth < 992) {
-      const isFilterOpen = !filterContent.hasAttribute('hidden');
-      if (isFilterOpen) {
-        closeBtn.click();
-      }
-    }
-  });
-
-  // Close filters when clicking backdrop (outside filter area)
-  document.addEventListener('click', (e) => {
-    if (window.innerWidth < 992) {
-      const isFilterOpen = !filterContent.hasAttribute('hidden');
-      const clickedOutside = !filterContent.contains(e.target) &&
-                            e.target !== filterToggle &&
-                            !filterToggle.contains(e.target);
-
-      if (isFilterOpen && clickedOutside) {
-        closeBtn.click();
-      }
-    }
-  });
-
-  // Add slide out animation
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes slideOut {
-      from {
-        transform: translateX(0);
-        opacity: 1;
-      }
-      to {
-        transform: translateX(-100%);
-        opacity: 0;
-      }
-    }
-  `;
-
-  if (!document.getElementById('filter-animations')) {
-    style.id = 'filter-animations';
-    document.head.appendChild(style);
-  }
-
-  console.log('✅ Filter close button initialized');
-}
-
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initFilterCloseButton);
-} else {
-  initFilterCloseButton();
-}
-
-// Re-initialize after HTMX swaps (if using HTMX)
-if (typeof htmx !== 'undefined') {
-  document.body.addEventListener('htmx:afterSwap', (event) => {
-    if (event.detail.target.id === 'resultsRoot') {
-      initFilterCloseButton();
-    }
-  });
-}
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { initFilterCloseButton };
-}
-
+  // Removed redundant initFilterCloseButton() function.
+  // The FilterSidebar class already handles all close functionality.
 }
 
 // =======================================
@@ -390,17 +289,10 @@ if (document.readyState === 'loading') {
   initFilterSidebar();
 }
 
-// Re-initialize after HTMX swaps (for dynamic content)
-if (typeof htmx !== 'undefined') {
-  document.body.addEventListener('htmx:afterSwap', (event) => {
-    // Only re-initialize if the results were swapped
-    if (event.detail.target.id === 'resultsRoot' ||
-        event.detail.target.classList.contains('results-content')) {
-      console.log('🔄 Re-initializing filters after HTMX swap');
-      initFilterSidebar();
-    }
-  });
-}
+// Re-initialize after HTMX swaps (REMOVED)
+// This is now handled by the main.ts (Vite) entrypoint, which correctly
+// calls page-specific initializers (like initProductList) after a swap.
+// The filter sidebar itself is persistent and does not need re-initialization.
 
 // Export for use in other modules if needed
 if (typeof module !== 'undefined' && module.exports) {

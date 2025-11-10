@@ -1089,54 +1089,9 @@ textarea.form-control {
 }
 
 /* ========================================
-   Toast Notifications
+   REMOVED: Toast Notifications
+   These are now handled by base.css
    ======================================== */
-.toast {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    padding: 18px 28px;
-    border-radius: 12px;
-    color: #ffffff;
-    font-weight: 600;
-    z-index: 1000;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    animation: slideInUp 0.3s ease, slideOutDown 0.3s ease 2.7s;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.95rem;
-}
-
-.toast.success {
-    background: #16a34a;
-}
-
-.toast.error {
-    background: #dc2626;
-}
-
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes slideOutDown {
-    from {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    to {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-}
 
 /* ========================================
    Responsive Design

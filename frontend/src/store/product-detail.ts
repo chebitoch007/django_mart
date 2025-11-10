@@ -26,6 +26,13 @@ function getCsrfToken(): string {
  * Displays a toast notification with icon
  */
 function showNotification(message: string, type: 'success' | 'error'): void {
+  // Check if the global showNotification exists from base.js
+  if (typeof (window as any).showNotification === 'function') {
+    (window as any).showNotification(message, type);
+    return;
+  }
+
+  // Fallback inline notification
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
 
@@ -906,7 +913,10 @@ export function initProductDetail(): void {
   console.log('✅ Product detail page initialized (without duplicate notifications)');
 }
 
-// Auto-initialize if this is the only script
+// 🛑 REMOVED: Auto-initialize if this is the only script
+// This block was causing initProductDetail() to run on every page.
+// It is now only called by main.ts.
+/*
 if (typeof window !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initProductDetail);
@@ -914,3 +924,4 @@ if (typeof window !== 'undefined') {
     initProductDetail();
   }
 }
+*/

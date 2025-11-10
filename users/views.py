@@ -432,88 +432,178 @@ def resend_password_reset_email(request):
 
 @method_decorator(login_required, name='dispatch')
 class AddressCreateView(CreateView):
+    """View for creating a new address."""
     model = Address
     form_class = AddressForm
     template_name = 'users/address_form.html'
     success_url = reverse_lazy('users:account')
 
+    def get_form_kwargs(self):
+        """Pass user to form for validation."""
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
-        address = form.save(commit=False)
-        address.user = self.request.user
+        """Handle valid form submission."""
+        try:
+            address = form.save(commit=False)
+            address.user = self.request.user
 
-        # ✅ Auto-assign default address_type if not provided
-        if not address.address_type:
-            address.address_type = 'shipping'
+            # Auto-assign default address_type if not provided
+            if not address.address_type:
+                address.address_type = 'shipping'
 
-        # Handle default toggle
-        if form.cleaned_data.get('is_default'):
-            Address.objects.filter(user=self.request.user).update(is_default=False)
-            address.is_default = True
+            # Handle default address toggle
+            if address.is_default:
+                Address.objects.filter(user=self.request.user).update(is_default=False)
+            elif not Address.objects.filter(user=self.request.user).exists():
+                # First address is automatically default
+                address.is_default = True
 
-        address.save()
-        messages.success(self.request, 'Address added successfully.')
-        return redirect(self.success_url)
+            address.save()
+
+            messages.success(
+                self.request,
+                f'Address "{address.nickname or "New Address"}" added successfully.'
+            )
+            return redirect(self.success_url)
+
+        except Exception as e:
+            logger.error(f"Error creating address: {str(e)}", exc_info=True)
+            messages.error(
+                self.request,
+                'An error occurred while saving the address. Please try again.'
+            )
+            return self.form_invalid(form)
 
     def form_invalid(self, form):
-        print("DEBUG Address create errors:", form.errors.as_text())
+        """Handle invalid form submission."""
+        logger.warning(f"Address create form errors: {form.errors.as_json()}")
         messages.error(self.request, 'Please correct the errors below.')
         return self.render_to_response(self.get_context_data(form=form))
 
 
 @method_decorator(login_required, name='dispatch')
 class AddressUpdateView(UpdateView):
+    """View for updating an existing address."""
     model = Address
     form_class = AddressForm
     template_name = 'users/address_form.html'
     success_url = reverse_lazy('users:account')
 
     def get_queryset(self):
+        """Ensure users can only edit their own addresses."""
         return Address.objects.filter(user=self.request.user)
 
+    def get_form_kwargs(self):
+        """Pass user to form for validation."""
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
-        address = form.save(commit=False)
+        """Handle valid form submission."""
+        try:
+            address = form.save(commit=False)
 
-        # ✅ Auto-assign default address_type if not provided
-        if not address.address_type:
-            address.address_type = 'shipping'
+            # Auto-assign default address_type if not provided
+            if not address.address_type:
+                address.address_type = 'shipping'
 
-        if form.cleaned_data.get('is_default'):
-            Address.objects.filter(user=self.request.user).exclude(pk=address.pk).update(is_default=False)
-            address.is_default = True
+            # Handle default address toggle
+            if address.is_default:
+                # Unset other default addresses
+                Address.objects.filter(user=self.request.user).exclude(
+                    pk=address.pk
+                ).update(is_default=False)
 
-        address.save()
-        messages.success(self.request, 'Address updated successfully.')
-        return redirect(self.success_url)
+            address.save()
+
+            messages.success(
+                self.request,
+                f'Address "{address.nickname or "Address"}" updated successfully.'
+            )
+            return redirect(self.success_url)
+
+        except Exception as e:
+            logger.error(f"Error updating address {address.pk}: {str(e)}", exc_info=True)
+            messages.error(
+                self.request,
+                'An error occurred while updating the address. Please try again.'
+            )
+            return self.form_invalid(form)
 
     def form_invalid(self, form):
-        print("DEBUG Address update errors:", form.errors.as_text())
+        """Handle invalid form submission."""
+        logger.warning(f"Address update form errors: {form.errors.as_json()}")
         messages.error(self.request, 'Please correct the errors below.')
         return self.render_to_response(self.get_context_data(form=form))
 
 
 @method_decorator(login_required, name='dispatch')
 class AddressDeleteView(DeleteView):
+    """View for deleting an address."""
     model = Address
     template_name = 'users/address_confirm_delete.html'
     success_url = reverse_lazy('users:account')
 
     def get_queryset(self):
+        """Ensure users can only delete their own addresses."""
         return Address.objects.filter(user=self.request.user)
 
     def delete(self, request, *args, **kwargs):
+        """Handle address deletion."""
         self.object = self.get_object()
-        self.object.delete()
-        messages.success(request, 'Address deleted successfully')
+        address_name = self.object.nickname or "Address"
+
+        # Check if this is the default address
+        was_default = self.object.is_default
+
+        try:
+            self.object.delete()
+
+            # If deleted address was default, set another as default
+            if was_default:
+                new_default = Address.objects.filter(user=request.user).first()
+                if new_default:
+                    new_default.is_default = True
+                    new_default.save()
+
+            messages.success(request, f'Address "{address_name}" deleted successfully.')
+
+        except Exception as e:
+            logger.error(f"Error deleting address: {str(e)}", exc_info=True)
+            messages.error(request, 'An error occurred while deleting the address.')
+
         return redirect(self.success_url)
 
 
-@login_required(login_url='/accounts/login/')
+@login_required
 def set_default_address(request, pk):
-    address = Address.objects.get(pk=pk, user=request.user)
-    Address.objects.filter(user=request.user).update(is_default=False)
-    address.is_default = True
-    address.save()
-    messages.success(request, 'Default address updated successfully')
+    """Set an address as the default address for the user."""
+    try:
+        address = Address.objects.get(pk=pk, user=request.user)
+
+        # Unset all other default addresses
+        Address.objects.filter(user=request.user).update(is_default=False)
+
+        # Set this address as default
+        address.is_default = True
+        address.save()
+
+        messages.success(
+            request,
+            f'"{address.nickname or "Address"}" is now your default address.'
+        )
+
+    except Address.DoesNotExist:
+        logger.warning(f"User {request.user.id} tried to set non-existent address {pk} as default")
+        messages.error(request, 'Address not found.')
+    except Exception as e:
+        logger.error(f"Error setting default address: {str(e)}", exc_info=True)
+        messages.error(request, 'An error occurred. Please try again.')
+
     return redirect('users:account')
 
 

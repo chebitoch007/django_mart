@@ -1,0 +1,146 @@
+{% load static currency_tags %}
+
+<div class="currency-selector-wrapper">
+    <!-- Currency Toggle Button -->
+    <button type="button"
+            class="nav-link-box premium-hover"
+            id="currencyToggle"
+            aria-haspopup="true"
+            aria-expanded="false"
+            style="padding-top: 5px; padding-bottom: 5px;">
+        <div class="nav-link-top">Currency</div>
+        <div class="nav-link-bottom" style="display: flex; align-items: center; gap: 4px;">
+            {{ request.session.user_currency|default:DEFAULT_CURRENCY }}
+            <i class="fas fa-caret-down" style="font-size: 0.8em; line-height: 1;"></i>
+        </div>
+    </button>
+
+    <!-- Desktop Dropdown -->
+    <div class="currency-dropdown" id="currencyDropdown" hidden>
+        <div class="currency-dropdown-header">
+            <h3>Select Currency</h3>
+            <button type="button" class="currency-close" aria-label="Close currency selector">×</button>
+        </div>
+
+        <div class="currency-list">
+            {% for currency in CURRENCIES %}
+            <button type="button"
+                    class="currency-option {% if currency == request.session.user_currency %}active{% endif %}"
+                    data-currency="{{ currency }}"
+                    onclick="handleCurrencyChange('{{ currency }}', '{{ csrf_token }}')">
+                <span class="currency-flag">{{ CURRENCY_SYMBOLS|get_item:currency }}</span>
+                <div class="currency-info">
+                    <span class="currency-name">{{ CURRENCY_NAMES|get_item:currency }}</span>
+                    <span class="currency-code-small">{{ currency }}</span>
+                </div>
+                {% if currency == request.session.user_currency %}
+                <svg class="currency-check" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M16.6668 5L7.50016 14.1667L3.3335 10"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"/>
+                </svg>
+                {% endif %}
+            </button>
+            {% endfor %}
+        </div>
+
+        <div class="currency-dropdown-footer">
+            <p class="currency-note">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M7 4.5V7.5M7 9.5H7.005"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"/>
+                </svg>
+                Prices converted at current exchange rates
+            </p>
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Sheet -->
+    <div class="currency-bottom-sheet" id="currencyBottomSheet" hidden>
+        <div class="bottom-sheet-overlay"></div>
+        <div class="bottom-sheet-content">
+            <div class="bottom-sheet-handle"></div>
+
+            <div class="bottom-sheet-header">
+                <h3>Select Currency</h3>
+                <button type="button" class="bottom-sheet-close" aria-label="Close currency selector">×</button>
+            </div>
+
+            <div class="bottom-sheet-list">
+                {% for currency in CURRENCIES %}
+                <button type="button"
+                        class="bottom-sheet-option {% if currency == request.session.user_currency %}active{% endif %}"
+                        data-currency="{{ currency }}"
+                        onclick="handleCurrencyChange('{{ currency }}', '{{ csrf_token }}')">
+                    <span class="currency-flag-large">{{ CURRENCY_SYMBOLS|get_item:currency }}</span>
+                    <div class="currency-info-large">
+                        <span class="currency-name-large">{{ CURRENCY_NAMES|get_item:currency }}</span>
+                        <span class="currency-code-large">{{ currency }}</span>
+                    </div>
+                    {% if currency == request.session.user_currency %}
+                    <svg class="currency-check-large" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 6L9 17L4 12"
+                              stroke="currentColor"
+                              stroke-width="2.5"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"/>
+                    </svg>
+                    {% endif %}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global currency change handler
+function handleCurrencyChange(currency, csrfToken) {
+    // Show loading overlay
+    const loadingOverlay = document.querySelector('.loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'flex';
+    }
+
+    // Send POST request with proper headers
+    fetch('{% url "store:set_currency" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken,
+        },
+        body: `currency=${currency}`
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Reload the page to update all prices
+            window.location.reload();
+        } else {
+            // Hide loading and show error
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+            alert(data.message || 'Failed to change currency');
+        }
+    })
+    .catch(error => {
+        console.error('Currency change error:', error);
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+        }
+        alert('An error occurred while changing currency. Please try again.');
+    });
+}
+</script>

@@ -1,6 +1,8 @@
 {% extends 'store/base.html' %}
 {% load humanize %}
 {% load static %}
+{% load currency_tags %}
+
 
 {% block body_class %}product-detail-page{% endblock %}
 {% block page_name %}product-detail{% endblock %}
@@ -94,10 +96,10 @@
                 </div>
 
                 <div class="price-container">
-                    <div class="current-price" id="product-price">KES {{ product.get_display_price|intcomma }}</div>
+                    <div class="current-price" id="product-price">{{ product.get_display_price|intcomma }}</div>
                     {% if product.discount_price %}
-                    <div class="original-price" id="product-original-price">KES {{ product.price|intcomma }}</div>
-                    <div class="savings-text">You save KES {{ product.savings|intcomma }}</div>
+                    <div class="original-price" id="product-original-price"> {{ product.price|intcomma }}</div>
+                    <div class="savings-text">You save  {{ product.savings|intcomma }}</div>
 
                     {% endif %}
                 </div>
@@ -370,7 +372,7 @@
 
 <!-- Sticky Mobile CTA -->
 <div class="mobile-sticky-cta">
-    <div class="mobile-price">KES {{ product.get_display_price|intcomma }}</div>
+    <div class="mobile-price"> {{ product.get_display_price|intcomma }}</div>
     <button class="mobile-add-btn" onclick="document.querySelector('.add-to-cart-btn').click()">
         <i class="fas fa-shopping-cart"></i> Add to Cart
     </button>

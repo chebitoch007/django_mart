@@ -1,6 +1,8 @@
 {% extends 'store/base.html' %}
 {% load humanize %}
 {% load static query_transform %}
+{% load currency_tags %}
+
 
 {% block body_class %}product-list-page{% endblock %}
 {% block page_name %}product-list{% endblock %}
@@ -28,7 +30,6 @@
 
     <div class="product-list-layout">
 
-<!-- Filter Toggle Button (Mobile Only - Auto-hidden on Desktop) -->
 <button
     id="filterToggle"
     type="button"
@@ -40,15 +41,12 @@
     <span>Show Filters</span>
 </button>
 
-<!-- Filter Sidebar -->
 <aside class="filter-sidebar" id="filterSidebar" aria-label="Product Filters">
 
 
 
-    <!-- Filters Content Wrapper -->
     <div class="filter-content" id="filterContent" hidden>
 
-        <!-- Filter Header with Reset Link -->
         <div class="filter-header">
             <h2>
                 <i class="fas fa-sliders-h filter-icon"></i>
@@ -60,9 +58,6 @@
             </a>
         </div>
 
-        <!-- ============================================
-             FILTER SECTION 1: SORT BY
-             ============================================ -->
         <div class="filter-section">
             <h3>
                 <i class="fas fa-sort section-icon"></i>
@@ -88,9 +83,6 @@
             </div>
         </div>
 
-        <!-- ============================================
-             FILTER SECTION 2: PRICE RANGE
-             ============================================ -->
         <div class="filter-section">
             <h3>
                 <i class="fas fa-dollar-sign section-icon"></i>
@@ -111,7 +103,6 @@
                     <span id="priceDisplay">{{ max_price|default:"50,000" }} KES</span>
                 </div>
 
-                <!-- Optional: Manual Input Fields -->
                 <div class="price-inputs" style="display: none;">
                     <input
                         type="number"
@@ -145,9 +136,6 @@
             </div>
         </div>
 
-        <!-- ============================================
-             FILTER SECTION 3: IN STOCK ONLY
-             ============================================ -->
         <div class="filter-section">
             <h3>
                 <i class="fas fa-box section-icon"></i>
@@ -173,9 +161,6 @@
             </label>
         </div>
 
-        <!-- ============================================
-             FILTER SECTION 4: MINIMUM RATING
-             ============================================ -->
         <div class="filter-section">
             <h3>
                 <i class="fas fa-star section-icon"></i>
@@ -207,9 +192,6 @@
             </div>
         </div>
 
-        <!-- ============================================
-             FILTER SECTION 5: BRANDS
-             ============================================ -->
         {% if brands %}
         <div class="filter-section">
             <h3>
@@ -240,9 +222,6 @@
         </div>
         {% endif %}
 
-        <!-- ============================================
-             FILTER SECTION 6: SUPPLIERS
-             ============================================ -->
         {% if suppliers %}
         <div class="filter-section">
             <h3>
@@ -265,10 +244,6 @@
         </div>
         {% endif %}
 
-        <!-- ============================================
-             FILTER SECTION 7: CATEGORIES (Optional)
-             Use this if filtering by subcategories
-             ============================================ -->
         {% if categories and show_category_filter %}
         <div class="filter-section">
             <h3>
@@ -292,9 +267,6 @@
         </div>
         {% endif %}
 
-        <!-- ============================================
-             FILTER SECTION 8: ON SALE (Optional)
-             ============================================ -->
         <div class="filter-section">
             <h3>
                 <i class="fas fa-tag section-icon"></i>
@@ -319,19 +291,10 @@
             </label>
         </div>
 
-        <!-- ============================================
-             ADD MORE FILTER SECTIONS HERE
-             Copy any section above and modify as needed
-             ============================================ -->
+        </div>
+    </aside>
 
-    </div>
-    <!-- End: Filter Content -->
-
-</aside>
-<!-- End: Filter Sidebar -->
-
-        <main class="product-grid-container">
-            <!-- Loading Indicator -->
+        <main class="product-grid-container" style="position: relative; z-index: 2;">
             <div id="grid-loading-spinner" class="htmx-indicator">
                 <i class="fas fa-spinner fa-spin"></i>
             </div>
@@ -341,42 +304,6 @@
             </div>
         </main>
     </div>
-<!--
-    <section class="brands-section">
-        <h2 class="brands-title">Shop By Brand</h2>
-        <div class="brands-grid">
-            {% for brand in brands %}
-            <a href="?{% query_transform brand=brand.slug page=None %}" class="brand-card">
-                {% if brand.logo %}
-                <img src="{{ brand.logo.url }}" alt="{{ brand.name }}" class="brand-logo">
-                {% else %}
-                <span class="brand-name">{{ brand.name }}</span>
-                {% endif %}
-            </a>
-            {% endfor %}
-        </div>
-    </section>
-
-    -->
 </div>
 
-<script>
-    // Initialize product list features after page load
-    document.addEventListener('DOMContentLoaded', function () {
-        // Import and initialize the product list module
-        if (window.initProductList) {
-            window.initProductList();
-        }
-    });
-
-    // Re-initialize after HTMX swaps
-    document.body.addEventListener('htmx:afterSwap', function (event) {
-        if (event.detail.target.id === 'resultsRoot') {
-            // Re-initialize lazy loading and animations for new content
-            if (window.initProductList) {
-                window.initProductList();
-            }
-        }
-    });
-</script>
 {% endblock %}

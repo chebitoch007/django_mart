@@ -69,16 +69,36 @@
 }
 
 /* =======================================
-   PRODUCT GRID
+   FIX: Ensure product grid is above sidebar
    ======================================= */
 .product-grid-container {
-  flex: 3;
+  position: relative;
+  z-index: 2 !important; /* ✅ Higher than filter sidebar */
 }
 
-.product-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 25px;
+.results-grid {
+  position: relative;
+  z-index: 2 !important;
+}
+
+/* =======================================
+   RESPONSIVE BREAKPOINTS
+   ======================================= */
+@media (max-width: 991px) {
+  .product-list-layout {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ✅ Ensure grid stays on top */
+  .product-grid-container {
+    position: relative !important;
+    z-index: 2 !important;
+  }
+
+  .filter-sidebar {
+    z-index: 1 !important;
+  }
 }
 
 @media (min-width: 640px) {
@@ -493,7 +513,5 @@
   opacity: 1;
 }
 
-.htmx-request #resultsRoot {
-  opacity: 0.5;
-  transition: opacity 0.2s;
-}
+
+

@@ -429,57 +429,10 @@ function removeNotification(notification) {
   }, 300);
 }
 
-// ===== NEWSLETTER FORM =====
-document.addEventListener('DOMContentLoaded', function() {
-  const newsletterForm = document.getElementById('newsletter-form');
-  const feedbackDiv = document.getElementById('newsletter-feedback');
+// ===== NEWSLETTER FORM (REMOVED) =====
+// This section has been removed to prevent conflict with footer.js,
+// which contains the primary newsletter form handler.
 
-  if (newsletterForm && feedbackDiv) {
-    newsletterForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-
-      const formData = new FormData(this);
-      const submitButton = this.querySelector('.newsletter-button');
-      const originalText = submitButton.textContent;
-
-      submitButton.textContent = 'Subscribing...';
-      submitButton.disabled = true;
-
-      fetch(this.action, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          showFeedback('Thank you for subscribing!', 'success');
-          this.reset();
-        } else {
-          showFeedback(data.message || 'Subscription failed. Please try again.', 'error');
-        }
-      })
-      .catch(error => {
-        showFeedback('An error occurred. Please try again later.', 'error');
-      })
-      .finally(() => {
-        submitButton.textContent = originalText;
-        submitButton.disabled = false;
-      });
-    });
-  }
-
-  function showFeedback(message, type) {
-    feedbackDiv.textContent = message;
-    feedbackDiv.className = `newsletter-feedback ${type} show`;
-
-    setTimeout(() => {
-      feedbackDiv.classList.remove('show');
-    }, 5000);
-  }
-});
 
 // ===== LAZY LOADING PROTECTION FOR CRITICAL IMAGES =====
 const EAGER_SELECTORS = [
@@ -554,7 +507,7 @@ class PerformanceMonitor {
 class AccessibilityEnhancer {
   static init() {
     this.setupFocusVisibility();
-    this.setupSkipLinks();
+    // setupSkipLinks() removed as the link is now in base.html
     this.announceRouteChanges();
   }
 
@@ -574,33 +527,7 @@ class AccessibilityEnhancer {
     });
   }
 
-  static setupSkipLinks() {
-    const skipLink = document.createElement('a');
-    skipLink.href = '#main-content';
-    skipLink.className = 'skip-link';
-    skipLink.textContent = 'Skip to main content';
-    skipLink.style.cssText = `
-      position: absolute;
-      top: -40px;
-      left: 0;
-      background: var(--color-primary);
-      color: white;
-      padding: 8px 16px;
-      text-decoration: none;
-      z-index: 1000;
-      transition: top 0.3s;
-    `;
-
-    skipLink.addEventListener('focus', () => {
-      skipLink.style.top = '0';
-    });
-
-    skipLink.addEventListener('blur', () => {
-      skipLink.style.top = '-40px';
-    });
-
-    document.body.insertBefore(skipLink, document.body.firstChild);
-  }
+  // setupSkipLinks() function removed
 
   static announceRouteChanges() {
     const announcer = document.createElement('div');

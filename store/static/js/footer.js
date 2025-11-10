@@ -194,28 +194,9 @@
         }
     };
 
-    // ===== BACK TO TOP BUTTON =====
-    const BackToTopButton = {
-        init() {
-            const button = document.getElementById('back-to-top');
-            if (!button) return;
-
-            window.addEventListener('scroll', () => {
-                if (window.pageYOffset > 300) {
-                    button.classList.add('visible');
-                } else {
-                    button.classList.remove('visible');
-                }
-            }, { passive: true });
-
-            button.addEventListener('click', () => {
-                window.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
-                });
-            });
-        }
-    };
+    // ===== BACK TO TOP BUTTON (REMOVED) =====
+    // This is now handled by base.js, which has the more robust class-based implementation.
+    // const BackToTopButton = { ... };
 
     // Add CSS animations
     const addStyles = () => {
@@ -262,18 +243,8 @@
                 color: #991b1b;
                 border-left: 4px solid #ef4444;
             }
-
-            .back-to-top-btn {
-                opacity: 0;
-                visibility: hidden;
-                transition: all 0.3s ease;
-            }
-
-            .back-to-top-btn.visible {
-                opacity: 1;
-                visibility: visible;
-            }
         `;
+        // Removed .back-to-top-btn styles as they are in footer.css and handled by base.js
         document.head.appendChild(style);
     };
 
@@ -282,7 +253,7 @@
         console.log('🎨 Initializing footer...');
         addStyles();
         NewsletterForm.init();
-        BackToTopButton.init();
+        // BackToTopButton.init(); // Removed call
         console.log('✅ Footer enhancements loaded');
     }
 

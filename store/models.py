@@ -4,7 +4,7 @@ import logging
 from django.db import transaction
 import uuid
 from django.db.models import Q, Value, CharField, TextField
-from django.templatetags.static import static
+from django.templatetags.static import static  # <-- Import static
 from django.urls import reverse
 from django.conf import settings
 from django.db import models
@@ -238,21 +238,8 @@ class Product(models.Model):
                 )
             )
 
-    def update_search_vector(self):
-        category_name = Category.objects.filter(pk=self.category_id).values_list('name', flat=True).first() or ''
-        brand_name = Brand.objects.filter(pk=self.brand_id).values_list('name', flat=True).first() or ''
-        supplier_name = Supplier.objects.filter(pk=self.supplier_id).values_list('name', flat=True).first() or ''
-        with transaction.atomic():
-            Product.objects.filter(pk=self.pk).update(
-                search_vector=(
-                    SearchVector(Value(self.name, output_field=CharField()), weight='A') +
-                    SearchVector(Value(self.short_description, output_field=CharField()), weight='B') +
-                    SearchVector(Value(self.description, output_field=TextField()), weight='B') +
-                    SearchVector(Value(category_name, output_field=CharField()), weight='C') +
-                    SearchVector(Value(brand_name, output_field=CharField()), weight='B') +
-                    SearchVector(Value(supplier_name, output_field=CharField()), weight='C')
-                )
-            )
+    # --- REMOVED: Redundant update_search_vector method ---
+    # The logic in save() is already superior and more efficient.
 
     def get_image_url(self):
         """
@@ -266,10 +253,12 @@ class Product(models.Model):
                 return url
             else:
                 logger.warning(f"[Product.get_image_url] Product '{self.name}' has no image assigned, using placeholder.")
-                return '/static/store/images/placeholder.png'
+                # --- CHANGED: Use static() for robust URL resolving ---
+                return static('store/images/placeholder.png')
         except Exception as e:
             logger.error(f"[Product.get_image_url] Error resolving image for '{self.name}': {e}", exc_info=True)
-            return '/static/store/images/placeholder.png'
+            # --- CHANGED: Use static() for robust URL resolving ---
+            return static('store/images/placeholder.png')
 
     def get_large_image_url(self):
         """Returns the URL for a large version of the image, for zoom."""

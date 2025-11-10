@@ -14,8 +14,10 @@ import { PaymentSystem } from './payments.js';
 import { PaymentResponse, PayPalButtons } from '@/payments/types/payment.js';
 import { storage } from './storage.js';
 
-let paymentInProgress = false;
-let finalizationInProgress = false;
+// ❌ REMOVED unused variables
+// let paymentInProgress = false;
+// let finalizationInProgress = false;
+
 let paypalButtons: PayPalButtons | null = null;
 
 export function initializePayPal(paymentSystem: PaymentSystem): void {
@@ -47,37 +49,37 @@ export function initializePayPal(paymentSystem: PaymentSystem): void {
       return;
     }
 
+
     let paypalCurrency = state.currentCurrency;
     let paypalAmount = state.currentConvertedAmount;
 
-    // Handle currency conversion for unsupported currencies
     if (!isPaypalCurrencySupported(state.currentCurrency) && state.currentCurrency !== 'USD') {
-      paypalCurrency = 'USD';
-      const usdOption = Array.from(elements.currencySelector.options).find(
-        (opt: HTMLOptionElement) => opt.value === 'USD'
+      showPayPalStatus(
+        `Your ${state.currentCurrency} ${formatCurrency(state.currentConvertedAmount, state.currentCurrency)} payment will be processed as USD ...`,
+        'info'
       );
-      if (usdOption) {
-        const usdRate = parseFloat(usdOption.dataset.rate || '1');
-        const baseAmount = parseFloat(config.cartTotalPrice);
-        paypalAmount = baseAmount * usdRate;
-
-        showPayPalStatus(
-          `Your ${state.currentCurrency} ${formatCurrency(state.currentConvertedAmount, state.currentCurrency)} payment will be processed as USD ${formatCurrency(paypalAmount, 'USD')}.`,
-          'info'
-        );
-      }
     }
 
-    // ✅ Updated PayPal button configuration
-    paypalButtons = window.paypal!.Buttons({
+
+      paypalButtons = window.paypal!.Buttons({
       onInit: function (data: any, actions: any) {
-        actions.disable();
+        actions.disable(); // Start disabled by default
+
         const enableCheck = () => {
-          if (elements.termsCheckbox && elements.termsCheckbox.checked) actions.enable();
-          else actions.disable();
+          if (elements.termsCheckbox && elements.termsCheckbox.checked) {
+            console.log('[PayPal] Terms checked, enabling buttons.');
+            actions.enable();
+          } else {
+            console.log('[PayPal] Terms unchecked, disabling buttons.');
+            actions.disable();
+          }
         };
+
+        // Add the listener for future changes
         elements.termsCheckbox?.addEventListener('change', enableCheck);
+        enableCheck();
       },
+
 
       onClick: function (data: any, actions: any) {
         if (!elements.termsCheckbox.checked) {
@@ -86,7 +88,7 @@ export function initializePayPal(paymentSystem: PaymentSystem): void {
         }
       },
 
-      // ✅ New dynamic createOrder logic
+      // New dynamic createOrder logic
       createOrder: function (data: any, actions: any) {
         const state = paymentSystem.getState();
         const config = paymentSystem.getConfig();
@@ -236,12 +238,15 @@ function submitPaymentForm(formData: FormData, paymentSystem: PaymentSystem): vo
 
     return response.json().then((data: PaymentResponse) => {
       if (data.success) {
-        // ✅ Clear safe storage
+        // Clear safe storage
         storage.removeItem('paymentFormState');
         storage.removeItem('lastCheckoutRequestId');
 
         elements.modalTitle.textContent = 'Payment Successful!';
         elements.modalText.textContent = 'Redirecting you to your order confirmation...';
+
+        // Reset state before redirect
+        paymentSystem.setState({ paypalProcessing: false });
 
         setTimeout(() => {
           stopProcessingAnimation(elements.processingModal);
@@ -251,6 +256,7 @@ function submitPaymentForm(formData: FormData, paymentSystem: PaymentSystem): vo
         stopProcessingAnimation(elements.processingModal);
         showPaymentError(data.error_message || 'Payment failed', elements.paymentErrors);
         setSubmitButtonState(false, elements.paymentSubmitButton);
+        paymentSystem.setState({ paypalProcessing: false }); // Reset state on failure
       }
     });
   }
@@ -258,6 +264,7 @@ function submitPaymentForm(formData: FormData, paymentSystem: PaymentSystem): vo
   function handlePaymentError(error: any): void {
     stopProcessingAnimation(elements.processingModal);
     setSubmitButtonState(false, elements.paymentSubmitButton);
+    paymentSystem.setState({ paypalProcessing: false }); // Reset state on error
 
     if (error.json) {
       error.json().then((errorData: PaymentResponse) => {

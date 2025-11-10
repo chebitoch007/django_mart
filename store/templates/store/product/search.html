@@ -1,5 +1,7 @@
 {% extends 'store/base.html' %}
 {% load humanize static query_transform %}
+{% load currency_tags %}
+
 
 {% block body_class %}search-results-page{% endblock %}
 {% block page_name %}search-results{% endblock %}
@@ -50,7 +52,6 @@
   </div>
 
   <div class="results-layout">
-<!-- Filter Toggle Button (Mobile Only - Auto-hidden on Desktop) -->
 <button
     id="filterToggle"
     type="button"
@@ -62,18 +63,14 @@
     <span>Show Filters</span>
 </button>
 
-<!-- Filter Sidebar -->
 <aside class="filter-sidebar" id="filterSidebar" aria-label="Product Filters">
 
-    <!-- Optional: Close Button for Mobile (Recommended) -->
     <button class="filter-close-btn" aria-label="Close filters">
         <i class="fas fa-times"></i>
     </button>
 
-    <!-- Filters Content Wrapper -->
     <div class="filter-content" id="filterContent" hidden>
 
-        <!-- Filter Header with Reset Link -->
         <div class="filter-header">
             <h2>
                 <i class="fas fa-sliders-h filter-icon"></i>
@@ -85,9 +82,6 @@
             </a>
         </div>
 
-        <!-- ============================================
-             FILTER SECTION 1: SORT BY
-             ============================================ -->
         <div class="filter-section">
             <h3>
                 <i class="fas fa-sort section-icon"></i>
@@ -113,9 +107,6 @@
             </div>
         </div>
 
-        <!-- ============================================
-             FILTER SECTION 2: PRICE RANGE
-             ============================================ -->
         <div class="filter-section">
             <h3>
                 <i class="fas fa-dollar-sign section-icon"></i>
@@ -136,7 +127,6 @@
                     <span id="priceDisplay">{{ max_price|default:"50,000" }} KES</span>
                 </div>
 
-                <!-- Optional: Manual Input Fields -->
                 <div class="price-inputs" style="display: none;">
                     <input
                         type="number"
@@ -170,9 +160,6 @@
             </div>
         </div>
 
-        <!-- ============================================
-             FILTER SECTION 3: IN STOCK ONLY
-             ============================================ -->
         <div class="filter-section">
             <h3>
                 <i class="fas fa-box section-icon"></i>
@@ -198,9 +185,6 @@
             </label>
         </div>
 
-        <!-- ============================================
-             FILTER SECTION 4: MINIMUM RATING
-             ============================================ -->
         <div class="filter-section">
             <h3>
                 <i class="fas fa-star section-icon"></i>
@@ -232,9 +216,6 @@
             </div>
         </div>
 
-        <!-- ============================================
-             FILTER SECTION 5: BRANDS
-             ============================================ -->
         {% if brands %}
         <div class="filter-section">
             <h3>
@@ -265,9 +246,6 @@
         </div>
         {% endif %}
 
-        <!-- ============================================
-             FILTER SECTION 6: SUPPLIERS
-             ============================================ -->
         {% if suppliers %}
         <div class="filter-section">
             <h3>
@@ -290,10 +268,6 @@
         </div>
         {% endif %}
 
-        <!-- ============================================
-             FILTER SECTION 7: CATEGORIES (Optional)
-             Use this if filtering by subcategories
-             ============================================ -->
         {% if categories and show_category_filter %}
         <div class="filter-section">
             <h3>
@@ -317,9 +291,6 @@
         </div>
         {% endif %}
 
-        <!-- ============================================
-             FILTER SECTION 8: ON SALE (Optional)
-             ============================================ -->
         <div class="filter-section">
             <h3>
                 <i class="fas fa-tag section-icon"></i>
@@ -344,23 +315,12 @@
             </label>
         </div>
 
-        <!-- ============================================
-             ADD MORE FILTER SECTIONS HERE
-             Copy any section above and modify as needed
-             ============================================ -->
-
-    </div>
-    <!-- End: Filter Content -->
-
-</aside>
-<!-- End: Filter Sidebar -->
-
-
-    <div class="results-content" id="resultsRoot">
+        </div>
+    </aside>
+<div class="results-content" id="resultsRoot">
       {% include 'store/product/_results_grid.html' %}
     </div>
   </div>
 </div>
 
-<script src="{% static 'store/js/search.js' %}"></script>
 {% endblock %}

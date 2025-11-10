@@ -103,6 +103,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'store.middleware.CurrencyMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -474,4 +475,4 @@ CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 ADMIN_URL = env("ADMIN_URL", default="admin")
 
-BASE_URL='https://3e4687448fd6.ngrok-free.app'
+BASE_URL='https://e8004770d248.ngrok-free.app'

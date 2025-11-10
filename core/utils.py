@@ -1,153 +1,140 @@
-# core/utils.py
-from decimal import Decimal, ROUND_HALF_UP
+# core/utils.py - Improved exchange rate handling
+
 import logging
+from decimal import Decimal
 from django.core.cache import cache
 from django.conf import settings
-import requests
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_BY_FRANKFURTER = {
-    "USD", "EUR", "GBP", "CHF", "CAD", "AUD", "NZD",
-    "SEK", "NOK", "DKK", "JPY", "CNY"
+# Fallback exchange rates (updated regularly)
+FALLBACK_RATES = {
+    # Base: 1 KES
+    'KES': {
+        'USD': Decimal('0.0077'),  # 1 KES = 0.0077 USD
+        'EUR': Decimal('0.0071'),  # 1 KES = 0.0071 EUR
+        'GBP': Decimal('0.0061'),  # 1 KES = 0.0061 GBP
+        'KES': Decimal('1.0'),  # 1 KES = 1 KES
+        'UGX': Decimal('28.57'),  # 1 KES = 28.57 UGX
+        'TZS': Decimal('20.41'),  # 1 KES = 20.41 TZS
+    },
+    # Base: 1 USD
+    'USD': {
+        'KES': Decimal('129.87'),  # 1 USD = 129.87 KES
+        'EUR': Decimal('0.92'),  # 1 USD = 0.92 EUR
+        'GBP': Decimal('0.79'),  # 1 USD = 0.79 GBP
+        'USD': Decimal('1.0'),  # 1 USD = 1 USD
+        'UGX': Decimal('3710.0'),  # 1 USD = 3710 UGX
+        'TZS': Decimal('2650.0'),  # 1 USD = 2650 TZS
+    },
+    # Base: 1 EUR
+    'EUR': {
+        'KES': Decimal('140.85'),  # 1 EUR = 140.85 KES
+        'USD': Decimal('1.09'),  # 1 EUR = 1.09 USD
+        'GBP': Decimal('0.86'),  # 1 EUR = 0.86 GBP
+        'EUR': Decimal('1.0'),  # 1 EUR = 1 EUR
+        'UGX': Decimal('4024.0'),  # 1 EUR = 4024 UGX
+        'TZS': Decimal('2875.0'),  # 1 EUR = 2875 TZS
+    },
+    # Base: 1 GBP
+    'GBP': {
+        'KES': Decimal('163.93'),  # 1 GBP = 163.93 KES
+        'USD': Decimal('1.27'),  # 1 GBP = 1.27 USD
+        'EUR': Decimal('1.16'),  # 1 GBP = 1.16 EUR
+        'GBP': Decimal('1.0'),  # 1 GBP = 1 GBP
+        'UGX': Decimal('4680.0'),  # 1 GBP = 4680 UGX
+        'TZS': Decimal('3345.0'),  # 1 GBP = 3345 TZS
+    },
+    # Base: 1 UGX
+    'UGX': {
+        'KES': Decimal('0.035'),  # 1 UGX = 0.035 KES
+        'USD': Decimal('0.00027'),  # 1 UGX = 0.00027 USD
+        'EUR': Decimal('0.00025'),  # 1 UGX = 0.00025 EUR
+        'GBP': Decimal('0.00021'),  # 1 UGX = 0.00021 GBP
+        'UGX': Decimal('1.0'),  # 1 UGX = 1 UGX
+        'TZS': Decimal('0.714'),  # 1 UGX = 0.714 TZS
+    },
+    # Base: 1 TZS
+    'TZS': {
+        'KES': Decimal('0.049'),  # 1 TZS = 0.049 KES
+        'USD': Decimal('0.00038'),  # 1 TZS = 0.00038 USD
+        'EUR': Decimal('0.00035'),  # 1 TZS = 0.00035 EUR
+        'GBP': Decimal('0.00030'),  # 1 TZS = 0.00030 GBP
+        'UGX': Decimal('1.40'),  # 1 TZS = 1.40 UGX
+        'TZS': Decimal('1.0'),  # 1 TZS = 1 TZS
+    },
 }
 
 
-def get_exchange_rate(base_currency, target_currency):
-    """Fetch exchange rate with automatic fallback to backup APIs and local rates."""
+def get_exchange_rate(from_currency, to_currency):
+    """
+    Get exchange rate from one currency to another.
+    Uses API with fallback to static rates.
 
-    if base_currency == target_currency:
+    Args:
+        from_currency (str): Source currency code (e.g., 'USD')
+        to_currency (str): Target currency code (e.g., 'KES')
+
+    Returns:
+        Decimal: Exchange rate
+    """
+    # Same currency, no conversion needed
+    if from_currency == to_currency:
         return Decimal('1.0')
 
-    cache_key = f"rate_{base_currency}_{target_currency}"
+    # Validate currencies
+    if from_currency not in settings.CURRENCIES or to_currency not in settings.CURRENCIES:
+        logger.warning(f"Invalid currency pair: {from_currency} -> {to_currency}")
+        return Decimal('1.0')
+
+    # Try cache first
+    cache_key = f'exchange_rate_{from_currency}_{to_currency}'
     cached_rate = cache.get(cache_key)
+
     if cached_rate is not None:
-        try:
-            return Decimal(str(cached_rate))
-        except (TypeError, ValueError):
-            logger.warning(f"Invalid cached rate value: {cached_rate}")
+        return Decimal(str(cached_rate))
 
-    e1 = None
-    e2 = None
+    # Try API (you can implement this later)
+    # rate = try_api_exchange_rate(from_currency, to_currency)
+    # if rate:
+    #     cache.set(cache_key, str(rate), settings.CURRENCY_CACHE_TIMEOUT)
+    #     return rate
 
-    # === 1️⃣ Try Exchangerate.host ===
+    # Use fallback rates
     try:
-        base_url = "https://api.exchangerate.host/latest"
-        params = {"base": base_currency, "symbols": target_currency}
-
-        api_key = getattr(settings, "EXCHANGERATE_API_KEY", "")
-        if api_key:
-            params["access_key"] = api_key
-
-        logger.debug(f"Fetching exchange rate from exchangerate.host: {base_currency}->{target_currency}")
-        response = requests.get(base_url, params=params, timeout=5)
-        response.raise_for_status()
-        data = response.json()
-
-        if data.get("success", True) and "rates" in data:
-            rate = data["rates"].get(target_currency)
-            if rate:
-                decimal_rate = Decimal(str(rate)).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
-                cache.set(cache_key, float(decimal_rate), 14400)
-                return decimal_rate
-            else:
-                raise ValueError(f"Currency {target_currency} not found in exchangerate.host response")
-
-        raise ValueError(data.get("error", {}).get("info", "Unknown exchangerate.host error"))
-
-    except Exception as ex1:
-        e1 = ex1
-        logger.warning(f"Primary API failed: {e1}")
-
-    # === 2️⃣ Try Frankfurter.app if supported ===
-    if base_currency in SUPPORTED_BY_FRANKFURTER and target_currency in SUPPORTED_BY_FRANKFURTER:
-        try:
-            fallback_url = "https://api.frankfurter.app/latest"
-            params = {"from": base_currency, "to": target_currency}
-            logger.debug(f"Fetching exchange rate from frankfurter.app: {base_currency}->{target_currency}")
-            response = requests.get(fallback_url, params=params, timeout=5)
-            response.raise_for_status()
-            data = response.json()
-
-            if "rates" in data and target_currency in data["rates"]:
-                rate = data["rates"][target_currency]
-                decimal_rate = Decimal(str(rate)).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
-                cache.set(cache_key, float(decimal_rate), 14400)
-                return decimal_rate
-            else:
-                raise ValueError("Frankfurter API did not return valid data")
-
-        except Exception as ex2:
-            e2 = ex2
-            logger.warning(f"Backup API failed: {ex2}")
-    else:
-        logger.info(f"Skipping Frankfurter fallback for {base_currency}->{target_currency} (unsupported currency).")
-
-    # === 3️⃣ Final fallback ===
-    logger.error(f"Both APIs failed for {base_currency}->{target_currency}. Using local fallback.")
-    return get_fallback_rate(base_currency, target_currency, str(e2 or e1 or 'Unknown error'))
+        if from_currency in FALLBACK_RATES and to_currency in FALLBACK_RATES[from_currency]:
+            rate = FALLBACK_RATES[from_currency][to_currency]
+            # Cache fallback rate for 1 hour
+            cache.set(cache_key, str(rate), 3600)
+            return rate
+        else:
+            logger.warning(f"No fallback rate for {from_currency} -> {to_currency}")
+            return Decimal('1.0')
+    except Exception as e:
+        logger.error(f"Error getting exchange rate: {e}")
+        return Decimal('1.0')
 
 
-def get_fallback_rate(base_currency, target_currency, error_info=None):
-    """Enhanced fallback rates with better routing and precision."""
-    logger.warning("Using fallback exchange rates")
+def convert_money(amount, from_currency, to_currency):
+    """
+    Convert an amount from one currency to another.
 
-    fallback_rates = {
-        'USD': {
-            'EUR': Decimal('0.93'),
-            'GBP': Decimal('0.79'),
-            'KES': Decimal('129.20'),  # updated from 130.50
-            'UGX': Decimal('3700'),
-            'TZS': Decimal('2500'),
-        },
-        'EUR': {
-            'USD': Decimal('1.07'),
-            'GBP': Decimal('0.85'),
-            'KES': Decimal('140.00'),
-            'UGX': Decimal('4200'),
-            'TZS': Decimal('2700'),
-        },
-        'GBP': {
-            'USD': Decimal('1.27'),
-            'EUR': Decimal('1.18'),
-            'KES': Decimal('174.50'),  # updated from 165.00
-            'UGX': Decimal('4700'),
-            'TZS': Decimal('3500'),  # updated from 3000
-        },
-        'KES': {
-            'USD': Decimal('0.0077'),
-            'EUR': Decimal('0.0071'),
-            'GBP': Decimal('0.00573'),  # inverse of ~174.5
-            'UGX': Decimal('27.30'),  # updated from 28.50
-            'TZS': Decimal('19.20'),
-        },
-        'UGX': {
-            'USD': Decimal('0.00027'),
-            'EUR': Decimal('0.00024'),
-            'GBP': Decimal('0.00021'),
-            'KES': Decimal('0.0367'),  # inverse of ~27.30
-            'TZS': Decimal('0.67'),
-        },
-        'TZS': {
-            'USD': Decimal('0.00040'),
-            'EUR': Decimal('0.00037'),
-            'GBP': Decimal('0.00029'),  # inverse of ~3500
-            'KES': Decimal('0.052'),
-            'UGX': Decimal('1.49'),
-        },
-    }
+    Args:
+        amount: Amount to convert (Decimal, float, or string)
+        from_currency (str): Source currency code
+        to_currency (str): Target currency code
 
-    if base_currency in fallback_rates and target_currency in fallback_rates[base_currency]:
-        return fallback_rates[base_currency][target_currency]
+    Returns:
+        Decimal: Converted amount
+    """
+    if from_currency == to_currency:
+        return Decimal(str(amount))
 
-    if base_currency in fallback_rates and 'USD' in fallback_rates[base_currency]:
-        if 'USD' in fallback_rates and target_currency in fallback_rates['USD']:
-            return fallback_rates[base_currency]['USD'] * fallback_rates['USD'][target_currency]
+    rate = get_exchange_rate(from_currency, to_currency)
+    converted = Decimal(str(amount)) * rate
 
-    for intermediate in ['EUR', 'GBP', 'KES']:
-        if (base_currency in fallback_rates and intermediate in fallback_rates[base_currency] and
-                intermediate in fallback_rates and target_currency in fallback_rates[intermediate]):
-            return fallback_rates[base_currency][intermediate] * fallback_rates[intermediate][target_currency]
+    # Round to appropriate decimal places
+    format_config = settings.CURRENCY_FORMATS.get(to_currency, {})
+    decimal_places = format_config.get('decimal_places', 2)
 
-    logger.warning(f"No fallback rate available for {base_currency}->{target_currency}. Error: {error_info}. Using 1.0")
-    return Decimal('1.0')
+    return converted.quantize(Decimal('0.1') ** decimal_places)

@@ -98,9 +98,10 @@ class PaymentAdmin(admin.ModelAdmin):
         'status_display',
         'amount_display',
         'transaction_id_short',
-        'phone_number',
+        'processing_locked', # ✅ NEW
         'retry_count',
         'created_at',
+        'updated_at', # ✅ NEW
         'processing_time'
     )
     list_filter = (
@@ -108,6 +109,7 @@ class PaymentAdmin(admin.ModelAdmin):
         PaymentProviderFilter,
         FailureTypeFilter,
         ProcessingTimeFilter,
+        'processing_locked', # ✅ NEW
         'created_at'
     )
     search_fields = (
@@ -115,16 +117,21 @@ class PaymentAdmin(admin.ModelAdmin):
         'transaction_id',
         'phone_number',
         'checkout_request_id',
+        'idempotency_key', # ✅ NEW
         'order__email',
         'order__user__email'
     )
     readonly_fields = (
         'created_at',
+        'updated_at', # ✅ NEW
         'raw_response_display',
         'order_info',
         'payment_details',
         'retry_info',
-        'webhook_info'
+        'webhook_info',
+        'idempotency_key', # ✅ NEW
+        'processing_locked', # ✅ NEW
+        'locked_at', # ✅ NEW
     )
     date_hierarchy = 'created_at'
     actions = ['mark_as_completed', 'mark_as_failed', 'retry_failed_payments']
@@ -132,6 +139,9 @@ class PaymentAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Payment Information', {
             'fields': ('order_info', 'provider', 'status', 'amount')
+        }),
+        ('Payment Details', {
+            'fields': ('payment_details', 'created_at', 'updated_at')
         }),
         ('Transaction Details', {
             'fields': (
@@ -152,12 +162,17 @@ class PaymentAdmin(admin.ModelAdmin):
             'fields': ('failure_type', 'retry_info'),
             'classes': ('collapse',)
         }),
+        ('Internal State & Debugging', { # ✅ NEW SECTION
+            'fields': (
+                'idempotency_key',
+                'processing_locked',
+                'locked_at'
+            ),
+            'classes': ('collapse',)
+        }),
         ('Webhook Data', {
             'fields': ('webhook_info', 'raw_response_display'),
             'classes': ('collapse',)
-        }),
-        ('Metadata', {
-            'fields': ('created_at', 'payment_details')
         }),
     )
 
@@ -270,6 +285,13 @@ class PaymentAdmin(admin.ModelAdmin):
         details += f'<strong>Provider:</strong> {obj.get_provider_display()}<br>'
         details += f'<strong>Status:</strong> {obj.get_status_display()}<br>'
         details += f'<strong>Amount:</strong> {obj.amount.currency} {obj.amount.amount:,.2f}<br>'
+
+        # ✅ NEW: Show processing lock state
+        if obj.processing_locked:
+            lock_time = obj.locked_at.strftime("%Y-%m-%d %H:%M:%S") if obj.locked_at else 'N/A'
+            details += f'<strong style="color: #dc3545;">Processing Locked:</strong> Yes (since {lock_time})<br>'
+        else:
+            details += f'<strong>Processing Locked:</strong> No<br>'
 
         if obj.transaction_id:
             details += f'<strong>Transaction ID:</strong> {obj.transaction_id}<br>'

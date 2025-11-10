@@ -39,28 +39,54 @@ def create_order(request):
         return redirect('cart:cart_detail')
 
     if request.method == 'POST':
-        form = ShippingForm(request.POST, user=request.user)
+        # Check if using saved address
+        saved_address_id = request.POST.get('saved_address')
+
+        # If saved address selected, populate form data from it
+        if saved_address_id and saved_address_id != '':
+            try:
+                saved_address = Address.objects.get(id=saved_address_id, user=request.user)
+
+                # Create a mutable copy of POST data
+                post_data = request.POST.copy()
+
+                # Split full name
+                name_parts = saved_address.full_name.split(maxsplit=1)
+                post_data['first_name'] = name_parts[0] if name_parts else ''
+                post_data['last_name'] = name_parts[1] if len(name_parts) > 1 else ''
+
+                # Populate other fields
+                post_data['email'] = request.user.email
+                post_data['phone'] = saved_address.phone or getattr(request.user, 'phone_number', '')
+                post_data['address'] = saved_address.street_address
+                post_data['city'] = saved_address.city
+                post_data['state'] = saved_address.state
+                post_data['postal_code'] = saved_address.postal_code
+                post_data['country'] = saved_address.country.code
+
+                # Create form with populated data
+                form = ShippingForm(post_data, user=request.user)
+            except Address.DoesNotExist:
+                messages.error(request, "Selected address not found.")
+                return redirect('orders:create_order')
+        else:
+            form = ShippingForm(request.POST, user=request.user)
 
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    # Check if user selected a saved address
+                    # Get saved address reference
                     saved_address = form.cleaned_data.get('saved_address')
 
                     # Create order instance
                     order = form.save(commit=False)
                     order.user = request.user
 
-                    # Populate order fields from saved address if selected
+                    # Populate from saved address if used
                     if saved_address:
-                        if saved_address.full_name:
-                            parts = saved_address.full_name.split()
-                            order.first_name = parts[0]
-                            order.last_name = ' '.join(parts[1:]) if len(parts) > 1 else ''
-                        else:
-                            order.first_name = request.user.first_name
-                            order.last_name = request.user.last_name
-
+                        name_parts = saved_address.full_name.split(maxsplit=1)
+                        order.first_name = name_parts[0] if name_parts else request.user.first_name
+                        order.last_name = name_parts[1] if len(name_parts) > 1 else request.user.last_name
                         order.phone = saved_address.phone or getattr(request.user, 'phone_number', '')
                         order.address = saved_address.street_address
                         order.city = saved_address.city
@@ -137,15 +163,13 @@ def create_order(request):
                     except Exception as payment_error:
                         logger.error(f"Failed to create payment: {payment_error}")
 
-                    # Handle saving new address - FIXED
+                    # Handle saving new address (only if not using saved address)
                     save_address = form.cleaned_data.get('save_address')
                     address_nickname = form.cleaned_data.get('address_nickname', '').strip()
 
-                    # Only save if requested AND not using a saved address
                     if save_address and address_nickname and not saved_address:
                         try:
-                            # Check for duplicate address
-                            from users.utils import duplicate_address_check
+                            from users.utils import duplicate_address_check, get_unique_address_nickname
 
                             existing = duplicate_address_check(
                                 request.user,
@@ -160,28 +184,11 @@ def create_order(request):
                                     f"You already have this address saved as '{existing.nickname}'"
                                 )
                             else:
-                                # Check if nickname already exists
-                                nickname_exists = Address.objects.filter(
-                                    user=request.user,
-                                    nickname__iexact=address_nickname
-                                ).exists()
-
-                                if nickname_exists:
-                                    # Generate unique nickname
-                                    base_nickname = address_nickname
-                                    counter = 1
-                                    while Address.objects.filter(
-                                        user=request.user,
-                                        nickname__iexact=f"{base_nickname} {counter}"
-                                    ).exists():
-                                        counter += 1
-                                    address_nickname = f"{base_nickname} {counter}"
-                                    logger.info(
-                                        f"Nickname '{base_nickname}' exists, using '{address_nickname}' instead"
-                                    )
+                                # Get unique nickname
+                                unique_nickname = get_unique_address_nickname(request.user, address_nickname)
 
                                 # Determine address type
-                                nickname_lower = address_nickname.lower()
+                                nickname_lower = unique_nickname.lower()
                                 if 'home' in nickname_lower:
                                     address_type = 'home'
                                 elif 'work' in nickname_lower or 'office' in nickname_lower:
@@ -191,14 +198,13 @@ def create_order(request):
                                 else:
                                     address_type = 'shipping'
 
-                                # Check if this should be default
-                                existing_addresses = Address.objects.filter(user=request.user)
-                                is_default = not existing_addresses.exists()
+                                # Check if should be default
+                                is_default = not Address.objects.filter(user=request.user).exists()
 
-                                # Create the address
+                                # Create address
                                 new_address = Address.objects.create(
                                     user=request.user,
-                                    nickname=address_nickname,
+                                    nickname=unique_nickname,
                                     address_type=address_type,
                                     full_name=f"{order.first_name} {order.last_name}",
                                     street_address=order.address,
@@ -210,30 +216,12 @@ def create_order(request):
                                     is_default=is_default,
                                 )
 
-                                logger.info(
-                                    f"Saved new address '{address_nickname}' (ID: {new_address.id}) "
-                                    f"for user {request.user.id}"
-                                )
-                                messages.success(
-                                    request,
-                                    f"✓ Address '{address_nickname}' saved to your account!"
-                                )
+                                logger.info(f"Saved new address '{unique_nickname}' for user {request.user.id}")
+                                messages.success(request, f"✓ Address '{unique_nickname}' saved!")
 
-                        except IntegrityError as integrity_error:
-                            # Handle unique constraint violation gracefully
-                            logger.warning(
-                                f"Could not save address due to constraint: {integrity_error}"
-                            )
-                            messages.info(
-                                request,
-                                "Order created successfully. Address was not saved (may already exist)."
-                            )
                         except Exception as addr_error:
                             logger.warning(f"Failed to save address: {addr_error}")
-                            messages.warning(
-                                request,
-                                "Order created successfully but address could not be saved."
-                            )
+                            messages.warning(request, "Order created but address could not be saved.")
 
                     # Clear cart
                     cart.items.all().delete()
@@ -249,27 +237,18 @@ def create_order(request):
                         logger.warning(f"Failed to queue order email: {email_error}")
 
                     # Success message
-                    messages.success(
-                        request,
-                        f"Order #{order.id} created successfully!"
-                    )
-
-                    logger.info(
-                        f"Order {order.id} created successfully for user {request.user.email}"
-                    )
+                    messages.success(request, f"Order #{order.id} created successfully!")
+                    logger.info(f"Order {order.id} created for user {request.user.email}")
 
                     return redirect('orders:checkout_order', order_id=order.id)
 
             except ValueError as ve:
-                logger.warning(f"Order creation validation error: {str(ve)}")
+                logger.warning(f"Order validation error: {str(ve)}")
                 messages.error(request, str(ve))
 
             except Exception as e:
                 logger.error(f"Unexpected error during order creation: {str(e)}", exc_info=True)
-                messages.error(
-                    request,
-                    "An unexpected error occurred. Please try again or contact support."
-                )
+                messages.error(request, "An unexpected error occurred. Please try again.")
 
         else:
             logger.warning(f"Shipping form validation failed: {form.errors}")
@@ -286,8 +265,8 @@ def create_order(request):
 
         # Load default or latest address
         default_address = (
-            Address.objects.filter(user=request.user, is_default=True).first()
-            or Address.objects.filter(user=request.user).order_by('-created').first()
+                Address.objects.filter(user=request.user, is_default=True).first()
+                or Address.objects.filter(user=request.user).order_by('-created').first()
         )
 
         if default_address:
@@ -308,7 +287,7 @@ def create_order(request):
             if not cart_item.product.free_shipping and cart_item.product.shipping_cost:
                 total_shipping += cart_item.product.shipping_cost * cart_item.quantity
 
-    # Common context (both GET and POST)
+    # Context for template
     saved_addresses = Address.objects.filter(user=request.user).order_by('-is_default', '-created')
 
     context = {

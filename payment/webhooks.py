@@ -1,4 +1,7 @@
 # payment/webhooks.py
+
+from django.utils import timezone
+from datetime import timedelta
 from django.core.exceptions import ValidationError
 from .cart_utils import clear_cart_after_payment
 import json
@@ -90,7 +93,7 @@ def process_mpesa_webhook_data(payment, data):
 @require_http_methods(["POST", "GET"])
 def handle_mpesa_webhook(request):
     """
-    ✅ FIXED: Handles M-Pesa webhook callbacks with proper idempotency
+    ✅ PRODUCTION-READY: Idempotent M-Pesa webhook handler
     """
     if request.method == "GET":
         return JsonResponse({'status': 'ok', 'message': 'M-Pesa webhook is active'})
@@ -109,38 +112,66 @@ def handle_mpesa_webhook(request):
         if not checkout_request_id:
             return JsonResponse({'error': 'Missing CheckoutRequestID'}, status=400)
 
+        # ✅ Use atomic transaction with SELECT FOR UPDATE
         with transaction.atomic():
-            payments = Payment.objects.filter(
-                checkout_request_id=checkout_request_id
-            ).select_for_update().order_by('-created_at')
+            # Lock the payment record
+            payment = (
+                Payment.objects
+                .select_for_update(nowait=False)
+                .filter(checkout_request_id=checkout_request_id)
+                .first()
+            )
 
-            if not payments.exists():
+            if not payment:
                 logger.error(f"No Payment found with CheckoutRequestID={checkout_request_id}")
                 return JsonResponse({'error': 'Payment not found'}, status=404)
 
-            payment = payments.first()
+            # ✅ IDEMPOTENCY CHECK: Skip if already completed
+            if payment.status == 'COMPLETED':
+                logger.info(f"Payment {payment.id} already COMPLETED (idempotent)")
+                return JsonResponse({'status': 'already_processed', 'payment_id': payment.id})
 
-            # ✅ FIX: Handle multiple payments for same checkout ID
-            if payments.count() > 1:
-                logger.warning(f"Multiple payments found for {checkout_request_id}, keeping most recent")
-                payments.exclude(id=payment.id).update(
-                    status='FAILED',
-                    failure_type='DUPLICATE',
-                    result_description='Multiple payments detected, using most recent'
-                )
+            # ✅ Check processing lock (with timeout)
+            if payment.processing_locked:
+                lock_age = timezone.now() - payment.locked_at if payment.locked_at else timedelta(0)
+                if lock_age < timedelta(minutes=5):
+                    logger.info(f"Payment {payment.id} is locked (age: {lock_age})")
+                    return JsonResponse({'status': 'processing', 'message': 'Payment currently processing'})
+                else:
+                    # Release stale lock
+                    logger.warning(f"Releasing stale lock on payment {payment.id}")
+                    payment.release_lock()
 
-            logger.info(f"Processing webhook for payment {payment.id}")
+            # ✅ Mark as processing to prevent race conditions
+            payment.mark_processing()
 
-            # Store raw callback and update
-            payment.raw_response = json.dumps(data)
-            payment.result_code = result_code
+            # Store raw callback
+            payment.raw_response = data
+            payment.result_code = str(result_code)
             payment.result_description = stk_callback.get('ResultDesc', '')
             payment.save(update_fields=['raw_response', 'result_code', 'result_description'])
 
-            # Process using helper function (now idempotent)
-            process_mpesa_webhook_data(payment, data)
+            # Process based on result code
+            try:
+                if result_code == 0:  # SUCCESS
+                    process_successful_payment(payment, stk_callback)
+                elif result_code == 1032:  # USER CANCELLED
+                    payment.status = 'FAILED'
+                    payment.failure_type = 'USER_CANCELLED'
+                    payment.save(update_fields=['status', 'failure_type'])
+                elif result_code in [1, 2, 3, 4, 5, 8, 1031]:  # TEMPORARY
+                    payment.status = 'FAILED'
+                    payment.failure_type = 'TEMPORARY'
+                    payment.save(update_fields=['status', 'failure_type'])
+                else:  # PERMANENT
+                    payment.status = 'FAILED'
+                    payment.failure_type = 'PERMANENT'
+                    payment.save(update_fields=['status', 'failure_type'])
+            finally:
+                # ✅ Always release lock
+                payment.release_lock()
 
-        return JsonResponse({'status': 'success'})
+        return JsonResponse({'status': 'success', 'payment_id': payment.id})
 
     except json.JSONDecodeError:
         logger.error("Invalid JSON body in M-Pesa webhook")
@@ -148,6 +179,46 @@ def handle_mpesa_webhook(request):
     except Exception as e:
         logger.exception("Error processing M-Pesa webhook")
         return JsonResponse({'error': str(e)}, status=500)
+
+def process_successful_payment(payment, stk_callback):
+    """
+    ✅ Process successful M-Pesa payment with proper error handling
+    """
+    callback_metadata = stk_callback.get('CallbackMetadata', {}) or {}
+    items = callback_metadata.get('Item', [])
+
+    # Extract metadata
+    for item in items:
+        name = item.get('Name')
+        value = item.get('Value')
+        if name == 'MpesaReceiptNumber':
+            payment.transaction_id = value
+        elif name == 'PhoneNumber':
+            payment.phone_number = str(value)
+        elif name == 'Amount':
+            payment.amount = value
+
+    payment.status = 'COMPLETED'
+    payment.save(update_fields=['status', 'transaction_id', 'phone_number', 'amount'])
+
+    # Update order
+    try:
+        order = payment.order
+        if order.status == 'PENDING':
+            order.mark_as_paid(payment_method='MPESA')
+            clear_cart_after_payment(order)
+            logger.info(f"✅ Order {order.id} marked as PAID via webhook")
+    except ValidationError as e:
+        logger.error(f"Validation error for order {order.id}: {e}")
+        payment.status = 'FAILED'
+        payment.failure_type = 'STOCK_ISSUE'
+        payment.save(update_fields=['status', 'failure_type'])
+        raise
+    except PermissionError as e:
+        logger.warning(f"Order {order.id} already processed: {e}")
+    except Exception as e:
+        logger.error(f"Error updating order: {e}")
+        raise
 
 
 @csrf_exempt
