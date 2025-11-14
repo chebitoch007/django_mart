@@ -378,7 +378,6 @@ def product_detail(request, slug):
         available=True
     ).exclude(id=product.id).order_by('?')[:4]
 
-    product.savings = product.price - (product.discount_price or product.price)
 
     affiliate_link = None
     if product.is_dropship and product.supplier_url:

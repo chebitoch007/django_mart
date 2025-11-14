@@ -1,8 +1,10 @@
 # users/utils.py - Enhanced Address utility functions
 
+from django.utils import timezone
 from typing import Optional, Dict, Any
 from django.contrib.auth import get_user_model
-from .models import Address
+from .models import Address, ActivityLog
+from .views import get_client_ip
 
 User = get_user_model()
 
@@ -299,3 +301,28 @@ def merge_duplicate_addresses(user: User) -> int:
         Address.objects.filter(id__in=to_delete).delete()
 
     return len(to_delete)
+
+
+def log_profile_change(user, request, changed_fields):
+    """
+    Helper function to log profile changes with detailed information.
+
+    Args:
+        user: User instance
+        request: HttpRequest object
+        changed_fields: Dictionary of changed fields with old/new values
+
+    Returns:
+        ActivityLog instance
+    """
+    return ActivityLog.objects.create(
+        user=user,
+        activity_type='profile_update',
+        ip_address=get_client_ip(request),
+        user_agent=request.META.get('HTTP_USER_AGENT', ''),
+        additional_info={
+            'changed_fields': list(changed_fields.keys()),
+            'changes': changed_fields,
+            'timestamp': timezone.now().isoformat()
+        }
+    )

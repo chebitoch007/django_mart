@@ -1,6 +1,6 @@
 {
   "src/cart/cart-detail.ts": {
-    "file": "js/src/cart/cart-detail.CzhEAaGB.js",
+    "file": "js/src/cart/cart-detail.B03zzwIZ.js",
     "name": "src/cart/cart-detail",
     "src": "src/cart/cart-detail.ts",
     "isEntry": true,
@@ -15,12 +15,12 @@
     "isEntry": true
   },
   "src/store/main.ts": {
-    "file": "js/src/store/main.BRwftMr4.js",
+    "file": "js/src/store/main.zxuVxivM.js",
     "name": "src/store/main",
     "src": "src/store/main.ts",
     "isEntry": true,
     "css": [
-      "css/main.DGH97CBE.css"
+      "css/main.CySccYZK.css"
     ]
   }
 }

@@ -1,25 +1,16 @@
-// Enhanced Cart functionality with animations and microinteractions
+// Enhanced Cart functionality with currency conversion support
 import './cart-detail.css';
 
 interface CartUpdateResponse {
     success: boolean;
-    item_total: string; // numeric string (Money.amount)
-    cart_total_price: string; // numeric string (Money.amount)
+    item_total: string; // formatted price string with currency
+    cart_total_price: string; // formatted price string with currency
     cart_total_items: number;
     product_stock: number;
     item_quantity: number;
     message?: string;
 }
 
-interface CartItemElement extends HTMLElement {
-    dataset: {
-        productId: string;
-        updateUrl: string;
-        stock: string;
-    };
-}
-
-// Toast notification interface
 interface ToastOptions {
     message: string;
     type: 'success' | 'error' | 'warning';
@@ -30,27 +21,83 @@ class CartManager {
     private csrfToken: string;
     private activeRequests: Set<string> = new Set();
     private toastContainer: HTMLElement | null = null;
-    private currencySymbol: string = 'KES '; // Default fallback, dynamically updated
+    private currencyCode: string = 'KES'; // e.g., "KES", "USD"
+    private currencySymbol: string = 'KSh'; // e.g., "KSh", "$"
 
     constructor() {
         console.log('🛒 CartManager initialized');
         this.csrfToken = this.getCSRFToken();
-        this.detectCurrencySymbol();
+        this.detectCurrency();
         this.initToastContainer();
         this.initEventListeners();
         this.initStickyCheckoutBar();
     }
 
-    // Detect currency prefix (e.g. "KES", "USD") from subtotal DOM element
-    private detectCurrencySymbol(): void {
-        const subtotal = document.getElementById('cart-subtotal')?.textContent || '';
-        const match = subtotal.match(/[A-Z]{3}/);
-        if (match) {
-            this.currencySymbol = `${match[0]} `;
-            console.log(`💱 Detected currency: ${this.currencySymbol}`);
-        } else {
-            console.warn('⚠️ No currency code detected, using default KES');
+    /**
+     * Detect currency from the page - looks at cart subtotal element
+     * Extracts both currency code (KES) and symbol (KSh) if available
+     */
+    private detectCurrency(): void {
+        const subtotal = document.getElementById('cart-subtotal');
+        if (!subtotal) {
+            console.warn('⚠️ Could not find cart-subtotal element');
+            return;
         }
+
+        const text = subtotal.textContent || '';
+        console.log('💰 Analyzing currency from text:', text);
+
+        // Try to extract currency code (3 uppercase letters)
+        const codeMatch = text.match(/[A-Z]{3}/);
+        if (codeMatch) {
+            this.currencyCode = codeMatch[0];
+        }
+
+        // Try to extract symbol (common currency symbols)
+        const symbolMatch = text.match(/[$€£¥₹KSh₦₵]/);
+        if (symbolMatch) {
+            this.currencySymbol = symbolMatch[0];
+        } else {
+            // Fallback: use code as symbol
+            this.currencySymbol = this.currencyCode;
+        }
+
+        console.log(`✅ Currency detected: ${this.currencyCode} (${this.currencySymbol})`);
+    }
+
+    /**
+     * Format a price number with the current currency
+     */
+    private formatPrice(amount: number): string {
+        // Check if we have a proper symbol vs code
+        const useSymbolBefore = ['$', '£', '€'].includes(this.currencySymbol);
+        const formattedNumber = this.formatNumber(amount);
+
+        if (useSymbolBefore) {
+            return `${this.currencySymbol}${formattedNumber}`;
+        } else {
+            return `${this.currencyCode} ${formattedNumber}`;
+        }
+    }
+
+    /**
+     * Parse price from formatted string (handles both "KES 1,234.56" and "$1,234.56")
+     */
+    private parsePrice(text: string): number {
+        // Remove everything except numbers, dots, and minus signs
+        const cleaned = text.replace(/[^0-9.-]/g, '');
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+
+    /**
+     * Format number with thousand separators
+     */
+    private formatNumber(num: number): string {
+        return num.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
     }
 
     private getCSRFToken(): string {
@@ -71,7 +118,7 @@ class CartManager {
     }
 
     private initStickyCheckoutBar(): void {
-        const cartTotal = document.getElementById('cart-total')?.textContent || `${this.currencySymbol}0`;
+        const cartTotal = document.getElementById('cart-total')?.textContent || this.formatPrice(0);
         const hasItems = document.querySelectorAll('.cart-card').length > 0;
 
         if (!hasItems) return;
@@ -113,9 +160,6 @@ class CartManager {
         console.log('✅ Event listeners initialized');
     }
 
-    // -------------------
-    // Quantity + Updates
-    // -------------------
     private handleQuantityButtonClick(event: Event): void {
         const button = event.currentTarget as HTMLButtonElement;
         const form = button.closest('.quantity-form') as HTMLDivElement | null;
@@ -137,11 +181,9 @@ class CartManager {
 
         input.value = newQuantity.toString();
 
-        // Get productId using getAttribute for reliability
         const productId = row.getAttribute('data-product-id');
         if (!productId) {
-            console.error('❌ productId missing on cart row (data-product-id)');
-            console.log('Row element:', row);
+            console.error('❌ productId missing on cart row');
             return;
         }
 
@@ -163,7 +205,6 @@ class CartManager {
 
         let newQuantity = parseInt(input.value) || 1;
 
-        // Validate quantity
         if (isNaN(newQuantity) || newQuantity < 1) {
             newQuantity = 1;
         }
@@ -171,17 +212,16 @@ class CartManager {
         const maxStock = parseInt(input.max) || parseInt(row.getAttribute('data-stock') || '0');
         if (newQuantity > maxStock) {
             newQuantity = maxStock;
-            this.showStockWarningDynamic(row, maxStock);
+            this.showStockWarning(row, maxStock);
         } else {
-            this.hideStockWarningDynamic(row);
+            this.hideStockWarning(row);
         }
 
         input.value = newQuantity.toString();
 
-        // Get productId using getAttribute for reliability
         const productId = row.getAttribute('data-product-id');
         if (!productId) {
-            console.error('❌ productId missing on cart row (data-product-id)');
+            console.error('❌ productId missing on cart row');
             return;
         }
 
@@ -189,21 +229,16 @@ class CartManager {
 
         this.updateCartItem(productId, newQuantity, input, row).catch(err => {
             console.error('❌ updateCartItem failed:', err);
-            // revert to previous value if available
             input.value = input.getAttribute('data-original-value') || '1';
         });
     }
 
-    // -------------------
-    // Core cart update
-    // -------------------
     private async updateCartItem(
         productId: string,
         quantity: number,
         input: HTMLInputElement,
         row: HTMLElement
     ): Promise<void> {
-        // prevent multiple simultaneous updates for the same item
         if (this.activeRequests.has(productId)) {
             console.log(`⏳ Request already in progress for product ${productId}`);
             return;
@@ -249,72 +284,48 @@ class CartManager {
         }
     }
 
-    // -------------------
-    // UI + Animations
-    // -------------------
+    /**
+     * Update UI with response from server
+     * Server returns formatted strings like "KES 1,234.56" or "$1,234.56"
+     */
     private async updateCartUI(data: CartUpdateResponse, productId: string, input: HTMLInputElement): Promise<void> {
+        // Update item total (already formatted by server)
         const totalElement = document.getElementById(`total-${productId}`);
         if (totalElement) {
-            const oldValue = this.parsePrice(totalElement.textContent || '0');
-            const newValue = parseFloat(data.item_total);
-            await this.animateNumber(totalElement, oldValue, newValue, this.currencySymbol);
+            totalElement.textContent = data.item_total;
         }
 
+        // Update cart totals (already formatted by server)
         await this.updateCartTotals(data.cart_total_price);
         this.updateCartCount(data.cart_total_items);
 
+        // Update input attributes
         input.max = data.product_stock.toString();
         input.value = data.item_quantity.toString();
         input.setAttribute('data-original-value', data.item_quantity.toString());
     }
 
-    private async updateCartTotals(cartTotalPrice: string): Promise<void> {
+    /**
+     * Update all total displays with formatted price from server
+     */
+    private async updateCartTotals(formattedPrice: string): Promise<void> {
         const subtotalElement = document.getElementById('cart-subtotal');
         const totalCartElement = document.getElementById('cart-total');
         const stickyTotalElement = document.getElementById('sticky-cart-total');
 
-        const newValue = parseFloat(cartTotalPrice);
-
+        // Server already returns formatted price, just update text
         for (const el of [subtotalElement, totalCartElement, stickyTotalElement]) {
             if (el) {
-                const oldValue = this.parsePrice(el.textContent || '0');
-                await this.animateNumber(el, oldValue, newValue, this.currencySymbol);
+                // Add animation effect
+                el.style.transform = 'scale(1.1)';
+                el.style.transition = 'transform 0.2s ease';
+                el.textContent = formattedPrice;
+
+                setTimeout(() => {
+                    el.style.transform = 'scale(1)';
+                }, 200);
             }
         }
-    }
-
-    private animateNumber(
-        element: HTMLElement,
-        start: number,
-        end: number,
-        prefix: string = '',
-        suffix: string = ''
-    ): Promise<void> {
-        return new Promise((resolve) => {
-            const duration = 300;
-            const startTime = performance.now();
-            const diff = end - start;
-
-            const animate = (currentTime: number) => {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                const easeProgress = 1 - Math.pow(1 - progress, 3);
-                const current = start + diff * easeProgress;
-                element.textContent = `${prefix}${this.formatNumber(Math.round(current))}${suffix}`;
-                if (progress < 1) requestAnimationFrame(animate);
-                else resolve();
-            };
-
-            requestAnimationFrame(animate);
-        });
-    }
-
-    private parsePrice(text: string): number {
-        return parseFloat(text.replace(/[^0-9.-]+/g, '')) || 0;
-    }
-
-    private formatNumber(num: number): string {
-        return num.toLocaleString('en-US');
     }
 
     private updateCartCount(totalItems: number): void {
@@ -323,18 +334,21 @@ class CartManager {
             const itemText = totalItems === 1 ? 'item' : 'items';
             cartCountElement.textContent = `${totalItems} ${itemText}`;
         }
+
+        // Update header cart count
+        const headerCartCount = document.getElementById('cart-count');
+        if (headerCartCount) {
+            headerCartCount.textContent = totalItems.toString();
+        }
     }
 
-    // -------------------
-    // Removal + Toasters
-    // -------------------
     private async handleRemoveItem(event: Event): Promise<void> {
         event.preventDefault();
         const form = event.currentTarget as HTMLFormElement;
         const row = form.closest('.cart-card') as HTMLElement;
-        const productId = form.action.split('/').filter(Boolean).pop();
 
-        if (!productId || !row) return;
+        if (!row) return;
+
         this.showLoadingOverlay(row);
 
         try {
@@ -360,9 +374,14 @@ class CartManager {
         row.classList.add('removing');
         await new Promise(resolve => setTimeout(resolve, 400));
         row.remove();
+
+        // Update totals with formatted price from server
         await this.updateCartTotals(data.cart_total_price);
         this.updateCartCount(data.cart_total_items);
-        if (data.cart_total_items === 0) location.reload();
+
+        if (data.cart_total_items === 0) {
+            location.reload();
+        }
     }
 
     private showToast(options: ToastOptions): void {
@@ -399,9 +418,6 @@ class CartManager {
         return icons[type as keyof typeof icons] || icons.success;
     }
 
-    // -------------------
-    // Helpers (overlays, warnings)
-    // -------------------
     private showLoadingOverlay(row: HTMLElement): void {
         if (row.querySelector('.loading-overlay')) return;
         const overlay = document.createElement('div');
@@ -415,10 +431,11 @@ class CartManager {
         if (overlay) overlay.remove();
     }
 
-    private showStockWarningDynamic(row: HTMLElement, maxStock: number): void {
+    private showStockWarning(row: HTMLElement, maxStock: number): void {
         const quantityControl = row.querySelector('.quantity-control');
         if (!quantityControl) return;
         if (quantityControl.querySelector('.stock-warning-dynamic')) return;
+
         const warning = document.createElement('div');
         warning.className = 'stock-warning-dynamic';
         warning.innerHTML = `
@@ -427,11 +444,16 @@ class CartManager {
             Only ${maxStock} available
         `;
         quantityControl.appendChild(warning);
+
+        setTimeout(() => warning.classList.add('show'), 10);
     }
 
-    private hideStockWarningDynamic(row: HTMLElement): void {
+    private hideStockWarning(row: HTMLElement): void {
         const warning = row.querySelector('.stock-warning-dynamic');
-        if (warning) warning.remove();
+        if (warning) {
+            warning.classList.remove('show');
+            setTimeout(() => warning.remove(), 300);
+        }
     }
 }
 

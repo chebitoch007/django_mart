@@ -1,4 +1,4 @@
-{# templates/store/product/_results_grid.html #}
+{# templates/store/product/_results_grid.html - COMPLETE FILE #}
 {% load humanize static query_transform %}
 {% load currency_tags %}
 
@@ -13,12 +13,26 @@
           {% if product.on_sale %}
           <div class="product-badge" aria-hidden="true">SAVE {{ product.get_discount_percentage }}%</div>
           {% endif %}
+
+          <!-- Free Shipping Badge -->
+          {% if product.has_free_shipping %}
+          <div class="shipping-badge free-shipping">
+            <i class="fas fa-shipping-fast"></i> FREE SHIPPING
+          </div>
+          {% endif %}
         </div>
 
         <div class="product-info">
           <h3 class="product-name">
             <a href="{{ product.get_absolute_url }}">{{ product.name }}</a>
           </h3>
+
+          <!-- Short Description Preview -->
+          {% if product.short_description %}
+          <p class="product-short-desc">
+            {{ product.short_description|truncatewords:15 }}
+          </p>
+          {% endif %}
 
           <!-- Product Badges Row -->
           <div class="product-badges">
@@ -35,6 +49,18 @@
               <span class="badge badge-stock">🔥 Trending</span>
             {% endif %}
           </div>
+
+          <!-- Key Features Preview (First 2) -->
+          {% if product.features %}
+          <div class="product-features-preview">
+            {% for feature in product.get_features_list|slice:":2" %}
+            <div class="feature-preview-item">
+              <i class="fas fa-check-circle"></i>
+              <span>{{ feature|truncatewords:6 }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
 
           <div class="product-rating" aria-hidden="true">
             <div class="rating-stars">
@@ -53,13 +79,20 @@
             <span class="rating-count">({{ product.review_count|default:"0" }})</span>
           </div>
 
-          <!-- UPDATED: Use convert_and_display for proper currency conversion -->
           <div class="product-pricing" aria-label="Price">
             <span class="current-price">{% convert_and_display product.get_display_price %}</span>
             {% if product.discount_price %}
               <span class="original-price">{% convert_and_display product.price %}</span>
             {% endif %}
           </div>
+
+          <!-- CTA Preview (if exists) -->
+          {% if product.cta %}
+          <div class="product-cta-preview">
+            <i class="fas fa-bullhorn"></i>
+            {{ product.cta|truncatechars:50 }}
+          </div>
+          {% endif %}
 
           <form action="{% url 'cart:cart_add' product.id %}" method="post" class="add-to-cart-form"
                 hx-post="{% url 'cart:cart_add' product.id %}"
@@ -91,23 +124,36 @@
   <div class="pagination-container">
     <div class="pagination">
       {% if products.has_previous %}
-        <a href="?{% query_transform page=products.previous_page_number %}" class="pagination-item" data-no-ajax="false" aria-label="Previous page">
-          <i class="fas fa-chevron-left" aria-hidden="true"></i>
-        </a>
+      <a href="?{% query_transform page=products.previous_page_number %}"
+         class="pagination-item"
+         hx-get="?{% query_transform page=products.previous_page_number %}"
+         hx-target="#resultsRoot"
+         hx-indicator="#grid-loading-spinner"
+         aria-label="Previous page">
+        <i class="fas fa-chevron-left" aria-hidden="true"></i>
+      </a>
       {% endif %}
 
       {% for num in products.paginator.page_range %}
-        {% if num == products.number %}
-          <span class="pagination-item active" aria-current="page">{{ num }}</span>
-        {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
-          <a href="?{% query_transform page=num %}" class="pagination-item" aria-label="Page {{ num }}">{{ num }}</a>
+        {% if num > products.number|add:'-3' and num < products.number|add:'3' %}
+        <a href="?{% query_transform page=num %}"
+           class="pagination-item {% if num == products.number %}active{% endif %}"
+           hx-get="?{% query_transform page=num %}"
+           hx-target="#resultsRoot"
+           hx-indicator="#grid-loading-spinner"
+           aria-label="Page {{ num }}">{{ num }}</a>
         {% endif %}
       {% endfor %}
 
       {% if products.has_next %}
-        <a href="?{% query_transform page=products.next_page_number %}" class="pagination-item" data-no-ajax="false" aria-label="Next page">
-          <i class="fas fa-chevron-right" aria-hidden="true"></i>
-        </a>
+      <a href="?{% query_transform page=products.next_page_number %}"
+         class="pagination-item"
+         hx-get="?{% query_transform page=products.next_page_number %}"
+         hx-target="#resultsRoot"
+         hx-indicator="#grid-loading-spinner"
+         aria-label="Next page">
+        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+      </a>
       {% endif %}
     </div>
   </div>

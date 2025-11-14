@@ -1,0 +1,134 @@
+<!-- ========== blog/templates/blog/post_detail.html ========== -->
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}{{ post.title }} - Blog - ASAI{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-12">
+    <article class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+        {% if post.featured_image %}
+        <img src="{{ post.featured_image.url }}" alt="{{ post.title }}" class="w-full h-96 object-cover">
+        {% endif %}
+
+        <div class="p-8">
+            <!-- Meta -->
+            <div class="flex items-center gap-4 mb-6">
+                <span class="px-4 py-2 rounded-full font-medium" style="background-color: {{ post.category.color }}20; color: {{ post.category.color }};">
+                    <i class="{{ post.category.icon }} mr-2"></i>{{ post.category.name }}
+                </span>
+                <span class="text-gray-500">
+                    <i class="fas fa-calendar mr-2"></i>{{ post.published_at|date:"F d, Y" }}
+                </span>
+                <span class="text-gray-500">
+                    <i class="fas fa-clock mr-2"></i>{{ post.reading_time }} min read
+                </span>
+                <span class="text-gray-500">
+                    <i class="fas fa-eye mr-2"></i>{{ post.views }} views
+                </span>
+            </div>
+
+            <!-- Title -->
+            <h1 class="text-4xl font-bold text-gray-900 mb-6">{{ post.title }}</h1>
+
+            <!-- Author -->
+            <div class="flex items-center gap-3 mb-8 pb-6 border-b">
+                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                    {{ post.author.first_name.0|default:post.author.email.0|upper }}
+                </div>
+                <div>
+                    <div class="font-semibold text-gray-900">{{ post.author.first_name }} {{ post.author.last_name }}</div>
+                    <div class="text-sm text-gray-500">{{ post.published_at|date:"F d, Y" }}</div>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="prose max-w-none">
+                {{ post.content|linebreaks }}
+            </div>
+
+            <!-- Tags -->
+            {% if post.tags.all %}
+            <div class="mt-8 pt-6 border-t">
+                <h3 class="font-semibold text-gray-900 mb-3">Tags:</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for tag in post.tags.all %}
+                    <a href="{% url 'blog:tag' tag.slug %}" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm hover:bg-blue-100 hover:text-blue-700">
+                        {{ tag.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </article>
+
+    <!-- Comments Section -->
+    <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">
+            Comments ({{ comments.count }})
+        </h2>
+
+        {% if user.is_authenticated %}
+        <!-- Comment Form -->
+        <form method="post" action="{% url 'blog:add_comment' post.slug %}" class="mb-8">
+            {% csrf_token %}
+            <textarea name="content" rows="4" required
+                      class="w-full px-4 py-3 border rounded-lg focus:border-blue-500 focus:outline-none mb-4"
+                      placeholder="Share your thoughts..."></textarea>
+            <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700">
+                <i class="fas fa-comment mr-2"></i>Post Comment
+            </button>
+        </form>
+        {% else %}
+        <div class="bg-gray-50 rounded-lg p-6 mb-8 text-center">
+            <p class="text-gray-600 mb-4">Please <a href="{% url 'users:login' %}?next={{ request.path }}" class="text-blue-600 hover:text-blue-700 font-semibold">sign in</a> to leave a comment.</p>
+        </div>
+        {% endif %}
+
+        <!-- Comments List -->
+        <div class="space-y-6">
+            {% for comment in comments %}
+            <div class="flex gap-4">
+                <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
+                    {{ comment.user.first_name.0|default:comment.user.email.0|upper }}
+                </div>
+                <div class="flex-1">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="font-semibold text-gray-900 mb-1">
+                            {{ comment.user.first_name }} {{ comment.user.last_name }}
+                        </div>
+                        <p class="text-gray-700">{{ comment.content }}</p>
+                    </div>
+                    <div class="text-sm text-gray-500 mt-1">
+                        {{ comment.created_at|date:"F d, Y \a\t g:i A" }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Related Posts -->
+    {% if related_posts %}
+    <div class="bg-white rounded-lg shadow-md p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Related Posts</h2>
+        <div class="grid md:grid-cols-3 gap-6">
+            {% for related in related_posts %}
+            <a href="{% url 'blog:post_detail' related.slug %}" class="block hover:shadow-lg transition rounded-lg overflow-hidden border">
+                {% if related.featured_image %}
+                <img src="{{ related.featured_image.url }}" alt="{{ related.title }}" class="w-full h-32 object-cover">
+                {% else %}
+                <div class="w-full h-32 bg-gradient-to-br from-blue-400 to-purple-500"></div>
+                {% endif %}
+                <div class="p-4">
+                    <h3 class="font-semibold text-gray-900 mb-2">{{ related.title|truncatewords:8 }}</h3>
+                    <p class="text-sm text-gray-600">{{ related.excerpt|truncatewords:15 }}</p>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

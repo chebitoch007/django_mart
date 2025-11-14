@@ -1,5 +1,6 @@
 # users/admin.py
 
+import json
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
@@ -116,14 +117,19 @@ class CustomUserAdmin(UserAdmin):
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ('user_link', 'email_notifications', 'sms_notifications',
-                    'marketing_optin', 'dark_mode', 'last_updated')
-    list_filter = ('email_notifications', 'sms_notifications', 'marketing_optin',
-                   'dark_mode', 'preferred_language')
+    list_display = (
+        'user_link', 'email_notifications', 'sms_notifications',
+        'marketing_optin', 'dark_mode', 'preferred_language', 'last_updated'
+    )
+    list_filter = (
+        'email_notifications', 'sms_notifications', 'marketing_optin',
+        'dark_mode', 'preferred_language'
+    )
     search_fields = ('user__email', 'user__first_name', 'user__last_name')
     readonly_fields = ('last_updated', 'user_info')
     raw_id_fields = ('user',)
     date_hierarchy = 'last_updated'
+    ordering = ('-last_updated',)
 
     fieldsets = (
         ('User', {'fields': ('user_info', 'user')}),
@@ -140,19 +146,21 @@ class ProfileAdmin(admin.ModelAdmin):
             'fields': ('two_factor_enabled',)
         }),
         ('Metadata', {
-            'fields': ('last_updated',)
+            'fields': ('last_updated',),
+            'classes': ('collapse',)
         }),
     )
 
+    # === Custom Display Methods ===
+
     def user_link(self, obj):
-        """Link to user admin"""
+        """Clickable link to User admin"""
         url = reverse('admin:users_customuser_change', args=[obj.user.id])
         return format_html('<a href="{}">{}</a>', url, obj.user.email)
-
     user_link.short_description = 'User'
 
     def user_info(self, obj):
-        """Display detailed user information"""
+        """Display rich user summary"""
         url = reverse('admin:users_customuser_change', args=[obj.user.id])
         return format_html(
             '<a href="{}"><strong>{}</strong></a><br>'
@@ -163,7 +171,6 @@ class ProfileAdmin(admin.ModelAdmin):
             obj.user.email,
             obj.user.date_joined.strftime('%Y-%m-%d')
         )
-
     user_info.short_description = 'User Information'
 
 
@@ -205,12 +212,16 @@ class AddressAdmin(admin.ModelAdmin):
 
 @admin.register(ActivityLog)
 class ActivityLogAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user_link', 'activity_type', 'ip_address',
-                    'timestamp', 'user_agent_short')
+    list_display = (
+        'id', 'user_link', 'activity_type', 'ip_address',
+        'timestamp', 'user_agent_short'
+    )
     list_filter = ('activity_type', 'timestamp')
     search_fields = ('user__email', 'ip_address', 'user_agent')
-    readonly_fields = ('user', 'activity_type', 'ip_address', 'user_agent',
-                       'timestamp', 'additional_info_display')
+    readonly_fields = (
+        'user', 'activity_type', 'ip_address', 'user_agent',
+        'timestamp', 'additional_info_display'
+    )
     date_hierarchy = 'timestamp'
     ordering = ('-timestamp',)
 
@@ -227,47 +238,42 @@ class ActivityLogAdmin(admin.ModelAdmin):
         }),
     )
 
+    # === Custom Display Methods ===
+
     def user_link(self, obj):
-        """Link to user admin"""
+        """Clickable link to User admin or 'Anonymous'"""
         if obj.user:
             url = reverse('admin:users_customuser_change', args=[obj.user.id])
             return format_html('<a href="{}">{}</a>', url, obj.user.email)
         return 'Anonymous'
-
     user_link.short_description = 'User'
 
     def user_agent_short(self, obj):
-        """Shortened user agent"""
-        if obj.user_agent:
-            return obj.user_agent[:50] + '...' if len(obj.user_agent) > 50 else obj.user_agent
-        return '-'
-
+        """Shorten long user agent strings"""
+        ua = obj.user_agent or '-'
+        return ua[:50] + '...' if len(ua) > 50 else ua
     user_agent_short.short_description = 'User Agent'
 
     def additional_info_display(self, obj):
-        """Display additional info in readable format"""
-        if obj.additional_info:
-            import json
-            try:
-                formatted = json.dumps(obj.additional_info, indent=2)
-                return format_html('<pre>{}</pre>', formatted)
-            except Exception:
-                return str(obj.additional_info)
-        return 'No additional information'
-
+        """Formatted JSON in <pre> block"""
+        if not obj.additional_info:
+            return 'No additional information'
+        try:
+            formatted = json.dumps(obj.additional_info, indent=2)
+            return format_html('<pre>{}</pre>', formatted)
+        except Exception:
+            return str(obj.additional_info)
     additional_info_display.short_description = 'Additional Information'
 
+    # === Permissions ===
     def has_add_permission(self, request):
-        """Prevent manual log creation"""
-        return False
+        return False  # no manual creation
 
     def has_change_permission(self, request, obj=None):
-        """Prevent log modification"""
-        return False
+        return False  # locked logs
 
     def has_delete_permission(self, request, obj=None):
-        """Allow deletion for cleanup"""
-        return request.user.is_superuser
+        return request.user.is_superuser  # allow cleanup
 
 
 @admin.register(PasswordHistory)

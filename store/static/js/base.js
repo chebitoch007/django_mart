@@ -1,4 +1,4 @@
-// Enhanced Responsive JavaScript for Base Template
+// Enhanced Responsive JavaScript for Base Template - FIXED MOBILE CURRENCY
 
 // ===== VIEWPORT AND DEVICE DETECTION =====
 const DeviceDetector = {
@@ -23,9 +23,10 @@ class ResponsiveNav {
     this.nav = document.querySelector('.amazon-nav');
     this.mobileMenu = document.getElementById('mobile-menu');
     this.menuToggle = document.getElementById('mobile-menu-toggle');
-    this.menuClose = document.getElementById('mobile-menu-close-btn'); // Added close button
+    this.menuClose = document.getElementById('mobile-menu-close-btn');
     this.lastScrollTop = 0;
     this.scrollThreshold = 100;
+    this.isMenuOpen = false;
 
     this.init();
   }
@@ -33,12 +34,14 @@ class ResponsiveNav {
   init() {
     this.bindEvents();
     this.handleResize();
+    this.setupFocusTrap();
   }
 
   bindEvents() {
     // Mobile menu toggle
     if (this.menuToggle) {
       this.menuToggle.addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation();
         this.toggleMobileMenu();
       });
@@ -46,16 +49,17 @@ class ResponsiveNav {
 
     // Mobile menu close button
     if (this.menuClose) {
-        this.menuClose.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.closeMobileMenu();
-        });
+      this.menuClose.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.closeMobileMenu();
+      });
     }
 
     // Close menu on outside click
     document.addEventListener('click', (e) => {
-      if (this.mobileMenu &&
-          this.mobileMenu.classList.contains('active') &&
+      if (this.isMenuOpen &&
+          this.mobileMenu &&
           !this.mobileMenu.contains(e.target) &&
           !this.menuToggle?.contains(e.target)) {
         this.closeMobileMenu();
@@ -64,13 +68,13 @@ class ResponsiveNav {
 
     // Close menu on escape key
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.mobileMenu?.classList.contains('active')) {
+      if (e.key === 'Escape' && this.isMenuOpen) {
         this.closeMobileMenu();
         this.menuToggle?.focus();
       }
     });
 
-    // Responsive scroll behavior
+    // Responsive scroll behavior with RAF
     let ticking = false;
     window.addEventListener('scroll', () => {
       if (!ticking) {
@@ -80,45 +84,76 @@ class ResponsiveNav {
         });
         ticking = true;
       }
-    });
+    }, { passive: true });
 
-    // Handle window resize
+    // Handle window resize with debounce
     let resizeTimer;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => this.handleResize(), 250);
+    }, { passive: true });
+
+    // Handle orientation change
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => this.handleResize(), 300);
     });
   }
 
   toggleMobileMenu() {
     if (!this.mobileMenu) return;
 
-    // Dynamically set the top position based on the nav's current height
+    if (this.isMenuOpen) {
+      this.closeMobileMenu();
+    } else {
+      this.openMobileMenu();
+    }
+  }
+
+  openMobileMenu() {
+    if (!this.mobileMenu) return;
+
+    // Calculate and set the top position
     const navHeight = this.nav.offsetHeight;
     this.mobileMenu.style.top = `${navHeight}px`;
 
-    const isActive = this.mobileMenu.classList.toggle('active');
-    this.menuToggle?.setAttribute('aria-expanded', isActive.toString());
-    this.mobileMenu.setAttribute('aria-hidden', (!isActive).toString());
+    // Open menu
+    this.mobileMenu.classList.add('active');
+    this.isMenuOpen = true;
 
-    // Prevent body scroll when menu is open
-    document.body.style.overflow = isActive ? 'hidden' : '';
+    // Update ARIA attributes
+    this.menuToggle?.setAttribute('aria-expanded', 'true');
+    this.mobileMenu.setAttribute('aria-hidden', 'false');
+
+    // Prevent body scroll
+    document.body.classList.add('mobile-menu-open');
+    document.body.style.overflow = 'hidden';
 
     // Focus management
-    if (isActive) {
-      // Focus the close button or the first link
-      const closeBtn = this.mobileMenu.querySelector('.mobile-menu-close');
-      (closeBtn || this.mobileMenu.querySelector('a'))?.focus();
+    const firstFocusable = this.mobileMenu.querySelector('a, button');
+    if (firstFocusable) {
+      setTimeout(() => firstFocusable.focus(), 100);
     }
+
+    // Announce to screen readers
+    this.announceToScreenReader('Menu opened');
   }
 
   closeMobileMenu() {
     if (!this.mobileMenu) return;
 
     this.mobileMenu.classList.remove('active');
+    this.isMenuOpen = false;
+
+    // Update ARIA attributes
     this.menuToggle?.setAttribute('aria-expanded', 'false');
     this.mobileMenu.setAttribute('aria-hidden', 'true');
+
+    // Restore body scroll
+    document.body.classList.remove('mobile-menu-open');
     document.body.style.overflow = '';
+
+    // Announce to screen readers
+    this.announceToScreenReader('Menu closed');
   }
 
   handleScroll() {
@@ -131,17 +166,14 @@ class ResponsiveNav {
       this.nav?.classList.remove('scrolled');
     }
 
-    // Hide/show nav on mobile when scrolling
-    if (DeviceDetector.isMobile()) {
-      // Only hide if mobile menu is NOT active
-      if (!this.mobileMenu.classList.contains('active')) {
-        if (scrollTop > this.lastScrollTop && scrollTop > this.scrollThreshold) {
-          // Scrolling down
-          this.nav?.classList.add('nav-hidden');
-        } else {
-          // Scrolling up
-          this.nav?.classList.remove('nav-hidden');
-        }
+    // Hide/show nav on mobile when scrolling (only if menu is closed)
+    if (DeviceDetector.isMobile() && !this.isMenuOpen) {
+      if (scrollTop > this.lastScrollTop && scrollTop > this.scrollThreshold) {
+        // Scrolling down
+        this.nav?.classList.add('nav-hidden');
+      } else {
+        // Scrolling up
+        this.nav?.classList.remove('nav-hidden');
       }
     }
 
@@ -150,24 +182,63 @@ class ResponsiveNav {
 
   handleResize() {
     // Close mobile menu on resize to desktop
-    if (DeviceDetector.isDesktop() && this.mobileMenu?.classList.contains('active')) {
+    if (DeviceDetector.isDesktop() && this.isMenuOpen) {
       this.closeMobileMenu();
     }
 
-    // Recalculate menu top if it's active and window resizes
-    if (this.mobileMenu?.classList.contains('active')) {
-        const navHeight = this.nav.offsetHeight;
-        this.mobileMenu.style.top = `${navHeight}px`;
+    // Recalculate menu top if it's open and window resizes
+    if (this.isMenuOpen && this.mobileMenu) {
+      const navHeight = this.nav.offsetHeight;
+      this.mobileMenu.style.top = `${navHeight}px`;
     }
 
     // Update body class for CSS targeting
-    document.body.className = document.body.className.replace(/breakpoint-\w+/, '');
+    document.body.className = document.body.className.replace(/breakpoint-\w+/g, '');
     document.body.classList.add(`breakpoint-${DeviceDetector.getBreakpoint()}`);
   }
-}
 
-// static/js/base.js - FIXED VERSION
-// Find and replace the cart functionality section with this:
+  setupFocusTrap() {
+    if (!this.mobileMenu) return;
+
+    // Get all focusable elements
+    const focusableElements = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    this.mobileMenu.addEventListener('keydown', (e) => {
+      if (!this.isMenuOpen || e.key !== 'Tab') return;
+
+      const focusableContent = this.mobileMenu.querySelectorAll(focusableElements);
+      const firstFocusable = focusableContent[0];
+      const lastFocusable = focusableContent[focusableContent.length - 1];
+
+      if (e.shiftKey) {
+        // Shift + Tab
+        if (document.activeElement === firstFocusable) {
+          e.preventDefault();
+          lastFocusable.focus();
+        }
+      } else {
+        // Tab
+        if (document.activeElement === lastFocusable) {
+          e.preventDefault();
+          firstFocusable.focus();
+        }
+      }
+    });
+  }
+
+  announceToScreenReader(message) {
+    const announcement = document.createElement('div');
+    announcement.setAttribute('role', 'status');
+    announcement.setAttribute('aria-live', 'polite');
+    announcement.className = 'sr-only';
+    announcement.textContent = message;
+    document.body.appendChild(announcement);
+
+    setTimeout(() => {
+      document.body.removeChild(announcement);
+    }, 1000);
+  }
+}
 
 // ===== ENHANCED CART FUNCTIONALITY =====
 document.addEventListener('DOMContentLoaded', function() {
@@ -195,9 +266,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // ✅ IMPORTANT: Cart update notifications are now handled by base.ts CartManager
-  // Do NOT add htmx:afterRequest handlers here to prevent duplicate notifications
-
+  // Cart update notifications are handled by base.ts CartManager
   // Cross-tab synchronization only
   window.addEventListener('storage', function(event) {
     if (event.key === 'cartCount' && event.newValue) {
@@ -209,7 +278,6 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-
 // ===== ENHANCED SEARCH FUNCTIONALITY =====
 class SearchEnhancer {
   constructor() {
@@ -217,7 +285,7 @@ class SearchEnhancer {
     this.searchInput = this.searchBar?.querySelector('input[name="q"]');
     this.searchSuggestions = document.getElementById('search-suggestions');
     this.selectedIndex = -1;
-    this.originalQuery = ''; // <-- ADD THIS LINE
+    this.originalQuery = '';
 
     if (this.searchInput) {
       this.init();
@@ -248,6 +316,12 @@ class SearchEnhancer {
       this.handleKeyboard(e);
     });
 
+    // Store original query on input
+    this.searchInput.addEventListener('input', () => {
+      this.originalQuery = this.searchInput.value;
+      this.selectedIndex = -1;
+    });
+
     // HTMX events
     document.body.addEventListener('htmx:afterSwap', (e) => {
       if (e.detail.target === this.searchSuggestions) {
@@ -260,13 +334,6 @@ class SearchEnhancer {
         }
       }
     });
-    // <-- ADD THIS LISTENER -->
-    this.searchInput.addEventListener('input', () => {
-      // Store what the user is typing
-      this.originalQuery = this.searchInput.value;
-      this.selectedIndex = -1; // Reset selection on new typing
-    });
-    // <-- END OF ADDITION -->
   }
 
   handleKeyboard(e) {
@@ -293,10 +360,10 @@ class SearchEnhancer {
         }
         break;
 
-        case 'Escape':
-            this.searchInput.value = this.originalQuery; // Restore original text
-            this.hideSuggestions();
-            break;
+      case 'Escape':
+        this.searchInput.value = this.originalQuery;
+        this.hideSuggestions();
+        break;
     }
   }
 
@@ -305,19 +372,19 @@ class SearchEnhancer {
       if (index === this.selectedIndex) {
         item.classList.add('highlighted');
         item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+        // Update input with selected suggestion
+        const selectedText = item.textContent.trim();
+        this.searchInput.value = selectedText;
       } else {
         item.classList.remove('highlighted');
       }
     });
 
-    // Update input value for preview
-      if (this.selectedIndex >= 0) {
-          const selectedText = items[this.selectedIndex].textContent.trim();
-          this.searchInput.value = selectedText;
-      } else {
-          // User arrowed up past the first item
-          this.searchInput.value = this.originalQuery;
-      }
+    // Restore original query if no selection
+    if (this.selectedIndex === -1) {
+      this.searchInput.value = this.originalQuery;
+    }
   }
 
   hideSuggestions() {
@@ -349,7 +416,7 @@ class BackToTop {
         });
         ticking = true;
       }
-    });
+    }, { passive: true });
 
     this.button.addEventListener('click', () => {
       this.scrollToTop();
@@ -404,7 +471,7 @@ function showNotification(message, type = 'info', duration = 3000) {
 
   // Position based on device
   if (DeviceDetector.isMobile()) {
-    notification.style.bottom = '80px'; // Above mobile cart button
+    notification.style.bottom = '80px';
   }
 
   // Animate in
@@ -428,11 +495,6 @@ function removeNotification(notification) {
     notification.remove();
   }, 300);
 }
-
-// ===== NEWSLETTER FORM (REMOVED) =====
-// This section has been removed to prevent conflict with footer.js,
-// which contains the primary newsletter form handler.
-
 
 // ===== LAZY LOADING PROTECTION FOR CRITICAL IMAGES =====
 const EAGER_SELECTORS = [
@@ -478,11 +540,13 @@ class PerformanceMonitor {
       window.addEventListener('load', () => {
         setTimeout(() => {
           const perfData = performance.getEntriesByType('navigation')[0];
-          console.log('Performance Metrics:', {
-            domContentLoaded: Math.round(perfData.domContentLoadedEventEnd - perfData.domContentLoadedEventStart),
-            loadComplete: Math.round(perfData.loadEventEnd - perfData.loadEventStart),
-            totalTime: Math.round(perfData.loadEventEnd - perfData.fetchStart)
-          });
+          if (perfData) {
+            console.log('Performance Metrics:', {
+              domContentLoaded: Math.round(perfData.domContentLoadedEventEnd - perfData.domContentLoadedEventStart),
+              loadComplete: Math.round(perfData.loadEventEnd - perfData.loadEventStart),
+              totalTime: Math.round(perfData.loadEventEnd - perfData.fetchStart)
+            });
+          }
         }, 0);
       });
     }
@@ -490,15 +554,19 @@ class PerformanceMonitor {
 
   static observeResourceTiming() {
     if ('PerformanceObserver' in window) {
-      const observer = new PerformanceObserver((list) => {
-        list.getEntries().forEach((entry) => {
-          if (entry.duration > 1000) {
-            console.warn('Slow resource:', entry.name, Math.round(entry.duration) + 'ms');
-          }
+      try {
+        const observer = new PerformanceObserver((list) => {
+          list.getEntries().forEach((entry) => {
+            if (entry.duration > 1000) {
+              console.warn('Slow resource:', entry.name, Math.round(entry.duration) + 'ms');
+            }
+          });
         });
-      });
 
-      observer.observe({ entryTypes: ['resource'] });
+        observer.observe({ entryTypes: ['resource'] });
+      } catch (e) {
+        console.warn('PerformanceObserver not supported:', e);
+      }
     }
   }
 }
@@ -507,7 +575,6 @@ class PerformanceMonitor {
 class AccessibilityEnhancer {
   static init() {
     this.setupFocusVisibility();
-    // setupSkipLinks() removed as the link is now in base.html
     this.announceRouteChanges();
   }
 
@@ -527,25 +594,12 @@ class AccessibilityEnhancer {
     });
   }
 
-  // setupSkipLinks() function removed
-
   static announceRouteChanges() {
     const announcer = document.createElement('div');
     announcer.setAttribute('role', 'status');
     announcer.setAttribute('aria-live', 'polite');
     announcer.setAttribute('aria-atomic', 'true');
     announcer.className = 'sr-only';
-    announcer.style.cssText = `
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    `;
     document.body.appendChild(announcer);
 
     // Announce HTMX swaps
@@ -558,6 +612,130 @@ class AccessibilityEnhancer {
   }
 }
 
+// ===== MOBILE CURRENCY SELECTOR - FIXED =====
+function initMobileCurrencySelector() {
+  const mobileCurrencyOptions = document.querySelectorAll('.mobile-currency-option');
+
+  if (mobileCurrencyOptions.length === 0) return;
+
+  console.log('✅ Initializing mobile currency selector...');
+
+  // Get current currency from desktop selector or localStorage
+  const currentCurrency = getCurrentCurrency();
+
+  // Set active currency on page load
+  mobileCurrencyOptions.forEach(option => {
+    const currency = option.dataset.currency;
+    if (currency === currentCurrency) {
+      option.classList.add('active');
+    } else {
+      option.classList.remove('active');
+    }
+  });
+
+  // Handle currency change
+  mobileCurrencyOptions.forEach(option => {
+    option.addEventListener('click', function() {
+      const newCurrency = this.dataset.currency;
+      console.log('💰 Mobile currency changed to:', newCurrency);
+
+      // --- START: MODIFIED CODE ---
+
+      // Get CSRF token from any form on the page (e.g., newsletter or review form)
+      const csrfTokenInput = document.querySelector('form input[name="csrfmiddlewaretoken"]');
+
+      if (!csrfTokenInput) {
+          console.error('CSRF token not found. Cannot change currency.');
+          // Use alert as showNotification might not be available
+          alert('An error occurred. Could not find security token.');
+          return;
+      }
+
+      const csrfToken = csrfTokenInput.value;
+
+      // Update active state
+      mobileCurrencyOptions.forEach(opt => opt.classList.remove('active'));
+      this.classList.add('active');
+
+      // Call the global, WORKING function from currency_selector.html
+      // This function handles the POST request and the page reload.
+      if (typeof handleCurrencyChange === 'function') {
+        handleCurrencyChange(newCurrency, csrfToken);
+      } else {
+        console.error('handleCurrencyChange function not found.');
+        alert('A critical error occurred. Please refresh the page.');
+      }
+
+      // --- END: MODIFIED CODE ---
+
+      // REMOVED old broken logic:
+      // changeCurrency(newCurrency);
+      // showNotification(`Currency changed to ${newCurrency}`, 'success', 2000);
+      // setTimeout(() => { window.location.reload(); }, 500);
+    });
+  });
+}
+
+function getCurrentCurrency() {
+  // Try to get from desktop currency selector
+  const desktopSelector = document.querySelector('.currency-selector select, #currencyToggle');
+  if (desktopSelector) {
+    // If it's a button (new currency selector), get from data attribute or text
+    if (desktopSelector.tagName === 'BUTTON') {
+      const currencyText = desktopSelector.querySelector('.currency-code')?.textContent;
+      if (currencyText) return currencyText.trim();
+    }
+    // If it's a select element
+    else if (desktopSelector.tagName === 'SELECT') {
+      return desktopSelector.value;
+    }
+  }
+
+  // Try localStorage
+  try {
+    return localStorage.getItem('selectedCurrency') || 'KES';
+  } catch (e) {
+    return 'KES';
+  }
+}
+
+function changeCurrency(currency) {
+  console.log('🔄 Changing currency to:', currency);
+
+  // Update desktop currency selector if it exists
+  const desktopSelector = document.querySelector('.currency-selector select');
+  if (desktopSelector && desktopSelector.tagName === 'SELECT') {
+    desktopSelector.value = currency;
+    // Trigger change event to update prices
+    const event = new Event('change', { bubbles: true });
+    desktopSelector.dispatchEvent(event);
+  }
+
+  // Store in localStorage
+  try {
+    localStorage.setItem('selectedCurrency', currency);
+    console.log('💾 Currency saved to localStorage:', currency);
+  } catch (e) {
+    console.warn('Could not save currency to localStorage:', e);
+  }
+
+  // Dispatch custom event for other components
+  document.dispatchEvent(new CustomEvent('currency:changed', {
+    detail: { currency }
+  }));
+
+  // ✅ Update the form that submits currency change to server
+  const currencyForm = document.querySelector('form[action*="currency"]');
+  if (currencyForm) {
+    const currencyInput = currencyForm.querySelector('input[name="currency"]');
+    if (currencyInput) {
+      currencyInput.value = currency;
+      // Submit the form to update session currency
+      currencyForm.submit();
+    }
+  }
+}
+
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize all components
@@ -565,6 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
   new SearchEnhancer();
   new BackToTop();
   AccessibilityEnhancer.init();
+  initMobileCurrencySelector();
 
   // Enable performance monitoring in development
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {

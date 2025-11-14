@@ -24,9 +24,7 @@ class Cart(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        # ✅ FIXED: Replaced incorrect constraint
         constraints = [
-            # Enforce session_key is unique *only* for guest carts (where user is null)
             models.UniqueConstraint(
                 fields=['session_key'],
                 condition=Q(user__isnull=True),
@@ -35,23 +33,18 @@ class Cart(models.Model):
         ]
 
     def add_product(self, product, quantity=1, update_quantity=False):
-        # Ensure quantity is positive
         if quantity < 1:
             return None, False
 
         cart_item, created = self.items.get_or_create(product=product)
 
         if update_quantity:
-            # Set the quantity directly
             cart_item.quantity = quantity
         elif created:
-            # For new items, set the quantity
             cart_item.quantity = quantity
         else:
-            # For existing items, add to the current quantity
             cart_item.quantity += quantity
 
-        # Ensure quantity doesn't exceed stock
         if cart_item.quantity > product.stock:
             cart_item.quantity = product.stock
 
@@ -72,7 +65,30 @@ class Cart(models.Model):
 
     @property
     def total_price(self):
-        return sum(item.total_price for item in self.items.all())
+        """Calculate total price, ensuring all items use the same currency"""
+        items = self.items.select_related('product').all()
+
+        if not items:
+            return Money(0, settings.DEFAULT_CURRENCY)
+
+        # Start with zero in the default currency
+        total = Decimal('0.00')
+        currency = settings.DEFAULT_CURRENCY
+
+        for item in items:
+            price = item.total_price
+            # Convert Money to Decimal (amount only)
+            if hasattr(price, 'amount'):
+                # Verify currency matches (optional: add currency conversion here)
+                if hasattr(price, 'currency') and str(price.currency) != currency:
+                    # Log warning or handle currency mismatch
+                    # For now, we'll use the amount as-is
+                    pass
+                total += price.amount
+            else:
+                total += Decimal(str(price))
+
+        return Money(total, currency)
 
     def get_total_price(self):
         return self.total_price
@@ -80,14 +96,18 @@ class Cart(models.Model):
     def clear(self):
         self.items.all().delete()
 
-    # --- New Methods Added ---
-
     @property
     def estimated_shipping(self):
         """Calculate estimated shipping cost for all items in cart"""
-        total_shipping = Decimal('0.00')
+        items = self.items.select_related('product').all()
 
-        for item in self.items.select_related('product'):
+        if not items:
+            return Money(0, settings.DEFAULT_CURRENCY)
+
+        total_shipping = Decimal('0.00')
+        currency = settings.DEFAULT_CURRENCY
+
+        for item in items:
             product = item.product
 
             # Skip if product has free shipping
@@ -96,47 +116,54 @@ class Cart(models.Model):
 
             # Add shipping cost per item
             if product.shipping_cost:
-                total_shipping += product.shipping_cost.amount * item.quantity
+                shipping_amount = product.shipping_cost.amount if hasattr(product.shipping_cost, 'amount') else Decimal(
+                    str(product.shipping_cost))
+                total_shipping += shipping_amount * item.quantity
 
-        return Money(total_shipping, settings.DEFAULT_CURRENCY)
+        return Money(total_shipping, currency)
 
     @property
     def has_free_shipping(self):
         """Check if all items in cart have free shipping"""
-        # Note: This logic assumes free shipping is achieved if *all* items
-        # either have .free_shipping=True OR .shipping_cost=0
-        # If even one item has a shipping cost > 0, this will return False.
-        for item in self.items.select_related('product'):
+        items = self.items.select_related('product').all()
+
+        for item in items:
             if not item.product.free_shipping:
-                # If it's not explicitly free, check if it has a cost
-                if item.product.shipping_cost and item.product.shipping_cost.amount > 0:
-                    return False
+                if item.product.shipping_cost:
+                    shipping_amount = item.product.shipping_cost.amount if hasattr(item.product.shipping_cost,
+                                                                                   'amount') else Decimal(
+                        str(item.product.shipping_cost))
+                    if shipping_amount > 0:
+                        return False
         return True
 
     @property
     def grand_total(self):
         """Get cart total including shipping"""
-        subtotal = self.total_price.amount
-        shipping = self.estimated_shipping.amount
+        subtotal = self.total_price.amount if hasattr(self.total_price, 'amount') else Decimal(str(self.total_price))
+        shipping = self.estimated_shipping.amount if hasattr(self.estimated_shipping, 'amount') else Decimal(
+            str(self.estimated_shipping))
         return subtotal + shipping
 
     def get_shipping_breakdown(self):
         """Get detailed shipping breakdown by product"""
         breakdown = []
+        currency = settings.DEFAULT_CURRENCY
 
         for item in self.items.select_related('product'):
             product = item.product
 
             if product.free_shipping:
-                shipping_cost = Money(0, settings.DEFAULT_CURRENCY)
+                shipping_cost = Money(0, currency)
                 status = "Free Shipping"
             elif product.shipping_cost:
-                shipping_cost = product.shipping_cost * item.quantity
+                shipping_amount = product.shipping_cost.amount if hasattr(product.shipping_cost, 'amount') else Decimal(
+                    str(product.shipping_cost))
+                shipping_cost = Money(shipping_amount * item.quantity, currency)
                 status = f"Shipping: {shipping_cost}"
             else:
-                # Fallback for products with no free_shipping and no shipping_cost
-                shipping_cost = Money(0, settings.DEFAULT_CURRENCY)
-                status = "Shipping TBD"  # Or "Free" if that's the default
+                shipping_cost = Money(0, currency)
+                status = "Shipping TBD"
 
             breakdown.append({
                 'product': product,
@@ -146,8 +173,6 @@ class Cart(models.Model):
             })
 
         return breakdown
-
-    # -------------------------
 
     def __str__(self):
         if self.user:
@@ -167,7 +192,19 @@ class CartItem(models.Model):
 
     @property
     def total_price(self):
-        return self.product.get_display_price() * self.quantity
+        """Calculate total price for this cart item"""
+        unit_price = self.product.get_display_price()
+
+        # Extract amount from Money object
+        if hasattr(unit_price, 'amount'):
+            amount = unit_price.amount
+            currency = str(unit_price.currency)
+        else:
+            amount = Decimal(str(unit_price))
+            currency = settings.DEFAULT_CURRENCY
+
+        total_amount = amount * self.quantity
+        return Money(total_amount, currency)
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name}"

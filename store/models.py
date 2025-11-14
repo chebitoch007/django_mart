@@ -1,15 +1,17 @@
-# store/models.py
+# store/models.py - COMPLETE FILE
+
 from djmoney.models.fields import MoneyField
 import logging
 from django.db import transaction
 import uuid
 from django.db.models import Q, Value, CharField, TextField
-from django.templatetags.static import static  # <-- Import static
+from django.templatetags.static import static
 from django.urls import reverse
 from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
 import secrets
+import re
 
 from djmoney.money import Money
 
@@ -19,6 +21,7 @@ from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField, SearchVector
 
 logger = logging.getLogger(__name__)
+
 
 class Category(MPTTModel):
     name = models.CharField(max_length=100)
@@ -117,7 +120,6 @@ class ProductQuerySet(models.QuerySet):
         if not query:
             return self.none()
 
-        # Keep search responsibilities in views/helpers; this is a convenience method.
         return self.filter(
             Q(name__icontains=query) |
             Q(short_description__icontains=query) |
@@ -143,23 +145,37 @@ class Product(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField()
     short_description = models.CharField(max_length=300, blank=True)
-    price = MoneyField(max_digits=14, decimal_places=2, default_currency='KES', default = 0.00)
+    features = models.TextField(
+        blank=True,
+        help_text="Enter product features, one per line. Will be displayed as bullet points."
+    )
+
+    seo_keywords = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Comma-separated SEO keywords for search engine optimization"
+    )
+
+    cta = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Call to Action",
+        help_text="Compelling call-to-action text (e.g., '🎮 Relive the classics – get your RetroPlay™ Console now!')"
+    )
+    price = MoneyField(max_digits=14, decimal_places=2, default_currency='KES', default=0.00)
     discount_price = MoneyField(max_digits=14, decimal_places=2, blank=True, null=True, db_index=True)
     image = models.ImageField(upload_to='products/main/')
     stock = models.PositiveIntegerField()
     available = models.BooleanField(default=True)
     featured = models.BooleanField(default=False)
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
-    review_count = models.PositiveIntegerField(default=0, db_index=True)  # keep for cached count
+    review_count = models.PositiveIntegerField(default=0, db_index=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
-    # New normalized relations
+    # Normalized relations
     brand = models.ForeignKey(Brand, null=True, blank=True, related_name='products', on_delete=models.SET_NULL)
-
     supplier_name = models.CharField(max_length=150, blank=True, null=True)
-
-    # NEW relational supplier model
     supplier = models.ForeignKey(
         'Supplier',
         null=True,
@@ -178,7 +194,6 @@ class Product(models.Model):
         help_text="Shipping cost for this product (leave blank for free shipping)"
     )
 
-    # NEW: Free shipping flag
     free_shipping = models.BooleanField(
         default=False,
         help_text="Check if this product qualifies for free shipping"
@@ -194,7 +209,7 @@ class Product(models.Model):
     package_dimensions = models.CharField(max_length=100, blank=True)
     package_weight = models.DecimalField(max_digits=6, decimal_places=2, default=0)
 
-    # Search support (denormalized text fields used to build search_vector)
+    # Search support
     search_vector = SearchVectorField(null=True, blank=True)
     search_name = models.CharField(max_length=255, blank=True)
     search_description = models.TextField(blank=True)
@@ -214,7 +229,7 @@ class Product(models.Model):
                 unique_id = str(uuid.uuid4())[:4]
                 self.slug = f"{base_slug}-{unique_id}"
 
-        # Populate denormalized search fields for later vector update
+        # Populate denormalized search fields
         self.search_name = self.name or ''
         self.search_description = self.description or ''
         self.search_category = self.category.name if self.category else ''
@@ -223,54 +238,37 @@ class Product(models.Model):
 
         super().save(*args, **kwargs)
 
-        # Update search_vector using Value(...) to avoid DB joins inside the update.
-        # Use transaction.atomic to guarantee the object exists when updating.
+        # Update search_vector
         with transaction.atomic():
             Product.objects.filter(pk=self.pk).update(
                 search_vector=(
-                    # explicit output_field for each Value to keep Postgres happy
-                    # weights A/B/C chosen per field importance
-                    SearchVector(Value(self.search_name, output_field=CharField()), weight='A') +
-                    SearchVector(Value(self.search_description, output_field=TextField()), weight='B') +
-                    SearchVector(Value(self.search_category, output_field=CharField()), weight='C') +
-                    SearchVector(Value(self.search_brand, output_field=CharField()), weight='B') +
-                    SearchVector(Value(self.search_supplier, output_field=CharField()), weight='C')
+                        SearchVector(Value(self.search_name, output_field=CharField()), weight='A') +
+                        SearchVector(Value(self.search_description, output_field=TextField()), weight='B') +
+                        SearchVector(Value(self.search_category, output_field=CharField()), weight='C') +
+                        SearchVector(Value(self.search_brand, output_field=CharField()), weight='B') +
+                        SearchVector(Value(self.search_supplier, output_field=CharField()), weight='C')
                 )
             )
 
-    # --- REMOVED: Redundant update_search_vector method ---
-    # The logic in save() is already superior and more efficient.
-
     def get_image_url(self):
-        """
-        Returns the URL of the product's primary image,
-        falling back to a placeholder if missing.
-        """
+        """Returns the URL of the product's primary image"""
         try:
             if self.image:
                 url = self.image.url
-                logger.debug(f"[Product.get_image_url] Product '{self.name}' has image field='{self.image}', resolved URL='{url}'")
+                logger.debug(f"[Product.get_image_url] Product '{self.name}' has image, URL='{url}'")
                 return url
             else:
-                logger.warning(f"[Product.get_image_url] Product '{self.name}' has no image assigned, using placeholder.")
-                # --- CHANGED: Use static() for robust URL resolving ---
+                logger.warning(f"[Product.get_image_url] Product '{self.name}' has no image, using placeholder.")
                 return static('store/images/placeholder.png')
         except Exception as e:
             logger.error(f"[Product.get_image_url] Error resolving image for '{self.name}': {e}", exc_info=True)
-            # --- CHANGED: Use static() for robust URL resolving ---
             return static('store/images/placeholder.png')
 
     def get_large_image_url(self):
-        """Returns the URL for a large version of the image, for zoom."""
-
-        # For simplicity, this returns the main image.
-        # You could replace this with logic for a larger, watermarked,
-        # or different-sized image if you have one.
-
+        """Returns the URL for a large version of the image"""
         if self.image and self.image.name:
             return self.image.url
         return static('store/images/placeholder.png')
-
 
     def get_absolute_url(self):
         return reverse('store:product_detail', args=[self.slug])
@@ -305,10 +303,115 @@ class Product(models.Model):
         """Check if product has free shipping"""
         return self.free_shipping or (self.shipping_cost and self.shipping_cost.amount == 0)
 
+    def get_features_list(self):
+        """Returns a list of product features, cleaned and formatted"""
+        if not self.features:
+            return []
+
+        features = []
+        for line in self.features.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+
+            # Remove bullet points
+            line = line.lstrip('•–—-*·➤►▪▫⦿○●').strip()
+
+            # Remove numbering
+            line = re.sub(r'^\d+[\.\)]\s*', '', line)
+
+            if line:
+                features.append(line)
+
+        return features
+
+    def get_seo_keywords_list(self):
+        """Returns a list of SEO keywords"""
+        if not self.seo_keywords:
+            return []
+
+        keywords = []
+        for keyword in self.seo_keywords.split(','):
+            keyword = keyword.strip()
+            if keyword:
+                keywords.append(keyword)
+
+        return keywords
+
+    def has_marketing_content(self):
+        """Check if product has marketing content"""
+        return bool(self.features or self.cta or self.seo_keywords)
+
+    def get_structured_data(self):
+        """Generate structured data (JSON-LD) for SEO"""
+        data = {
+            "@context": "https://schema.org/",
+            "@type": "Product",
+            "name": self.name,
+            "description": self.short_description or self.description,
+            "image": self.get_image_url(),
+            "url": self.get_absolute_url(),
+            "offers": {
+                "@type": "Offer",
+                "price": str(self.get_display_price().amount),
+                "priceCurrency": str(self.get_display_price().currency),
+                "availability": "https://schema.org/InStock" if self.stock > 0 else "https://schema.org/OutOfStock",
+            }
+        }
+
+        if self.brand:
+            data["brand"] = {
+                "@type": "Brand",
+                "name": self.brand.name
+            }
+
+        if self.rating > 0:
+            data["aggregateRating"] = {
+                "@type": "AggregateRating",
+                "ratingValue": str(self.rating),
+                "reviewCount": str(self.review_count)
+            }
+
+        return data
+
+    def get_meta_description(self):
+        """Generate an optimized meta description"""
+        if self.short_description:
+            return self.short_description
+
+        if self.description:
+            text = re.sub(r'<[^>]+>', '', self.description)
+            text = text.strip()
+
+            if len(text) > 160:
+                text = text[:157] + '...'
+
+            return text
+
+        return f"{self.name} - Available now at competitive prices"
+
+    def get_meta_title(self):
+        """Generate an optimized meta title"""
+        title = self.name
+
+        if self.category:
+            title += f" | {self.category.name}"
+
+        if self.brand:
+            title += f" - {self.brand.name}"
+
+        return title
 
     @property
     def on_sale(self):
         return bool(self.discount_price and self.discount_price < self.price)
+
+    @property
+    def savings(self):
+        """Calculate savings amount"""
+        if self.discount_price and self.price:
+            return self.price - self.discount_price
+        return Money(0, settings.DEFAULT_CURRENCY)
 
     def __str__(self):
         return self.name
@@ -344,11 +447,12 @@ class ProductVariant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
     size = models.CharField(max_length=20, blank=True)
     color = models.CharField(max_length=50, blank=True)
-    price = MoneyField(max_digits=14, decimal_places=2, default = 0.00)
+    price = MoneyField(max_digits=14, decimal_places=2, default=0.00)
     quantity = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f"{self.product.name} - {self.color} {self.size}"
+
 
 class StockNotification(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='notifications')
@@ -363,6 +467,7 @@ class StockNotification(models.Model):
 
     def __str__(self):
         return f"Notification for {self.product.name} at {self.email}"
+
 
 class Review(models.Model):
     product = models.ForeignKey(Product, related_name='reviews', on_delete=models.CASCADE)
@@ -386,7 +491,6 @@ class Review(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Keep product rating counters in sync
         try:
             self.product.update_rating()
         except Exception:

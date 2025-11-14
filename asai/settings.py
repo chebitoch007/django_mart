@@ -85,6 +85,9 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'orders.apps.OrdersConfig',
     'payment',
+    'support',
+    'company',
+    'blog',
     'core',
     'sslserver',
     'encrypted_model_fields',
@@ -218,6 +221,17 @@ else:
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Image Upload Settings
+MAX_UPLOAD_SIZE = 5242880  # 5MB in bytes
+ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png']
+
+# Language Choices
+LANGUAGES = [
+    ('en', 'English'),
+    ('sw', 'Swahili'),
+]
+
+ACTIVITY_LOG_RETENTION_DAYS = 90  # Keep logs for 90 days
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -430,18 +444,6 @@ PCI_COMPLIANCE = {
 
 EXCHANGERATE_API_KEY = env("EXCHANGERATE_API_KEY", default="")
 
-# Media files (use S3)
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-
-AWS_ACCESS_KEY_ID = env('AWS_KEY', default="")
-AWS_SECRET_ACCESS_KEY = env('AWS_SECRET', default="")
-AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', default="")
-AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default="eu-central-1")
-
-# Optional (for Cloudflare R2)
-AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL", default=None)
-AWS_S3_CUSTOM_DOMAIN = env("AWS_S3_CUSTOM_DOMAIN", default=None)
-
 
 # Cache configuration
 if DEBUG:
@@ -475,4 +477,4 @@ CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 ADMIN_URL = env("ADMIN_URL", default="admin")
 
-BASE_URL='https://e8004770d248.ngrok-free.app'
+BASE_URL='https://0edc25bc75de.ngrok-free.app'

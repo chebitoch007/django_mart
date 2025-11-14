@@ -143,22 +143,59 @@ class ProductForm(forms.ModelForm):
         widget=forms.NumberInput(attrs={'step': '0.01'})
     )
 
+    features = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'rows': 6,
+            'class': 'form-control',
+            'placeholder': '• 500 built-in classic games\n• 8-bit handheld console\n• Rechargeable battery\n• AV output for TV play\n• Portable and lightweight'
+        }),
+        help_text='Enter each feature on a new line. Use bullet points for clarity.'
+    )
+
+    seo_keywords = forms.CharField(
+        required=False,
+        max_length=500,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'retro handheld, 8-bit console, portable gaming, classic games'
+        }),
+        help_text='Comma-separated keywords for SEO optimization'
+    )
+
+    cta = forms.CharField(
+        required=False,
+        max_length=200,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '🕹 Relive the classics — get your RetroPlay™ Console now!'
+        }),
+        label='Call to Action',
+        help_text='Compelling CTA text to encourage purchases'
+    )
 
     class Meta:
         model = Product
         fields = [
             'name', 'category', 'description', 'short_description',
+            'features', 'seo_keywords', 'cta',
             'price', 'discount_price', 'stock', 'image',
             'available', 'featured', 'slug_preview',
-            'brand', 'supplier',  # supplier field already exists
-            'is_dropship', 'aliexpress_url', 'supplier_url',  # supplier_url already exists
+            'brand', 'supplier',
+            'is_dropship', 'aliexpress_url', 'supplier_url',
             'shipping_time', 'commission_rate',
-            'shipping_cost', 'free_shipping'  # NEW fields
+            'shipping_cost', 'free_shipping'
         ]
 
         widgets = {
-            'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
-            'short_description': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+            'description': forms.Textarea(attrs={
+                'rows': 6,
+                'class': 'form-control'
+            }),
+            'short_description': forms.Textarea(attrs={
+                'rows': 2,
+                'class': 'form-control'
+            }),
             'price': forms.NumberInput(attrs={'class': 'form-control pl-12'}),
             'discount_price': forms.NumberInput(attrs={'class': 'form-control pl-12'}),
             'stock': forms.NumberInput(attrs={'class': 'form-control'}),

@@ -45,17 +45,53 @@
 
 <header class="amazon-nav sticky top-0 z-50">
     <div class="nav-top-row">
-        <a href="{% url 'store:product_list' %}" class="nav-logo" aria-label="ASAI Home">
-            <div class="asai-logo">
-                <div class="asai-text">ASAI</div>
-                <div class="controller-icons">
-                    <i class="fas fa-circle icon-pad" style="color: #999;" aria-hidden="true"></i>
-                    <i class="fas fa-circle icon-pad" style="color: #ccc;" aria-hidden="true"></i>
-                    <i class="fas fa-circle icon-pad" style="color: #bbb;" aria-hidden="true"></i>
-                    <i class="fas fa-circle icon-pad" style="color: #aaa;" aria-hidden="true"></i>
+        <div class="nav-top-bar">
+            <a href="{% url 'store:product_list' %}" class="nav-logo" aria-label="ASAI Home">
+                <div class="asai-logo">
+                    <div class="asai-text">ASAI</div>
+                    <div class="controller-icons">
+                        <i class="fas fa-circle icon-pad" style="color: #999;" aria-hidden="true"></i>
+                        <i class="fas fa-circle icon-pad" style="color: #ccc;" aria-hidden="true"></i>
+                        <i class="fas fa-circle icon-pad" style="color: #bbb;" aria-hidden="true"></i>
+                        <i class="fas fa-circle icon-pad" style="color: #aaa;" aria-hidden="true"></i>
+                    </div>
                 </div>
+            </a>
+
+            <div class="nav-right">
+                <div class="currency-selector-container">
+                    {% include 'store/components/currency_selector.html' %}
+                </div>
+
+                {% if user.is_authenticated %}
+                <a href="{% url 'users:account' %}" class="nav-link-box premium-hover" aria-label="Account">
+                    <div class="nav-link-top">Hello, {{ user.first_name|default:user.username }}</div>
+                    <div class="nav-link-bottom">Account & Lists</div>
+                </a>
+                {% else %}
+                <a href="{% url 'users:login' %}" class="nav-link-box premium-hover" aria-label="Sign In">
+                    <div class="nav-link-top">Sign in</div>
+                    <div class="nav-link-bottom">Account & Lists</div>
+                </a>
+                {% endif %}
+
+                <a href="{% url 'orders:order_list' %}" class="nav-link-box premium-hover" aria-label="Returns and Orders">
+                    <div class="nav-link-top">Returns &</div>
+                    <div class="nav-link-bottom">Orders</div>
+                </a>
+
+                <a href="{% url 'cart:cart_detail' %}" class="cart-box premium-hover" aria-label="Shopping Cart"
+                   id="cart-link">
+                    <i class="fas fa-shopping-cart text-xl" aria-hidden="true"></i>
+                    <div class="ml-1">
+                        <div class="nav-link-bottom">Cart</div>
+                    </div>
+                    <div class="cart-count" id="cart-count">
+                        {{ cart.total_items|default:0 }}
+                    </div>
+                </a>
             </div>
-        </a>
+        </div>
 
         <div class="search-container">
             <form action="{% url 'store:product_search' %}" method="get" class="w-full" id="search-form">
@@ -91,40 +127,6 @@
             <div id="search-suggestions" class="suggestion-section-header" role="listbox"
                  aria-labelledby="search-form"></div>
         </div>
-
-        <div class="nav-right">
-            <div class="currency-selector-container">
-                {% include 'store/components/currency_selector.html' %}
-            </div>
-
-            {% if user.is_authenticated %}
-            <a href="{% url 'users:account' %}" class="nav-link-box premium-hover" aria-label="Account">
-                <div class="nav-link-top">Hello, {{ user.first_name|default:user.username }}</div>
-                <div class="nav-link-bottom">Account & Lists</div>
-            </a>
-            {% else %}
-            <a href="{% url 'users:login' %}" class="nav-link-box premium-hover" aria-label="Sign In">
-                <div class="nav-link-top">Sign in</div>
-                <div class="nav-link-bottom">Account & Lists</div>
-            </a>
-            {% endif %}
-
-            <a href="{% url 'orders:order_list' %}" class="nav-link-box premium-hover" aria-label="Returns and Orders">
-                <div class="nav-link-top">Returns &</div>
-                <div class="nav-link-bottom">Orders</div>
-            </a>
-
-            <a href="{% url 'cart:cart_detail' %}" class="cart-box premium-hover" aria-label="Shopping Cart"
-               id="cart-link">
-                <i class="fas fa-shopping-cart text-xl" aria-hidden="true"></i>
-                <div class="ml-1">
-                    <div class="nav-link-bottom">Cart</div>
-                </div>
-                <div class="cart-count" id="cart-count">
-                    {{ cart.total_items|default:0 }}
-                </div>
-            </a>
-        </div>
     </div>
 
     <div class="nav-bottom-row">
@@ -159,6 +161,28 @@
     </div>
 
     <div class="mobile-menu-scroll-container">
+        <div class="mobile-currency-selector">
+            <h3 class="mobile-menu-title">Select Currency</h3>
+            <div class="mobile-currency-options" id="mobile-currency-options">
+                <button class="mobile-currency-option active" data-currency="KES" type="button">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>KES</span>
+                </button>
+                <button class="mobile-currency-option" data-currency="USD" type="button">
+                    <i class="fas fa-dollar-sign"></i>
+                    <span>USD</span>
+                </button>
+                <button class="mobile-currency-option" data-currency="EUR" type="button">
+                    <i class="fas fa-euro-sign"></i>
+                    <span>EUR</span>
+                </button>
+                <button class="mobile-currency-option" data-currency="GBP" type="button">
+                    <i class="fas fa-pound-sign"></i>
+                    <span>GBP</span>
+                </button>
+            </div>
+        </div>
+
         <h3 class="mobile-menu-title">Shop by Category</h3>
         <div class="mobile-menu-categories">
             <a href="{% url 'store:product_list' %}?on_sale=true" class="mobile-category">
@@ -285,11 +309,13 @@
                     Support
                 </h3>
                 <ul class="space-y-3">
-                    <li><a href="{% url 'store:contact' %}" class="footer-link"><i
+                    <li><a href="{% url 'support:contact' %}" class="footer-link"><i
                             class="fas fa-chevron-right footer-link-icon footer-link-icon-purple"></i>Contact Us</a>
                     </li>
-                    <li><a href="{% url 'store:faq' %}" class="footer-link"><i
+                    <li><a href="{% url 'support:faq_list' %}" class="footer-link"><i
                             class="fas fa-chevron-right footer-link-icon footer-link-icon-purple"></i>FAQs</a></li>
+
+
                     <li><a href="{% url 'store:tracking' %}" class="footer-link"><i
                             class="fas fa-chevron-right footer-link-icon footer-link-icon-purple"></i>Track Order</a>
                     </li>
@@ -310,18 +336,24 @@
                     Company
                 </h3>
                 <ul class="space-y-3">
-                    <li><a href="#" class="footer-link"><i
+                    <li><a href="{% url 'company:about' %}" class="footer-link"><i
                             class="fas fa-chevron-right footer-link-icon footer-link-icon-pink"></i>About Us</a></li>
-                    <li><a href="#" class="footer-link"><i
+                    <li><a href="{% url 'company:careers' %}" class="footer-link"><i
                             class="fas fa-chevron-right footer-link-icon footer-link-icon-pink"></i>Careers</a></li>
+
+                    <li><a href="{% url 'company:team' %}" class="footer-link"><i
+                            class="fas fa-chevron-right footer-link-icon footer-link-icon-pink"></i>Our Team</a></li>
+
                     <li><a href="#" class="footer-link"><i
                             class="fas fa-chevron-right footer-link-icon footer-link-icon-pink"></i>Press & Media</a>
                     </li>
                     <li><a href="#" class="footer-link"><i
                             class="fas fa-chevron-right footer-link-icon footer-link-icon-pink"></i>Sustainability</a>
                     </li>
-                    <li><a href="#" class="footer-link"><i
+                    <li><a href="{% url 'blog:blog_list' %}" class="footer-link"><i
                             class="fas fa-chevron-right footer-link-icon footer-link-icon-pink"></i>Blog</a></li>
+
+
                     <li><a href="#" class="footer-link"><i
                             class="fas fa-chevron-right footer-link-icon footer-link-icon-pink"></i>Affiliate
                         Program</a></li>

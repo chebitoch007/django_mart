@@ -1,0 +1,70 @@
+<!-- ========== company/templates/company/career_detail.html ========== -->
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}{{ career.title }} - Careers - ASAI{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-12">
+    <a href="{% url 'company:careers' %}" class="text-blue-600 hover:text-blue-700 mb-6 inline-block">
+        <i class="fas fa-arrow-left mr-2"></i>Back to Careers
+    </a>
+
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">{{ career.title }}</h1>
+
+        <div class="flex flex-wrap gap-3 mb-6">
+            <span class="px-4 py-2 bg-blue-100 text-blue-700 rounded-full font-medium">
+                <i class="fas fa-building mr-2"></i>{{ career.department }}
+            </span>
+            <span class="px-4 py-2 bg-green-100 text-green-700 rounded-full font-medium">
+                <i class="fas fa-briefcase mr-2"></i>{{ career.get_employment_type_display }}
+            </span>
+            <span class="px-4 py-2 bg-purple-100 text-purple-700 rounded-full font-medium">
+                <i class="fas fa-map-marker-alt mr-2"></i>{{ career.location }}
+            </span>
+            <span class="px-4 py-2 bg-orange-100 text-orange-700 rounded-full font-medium">
+                <i class="fas fa-chart-line mr-2"></i>{{ career.get_experience_level_display }}
+            </span>
+        </div>
+
+        <div class="prose max-w-none mb-8">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Job Description</h2>
+            <p class="text-gray-700">{{ career.description|linebreaks }}</p>
+
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4 mt-8">Responsibilities</h2>
+            <div class="text-gray-700">{{ career.responsibilities|linebreaks }}</div>
+
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4 mt-8">Requirements</h2>
+            <div class="text-gray-700">{{ career.requirements|linebreaks }}</div>
+
+            {% if career.benefits %}
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4 mt-8">Benefits</h2>
+            <div class="text-gray-700">{{ career.benefits|linebreaks }}</div>
+            {% endif %}
+        </div>
+
+        <div class="border-t pt-6">
+            <a href="{% url 'company:career_apply' career.slug %}"
+               class="inline-block bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-purple-700">
+                <i class="fas fa-paper-plane mr-2"></i>Apply Now
+            </a>
+        </div>
+    </div>
+
+    <!-- Related Jobs -->
+    {% if related_jobs %}
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-xl font-semibold text-gray-900 mb-4">Other Openings in {{ career.department }}</h3>
+        <div class="space-y-3">
+            {% for job in related_jobs %}
+            <a href="{% url 'company:career_detail' job.slug %}" class="block p-4 border rounded-lg hover:bg-gray-50">
+                <h4 class="font-semibold text-gray-900">{{ job.title }}</h4>
+                <p class="text-sm text-gray-600">{{ job.location }} • {{ job.get_employment_type_display }}</p>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,146 +1,455 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-gray-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Update Profile - ASAI</title>
-    <link rel="stylesheet" href="{% static 'css/asai-forms.css' %}">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- Alpine.js for interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <style>
-        /* Add some basic spacing if not handled by asai-forms.css */
-        .form-section { margin-bottom: 1.5rem; }
-        .form-label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
-        .form-input, .form-select, .form-textarea { /* Basic input styling */
+        /* Custom toggle switch styles */
+        .toggle-checkbox:checked {
+            background-color: #4f46e5;
+            border-color: #4f46e5;
+        }
+        .toggle-checkbox {
+            appearance: none;
+            width: 3rem;
+            height: 1.75rem;
+            background-color: #d1d5db;
+            border-radius: 9999px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .toggle-checkbox::after {
+            content: '';
+            position: absolute;
+            top: 0.125rem;
+            left: 0.125rem;
+            width: 1.5rem;
+            height: 1.5rem;
+            background-color: white;
+            border-radius: 9999px;
+            transition: transform 0.3s;
+        }
+        .toggle-checkbox:checked::after {
+            transform: translateX(1.25rem);
+        }
+
+        /* Smooth transitions */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Image preview styles */
+        .image-preview-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+        }
+
+        .image-preview {
             width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid #ccc;
-            border-radius: 0.375rem;
-            transition: border-color 0.2s;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
         }
-        .form-input:focus, .form-select:focus, .form-textarea:focus {
-            outline: none;
-            border-color: #4f46e5; /* Example focus color */
+
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
         }
-        .errorlist { list-style: none; padding: 0; color: #dc3545; font-size: 0.875rem; margin-top: 0.25rem; }
-        .helptext { font-size: 0.875rem; color: #6c757d; margin-top: 0.25rem; }
-        .profile-preview { max-width: 100px; max-height: 100px; border-radius: 50%; margin-bottom: 0.5rem; }
-        .current-picture { display: flex; align-items: center; gap: 1rem; }
-        /* Add other styles as needed from asai-forms.css */
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Tab styles */
+        .tab-button {
+            transition: all 0.3s;
+        }
+
+        .tab-button.active {
+            border-bottom: 2px solid #4f46e5;
+            color: #4f46e5;
+        }
+
+        /* Validation states */
+        .valid-input {
+            border-color: #10b981 !important;
+        }
+
+        .invalid-input {
+            border-color: #ef4444 !important;
+        }
+
+        /* Character counter */
+        .char-counter {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .char-counter.warning {
+            color: #f59e0b;
+        }
+
+        .char-counter.danger {
+            color: #ef4444;
+        }
     </style>
 </head>
-<body class="bg-light">
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-12 col-lg-8">
-            <div class="asai-page-header mb-4">
-                <h1 class="asai-page-title">
-                    <i class="fas fa-user-circle me-2"></i>Update Profile
+<body class="h-full">
+    <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8"
+         x-data="profileForm()"
+         x-init="init()">
+
+        <div class="max-w-4xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-gray-900 mb-2">
+                    <i class="fas fa-user-circle text-indigo-600 mr-3"></i>
+                    Update Profile
                 </h1>
-                <p class="asai-page-subtitle">Keep your personal information up to date</p>
+                <p class="text-lg text-gray-600">Manage your personal information and preferences</p>
             </div>
 
-            {% if user_form.errors or profile_form.errors %}
-                <div class="alert alert-danger mb-4"> {# Assuming Bootstrap alert styles or similar #}
-                    <strong>Please correct the errors below:</strong>
-                    {{ user_form.non_field_errors }}
-                    {{ profile_form.non_field_errors }}
-                    <ul>
-                        {% for field in user_form %}
-                            {% if field.errors %}<li>{{ field.label }}: {{ field.errors|striptags }}</li>{% endif %}
-                        {% endfor %}
-                        {% for field in profile_form %}
-                            {% if field.errors %}<li>{{ field.label }}: {{ field.errors|striptags }}</li>{% endif %}
-                        {% endfor %}
-                    </ul>
+            <!-- Messages -->
+            {% if messages %}
+            <div class="mb-6 space-y-3 fade-in">
+                {% for message in messages %}
+                <div class="rounded-lg p-4 flex items-start shadow-sm {% if message.tags == 'success' %}bg-green-50 border border-green-200{% elif message.tags == 'error' %}bg-red-50 border border-red-200{% else %}bg-blue-50 border border-blue-200{% endif %}">
+                    <div class="flex-shrink-0">
+                        <i class="fas {% if message.tags == 'success' %}fa-check-circle text-green-500{% elif message.tags == 'error' %}fa-exclamation-circle text-red-500{% else %}fa-info-circle text-blue-500{% endif %} text-xl"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium {% if message.tags == 'success' %}text-green-800{% elif message.tags == 'error' %}text-red-800{% else %}text-blue-800{% endif %}">
+                            {{ message }}
+                        </p>
+                    </div>
                 </div>
+                {% endfor %}
+            </div>
             {% endif %}
 
-            <form method="post" enctype="multipart/form-data" class="asai-form">
-                {% csrf_token %}
-
-                <div class="asai-card mb-4 animate-fade-in">
-                    <div class="asai-card-header">
-                        <i class="fas fa-user me-2"></i>Personal Details
-                    </div>
-                    <div class="asai-card-body">
-                        <div class="form-section">
-                            <label for="{{ user_form.first_name.id_for_label }}" class="form-label">{{ user_form.first_name.label }}</label>
-                            {{ user_form.first_name }}
-                            {% if user_form.first_name.help_text %}<small class="helptext">{{ user_form.first_name.help_text|safe }}</small>{% endif %}
-                            {% if user_form.first_name.errors %}<div class="errorlist">{{ user_form.first_name.errors }}</div>{% endif %}
-                        </div>
-                        <div class="form-section">
-                            <label for="{{ user_form.last_name.id_for_label }}" class="form-label">{{ user_form.last_name.label }}</label>
-                            {{ user_form.last_name }}
-                            {% if user_form.last_name.help_text %}<small class="helptext">{{ user_form.last_name.help_text|safe }}</small>{% endif %}
-                            {% if user_form.last_name.errors %}<div class="errorlist">{{ user_form.last_name.errors }}</div>{% endif %}
-                        </div>
-                        <div class="form-section">
-                            <label for="{{ user_form.email.id_for_label }}" class="form-label">{{ user_form.email.label }}</label>
-                            {{ user_form.email }}
-                            {% if user_form.email.help_text %}<small class="helptext">{{ user_form.email.help_text|safe }}</small>{% endif %}
-                            {% if user_form.email.errors %}<div class="errorlist">{{ user_form.email.errors }}</div>{% endif %}
-                        </div>
-                         <div class="form-section">
-                            <label for="{{ user_form.phone_number.id_for_label }}" class="form-label">{{ user_form.phone_number.label }}</label>
-                            {{ user_form.phone_number }}
-                            {% if user_form.phone_number.help_text %}<small class="helptext">{{ user_form.phone_number.help_text|safe }}</small>{% endif %}
-                            {% if user_form.phone_number.errors %}<div class="errorlist">{{ user_form.phone_number.errors }}</div>{% endif %}
-                        </div>
-                    </div>
+            <!-- Main Card -->
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                <!-- Tab Navigation -->
+                <div class="border-b border-gray-200 bg-gray-50">
+                    <nav class="flex -mb-px">
+                        <button @click="currentTab = 'personal'"
+                                :class="{'active': currentTab === 'personal'}"
+                                class="tab-button flex-1 py-4 px-6 text-center font-medium text-gray-600 hover:text-indigo-600 focus:outline-none">
+                            <i class="fas fa-user mr-2"></i>
+                            Personal Info
+                        </button>
+                        <button @click="currentTab = 'preferences'"
+                                :class="{'active': currentTab === 'preferences'}"
+                                class="tab-button flex-1 py-4 px-6 text-center font-medium text-gray-600 hover:text-indigo-600 focus:outline-none">
+                            <i class="fas fa-cog mr-2"></i>
+                            Preferences
+                        </button>
+                        <button @click="currentTab = 'notifications'"
+                                :class="{'active': currentTab === 'notifications'}"
+                                class="tab-button flex-1 py-4 px-6 text-center font-medium text-gray-600 hover:text-indigo-600 focus:outline-none">
+                            <i class="fas fa-bell mr-2"></i>
+                            Notifications
+                        </button>
+                    </nav>
                 </div>
 
-                <div class="asai-card mb-4 animate-fade-in">
-                    <div class="asai-card-header">
-                        <i class="fas fa-cog me-2"></i>Profile & Preferences
-                    </div>
-                    <div class="asai-card-body">
-                        <div class="form-section">
-                            <label for="{{ profile_form.date_of_birth.id_for_label }}" class="form-label">{{ profile_form.date_of_birth.label }}</label>
-                            {{ profile_form.date_of_birth }}
-                            {% if profile_form.date_of_birth.help_text %}<small class="helptext">{{ profile_form.date_of_birth.help_text|safe }}</small>{% endif %}
-                            {% if profile_form.date_of_birth.errors %}<div class="errorlist">{{ profile_form.date_of_birth.errors }}</div>{% endif %}
-                        </div>
-                         <div class="form-section">
-                            <label for="{{ profile_form.preferred_language.id_for_label }}" class="form-label">{{ profile_form.preferred_language.label }}</label>
-                            {{ profile_form.preferred_language }}
-                            {% if profile_form.preferred_language.help_text %}<small class="helptext">{{ profile_form.preferred_language.help_text|safe }}</small>{% endif %}
-                            {% if profile_form.preferred_language.errors %}<div class="errorlist">{{ profile_form.preferred_language.errors }}</div>{% endif %}
-                        </div>
-                        <div class="form-section form-check"> {# Assuming form-check class for checkbox styling #}
-                            {{ profile_form.dark_mode }}
-                            <label for="{{ profile_form.dark_mode.id_for_label }}" class="form-check-label">{{ profile_form.dark_mode.label }}</label>
-                             {% if profile_form.dark_mode.help_text %}<small class="helptext">{{ profile_form.dark_mode.help_text|safe }}</small>{% endif %}
-                            {% if profile_form.dark_mode.errors %}<div class="errorlist">{{ profile_form.dark_mode.errors }}</div>{% endif %}
-                        </div>
-                         <div class="form-section form-check">
-                            {{ profile_form.email_notifications }}
-                            <label for="{{ profile_form.email_notifications.id_for_label }}" class="form-check-label">{{ profile_form.email_notifications.label }}</label>
-                             {% if profile_form.email_notifications.help_text %}<small class="helptext">{{ profile_form.email_notifications.help_text|safe }}</small>{% endif %}
-                            {% if profile_form.email_notifications.errors %}<div class="errorlist">{{ profile_form.email_notifications.errors }}</div>{% endif %}
-                        </div>
-                         <div class="form-section form-check">
-                            {{ profile_form.sms_notifications }}
-                            <label for="{{ profile_form.sms_notifications.id_for_label }}" class="form-check-label">{{ profile_form.sms_notifications.label }}</label>
-                            {% if profile_form.sms_notifications.help_text %}<small class="helptext">{{ profile_form.sms_notifications.help_text|safe }}</small>{% endif %}
-                            {% if profile_form.sms_notifications.errors %}<div class="errorlist">{{ profile_form.sms_notifications.errors }}</div>{% endif %}
+                <!-- Form -->
+                <form method="post"
+                      enctype="multipart/form-data"
+                      @submit="handleSubmit"
+                      class="p-8">
+                    {% csrf_token %}
+
+                    <!-- Personal Info Tab -->
+                    <div x-show="currentTab === 'personal'"
+                         x-transition:enter="fade-in"
+                         class="space-y-6">
+
+                        <!-- Profile Image Section -->
+                        <div class="flex flex-col items-center mb-8">
+                            <div class="relative image-preview-container mb-4">
+                                <img x-bind:src="imagePreview"
+                                     class="image-preview shadow-lg"
+                                     alt="Profile preview">
+
+                                <!-- Image overlay on hover -->
+                                <div class="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                                     @click="$refs.imageInput.click()">
+                                    <i class="fas fa-camera text-white text-3xl"></i>
+                                </div>
+
+                                <!-- Loading spinner -->
+                                <div x-show="isUploading"
+                                     class="absolute inset-0 bg-white bg-opacity-90 rounded-full flex items-center justify-center">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-3">
+                                <button type="button"
+                                        @click="$refs.imageInput.click()"
+                                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                                    <i class="fas fa-upload mr-2"></i>
+                                    Upload Photo
+                                </button>
+
+                                <button type="button"
+                                        @click="removeImage"
+                                        x-show="hasCustomImage"
+                                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                                    <i class="fas fa-trash mr-2"></i>
+                                    Remove
+                                </button>
+                            </div>
+
+                            <input type="file"
+                                   x-ref="imageInput"
+                                   name="profile_image"
+                                   id="{{ form.profile_image.id_for_label }}"
+                                   accept="image/jpeg,image/png,image/jpg"
+                                   @change="handleImageChange($event)"
+                                   class="hidden">
+
+                            <p class="text-sm text-gray-500 mt-2">JPG or PNG, max 5MB</p>
                         </div>
 
-                    </div>
-                </div>
+                        <!-- Name Fields -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- First Name -->
+                            <div>
+                                <label for="{{ form.first_name.id_for_label }}"
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.first_name.label }}
+                                    <span class="text-red-500">*</span>
+                                </label>
+                                {{ form.first_name }}
+                                <div x-show="validation.firstName.isValid" class="mt-1 text-sm text-green-600 flex items-center">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    Looks good!
+                                </div>
+                                {% if form.first_name.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {{ form.first_name.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
 
-                <div class="asai-form-actions">
-                    <button type="submit" class="asai-btn asai-btn-primary">
-                        <i class="fas fa-save me-2"></i>Update Profile
-                    </button>
-                    <a href="{% url 'users:account' %}" class="asai-btn asai-btn-secondary">
-                        <i class="fas fa-times me-2"></i>Cancel
-                    </a>
-                </div>
-            </form>
+                            <!-- Last Name -->
+                            <div>
+                                <label for="{{ form.last_name.id_for_label }}"
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.last_name.label }}
+                                    <span class="text-red-500">*</span>
+                                </label>
+                                {{ form.last_name }}
+                                <div x-show="validation.lastName.isValid" class="mt-1 text-sm text-green-600 flex items-center">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    Looks good!
+                                </div>
+                                {% if form.last_name.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {{ form.last_name.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Phone Number -->
+                        <div>
+                            <label for="{{ form.phone_number.id_for_label }}"
+                                   class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.phone_number.label }}
+                            </label>
+                            {{ form.phone_number }}
+                            <div x-show="validation.phone.isValid" class="mt-1 text-sm text-green-600 flex items-center">
+                                <i class="fas fa-check-circle mr-1"></i>
+                                Valid phone number
+                            </div>
+                            <div x-show="validation.phone.message && !validation.phone.isValid"
+                                 class="mt-1 text-sm text-red-600"
+                                 x-text="validation.phone.message"></div>
+                            {% if form.phone_number.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {{ form.phone_number.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <p class="mt-1 text-sm text-gray-500">{{ form.phone_number.help_text }}</p>
+                        </div>
+
+                        <!-- Bio -->
+                        <div>
+                            <label for="{{ form.bio.id_for_label }}"
+                                   class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.bio.label }}
+                            </label>
+                            {{ form.bio }}
+                            <div class="mt-1 flex justify-between items-center">
+                                <p class="text-sm text-gray-500">Tell us about yourself</p>
+                                <span class="char-counter"
+                                      :class="{'warning': bioLength > 400, 'danger': bioLength > 450}"
+                                      x-text="bioLength + '/500'"></span>
+                            </div>
+                            {% if form.bio.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {{ form.bio.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Date of Birth -->
+                        <div>
+                            <label for="{{ form.date_of_birth.id_for_label }}"
+                                   class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.date_of_birth.label }}
+                            </label>
+                            {{ form.date_of_birth }}
+                            {% if form.date_of_birth.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {{ form.date_of_birth.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Preferences Tab -->
+                    <div x-show="currentTab === 'preferences'"
+                         x-transition:enter="fade-in"
+                         class="space-y-6">
+
+                        <!-- Preferred Language -->
+                        <div>
+                            <label for="{{ form.preferred_language.id_for_label }}"
+                                   class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.preferred_language.label }}
+                            </label>
+                            {{ form.preferred_language }}
+                            {% if form.preferred_language.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {{ form.preferred_language.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Dark Mode Toggle -->
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div class="flex-1">
+                                <label for="{{ form.dark_mode.id_for_label }}"
+                                       class="block text-sm font-medium text-gray-700">
+                                    {{ form.dark_mode.label }}
+                                </label>
+                                <p class="text-sm text-gray-500 mt-1">Switch to dark theme for better viewing in low light</p>
+                            </div>
+                            {{ form.dark_mode }}
+                        </div>
+                    </div>
+
+                    <!-- Notifications Tab -->
+                    <div x-show="currentTab === 'notifications'"
+                         x-transition:enter="fade-in"
+                         class="space-y-4">
+
+                        <!-- Email Notifications -->
+                        <div class="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
+                            <div class="flex-1 mr-4">
+                                <label for="{{ form.email_notifications.id_for_label }}"
+                                       class="block text-sm font-medium text-gray-700">
+                                    <i class="fas fa-envelope mr-2 text-indigo-600"></i>
+                                    {{ form.email_notifications.label }}
+                                </label>
+                                <p class="text-sm text-gray-500 mt-1">{{ form.email_notifications.help_text }}</p>
+                            </div>
+                            {{ form.email_notifications }}
+                        </div>
+
+                        <!-- SMS Notifications -->
+                        <div class="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
+                            <div class="flex-1 mr-4">
+                                <label for="{{ form.sms_notifications.id_for_label }}"
+                                       class="block text-sm font-medium text-gray-700">
+                                    <i class="fas fa-sms mr-2 text-indigo-600"></i>
+                                    {{ form.sms_notifications.label }}
+                                </label>
+                                <p class="text-sm text-gray-500 mt-1">{{ form.sms_notifications.help_text }}</p>
+                            </div>
+                            {{ form.sms_notifications }}
+                        </div>
+
+                        <!-- Marketing Opt-in -->
+                        <div class="flex items-start justify-between p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-indigo-200">
+                            <div class="flex-1 mr-4">
+                                <label for="{{ form.marketing_optin.id_for_label }}"
+                                       class="block text-sm font-medium text-gray-700">
+                                    <i class="fas fa-bullhorn mr-2 text-indigo-600"></i>
+                                    {{ form.marketing_optin.label }}
+                                </label>
+                                <p class="text-sm text-gray-500 mt-1">{{ form.marketing_optin.help_text }}</p>
+                            </div>
+                            {{ form.marketing_optin }}
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="mt-8 flex flex-col sm:flex-row gap-4">
+                        <button type="submit"
+                                :disabled="!formValid || isSubmitting"
+                                :class="{'opacity-50 cursor-not-allowed': !formValid || isSubmitting}"
+                                class="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            <span x-show="!isSubmitting">
+                                <i class="fas fa-save mr-2"></i>
+                                Save Changes
+                            </span>
+                            <span x-show="isSubmitting">
+                                <i class="fas fa-spinner fa-spin mr-2"></i>
+                                Saving...
+                            </span>
+                        </button>
+
+                        <a href="{% url 'users:account' %}"
+                           class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 transition-colors text-center">
+                            <i class="fas fa-times mr-2"></i>
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Back to Account Link -->
+            <div class="text-center mt-6">
+                <a href="{% url 'users:account' %}"
+                   class="text-indigo-600 hover:text-indigo-700 font-medium">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Back to Account
+                </a>
+            </div>
         </div>
     </div>
-</div>
+
+    <!-- Include profile form JavaScript -->
+    <script src="{% static 'js/profile_form.js' %}"></script>
 </body>
 </html>

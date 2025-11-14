@@ -1,0 +1,98 @@
+<!-- ========== support/templates/support/ticket_detail.html ========== -->
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}Ticket {{ ticket.ticket_number }} - ASAI{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-12">
+    <!-- Header -->
+    <div class="mb-8">
+        <a href="{% url 'support:ticket_list' %}" class="text-blue-600 hover:text-blue-700 mb-4 inline-block">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Tickets
+        </a>
+
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ ticket.subject }}</h1>
+                <div class="flex items-center gap-3">
+                    <span class="font-mono text-blue-600 font-semibold">{{ ticket.ticket_number }}</span>
+                    <span class="px-3 py-1 rounded-full text-sm font-semibold
+                        {% if ticket.status == 'open' %}bg-green-100 text-green-700
+                        {% elif ticket.status == 'in_progress' %}bg-yellow-100 text-yellow-700
+                        {% elif ticket.status == 'resolved' %}bg-purple-100 text-purple-700
+                        {% else %}bg-gray-100 text-gray-700{% endif %}">
+                        {{ ticket.get_status_display }}
+                    </span>
+                    <span class="px-3 py-1 rounded-full text-sm font-semibold
+                        {% if ticket.priority == 'urgent' %}bg-red-100 text-red-700
+                        {% elif ticket.priority == 'high' %}bg-orange-100 text-orange-700
+                        {% else %}bg-gray-100 text-gray-700{% endif %}">
+                        {{ ticket.get_priority_display }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Original Message -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex items-start gap-4 mb-4">
+            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                {{ ticket.user.first_name.0|default:ticket.user.email.0|upper }}
+            </div>
+            <div class="flex-1">
+                <div class="font-semibold text-gray-900">{{ ticket.user.first_name }} {{ ticket.user.last_name }}</div>
+                <div class="text-sm text-gray-500">{{ ticket.created_at|date:"F d, Y \a\t g:i A" }}</div>
+            </div>
+        </div>
+        <div class="prose max-w-none">
+            <p class="text-gray-700 whitespace-pre-line">{{ ticket.description }}</p>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% for message in messages %}
+    <div class="{% if message.is_staff_reply %}bg-blue-50 border-l-4 border-blue-600{% else %}bg-white{% endif %} rounded-lg shadow-md p-6 mb-4">
+        <div class="flex items-start gap-4 mb-4">
+            <div class="w-12 h-12 {% if message.is_staff_reply %}bg-purple-600{% else %}bg-blue-600{% endif %} rounded-full flex items-center justify-center text-white font-semibold">
+                {{ message.user.first_name.0|default:message.user.email.0|upper }}
+            </div>
+            <div class="flex-1">
+                <div class="font-semibold text-gray-900">
+                    {{ message.user.first_name }} {{ message.user.last_name }}
+                    {% if message.is_staff_reply %}
+                    <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded ml-2">Staff</span>
+                    {% endif %}
+                </div>
+                <div class="text-sm text-gray-500">{{ message.created_at|date:"F d, Y \a\t g:i A" }}</div>
+            </div>
+        </div>
+        <div class="prose max-w-none">
+            <p class="text-gray-700 whitespace-pre-line">{{ message.message }}</p>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Reply Form -->
+    {% if ticket.status != 'closed' %}
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-xl font-semibold text-gray-900 mb-4">Add Reply</h3>
+        <form method="post" action="{% url 'support:ticket_reply' ticket.ticket_number %}">
+            {% csrf_token %}
+            <textarea name="message" rows="6" required
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none mb-4"
+                      placeholder="Type your reply here..."></textarea>
+            <button type="submit" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700">
+                <i class="fas fa-reply mr-2"></i>Send Reply
+            </button>
+        </form>
+    </div>
+    {% else %}
+    <div class="bg-gray-100 rounded-lg p-6 text-center">
+        <i class="fas fa-lock text-gray-400 text-3xl mb-2"></i>
+        <p class="text-gray-600">This ticket is closed and cannot accept new replies.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

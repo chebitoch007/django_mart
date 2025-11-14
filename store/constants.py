@@ -10,11 +10,15 @@ CATEGORIES = {
         "Keyboards & Mice": [],
         "Gaming Chairs & Desks": [],
     },
-    "Games & Software": {
-        "PC Games": [],
-        "PlayStation Games": [],
-        "Xbox Games": [],
-    },
+
+
+    #"Games & Software": {
+     #   "PC Games": [],
+      #  "PlayStation Games": [],
+       # "Xbox Games": [],
+    #},
+
+
     "Merch & Collectibles": {
         "Apparel & Hoodies": [],
         "Action Figures & Statues": [],

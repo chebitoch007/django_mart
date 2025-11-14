@@ -1,0 +1,177 @@
+<!-- ========== blog/templates/blog/blog_list.html ========== -->
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}Blog - ASAI{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-12">
+    <!-- Hero Section with Featured Posts -->
+    {% if featured_posts %}
+    <div class="mb-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-6">Featured Posts</h2>
+        <div class="grid md:grid-cols-3 gap-6">
+            {% for post in featured_posts %}
+            <a href="{% url 'blog:post_detail' post.slug %}" class="block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition">
+                {% if post.featured_image %}
+                <img src="{{ post.featured_image.url }}" alt="{{ post.title }}" class="w-full h-48 object-cover">
+                {% else %}
+                <div class="w-full h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                    <i class="fas fa-newspaper text-white text-4xl"></i>
+                </div>
+                {% endif %}
+                <div class="p-6">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                            {{ post.category.name }}
+                        </span>
+                        <span class="text-sm text-gray-500">{{ post.reading_time }} min read</span>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ post.title }}</h3>
+                    <p class="text-gray-600 text-sm">{{ post.excerpt }}</p>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="grid lg:grid-cols-3 gap-8">
+        <!-- Main Content -->
+        <div class="lg:col-span-2">
+            <h1 class="text-4xl font-bold text-gray-900 mb-8">Latest Posts</h1>
+
+            {% if posts %}
+            <div class="space-y-8">
+                {% for post in posts %}
+                <article class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
+                    <div class="md:flex">
+                        {% if post.featured_image %}
+                        <img src="{{ post.featured_image.url }}" alt="{{ post.title }}" class="md:w-64 h-48 object-cover">
+                        {% else %}
+                        <div class="md:w-64 h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                            <i class="fas fa-newspaper text-white text-4xl"></i>
+                        </div>
+                        {% endif %}
+
+                        <div class="p-6 flex-1">
+                            <div class="flex items-center gap-3 mb-3">
+                                <span class="px-3 py-1 rounded-full text-sm font-medium" style="background-color: {{ post.category.color }}20; color: {{ post.category.color }};">
+                                    <i class="{{ post.category.icon }} mr-1"></i>{{ post.category.name }}
+                                </span>
+                                <span class="text-sm text-gray-500">
+                                    <i class="fas fa-calendar mr-1"></i>{{ post.published_at|date:"M d, Y" }}
+                                </span>
+                                <span class="text-sm text-gray-500">
+                                    <i class="fas fa-clock mr-1"></i>{{ post.reading_time }} min
+                                </span>
+                            </div>
+
+                            <h2 class="text-2xl font-semibold text-gray-900 mb-3 hover:text-blue-600">
+                                <a href="{% url 'blog:post_detail' post.slug %}">{{ post.title }}</a>
+                            </h2>
+
+                            <p class="text-gray-600 mb-4">{{ post.excerpt }}</p>
+
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-4 text-sm text-gray-500">
+                                    <span><i class="fas fa-eye mr-1"></i>{{ post.views }}</span>
+                                    <span><i class="fas fa-comments mr-1"></i>{{ post.comments.count }}</span>
+                                </div>
+                                <a href="{% url 'blog:post_detail' post.slug %}" class="text-blue-600 hover:text-blue-700 font-semibold">
+                                    Read More <i class="fas fa-arrow-right ml-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if posts.has_other_pages %}
+            <div class="flex justify-center gap-2 mt-8">
+                {% if posts.has_previous %}
+                <a href="?page={{ posts.previous_page_number }}" class="px-4 py-2 bg-white border rounded-lg hover:bg-gray-50">Previous</a>
+                {% endif %}
+
+                <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">Page {{ posts.number }} of {{ posts.paginator.num_pages }}</span>
+
+                {% if posts.has_next %}
+                <a href="?page={{ posts.next_page_number }}" class="px-4 py-2 bg-white border rounded-lg hover:bg-gray-50">Next</a>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-16 bg-white rounded-lg shadow">
+                <i class="fas fa-newspaper text-6xl text-gray-300 mb-4"></i>
+                <p class="text-xl text-gray-600">No posts yet. Check back soon!</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="space-y-6">
+            <!-- Search -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Search</h3>
+                <form action="{% url 'blog:search' %}" method="get">
+                    <div class="flex gap-2">
+                        <input type="text" name="q" placeholder="Search posts..." class="flex-1 px-4 py-2 border rounded-lg focus:border-blue-500 focus:outline-none">
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Categories -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Categories</h3>
+                <ul class="space-y-2">
+                    {% for category in categories %}
+                    <li>
+                        <a href="{% url 'blog:category' category.slug %}" class="flex items-center justify-between text-gray-700 hover:text-blue-600">
+                            <span>
+                                <i class="{{ category.icon }} mr-2" style="color: {{ category.color }};"></i>
+                                {{ category.name }}
+                            </span>
+                            <span class="text-sm text-gray-500">{{ category.posts.count }}</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Popular Posts -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Popular Posts</h3>
+                <ul class="space-y-4">
+                    {% for post in popular_posts %}
+                    <li>
+                        <a href="{% url 'blog:post_detail' post.slug %}" class="block hover:bg-gray-50 p-2 rounded">
+                            <h4 class="font-semibold text-gray-900 text-sm mb-1">{{ post.title|truncatewords:8 }}</h4>
+                            <p class="text-xs text-gray-500">
+                                <i class="fas fa-eye mr-1"></i>{{ post.views }} views
+                            </p>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Tags -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Tags</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for tag in tags %}
+                    <a href="{% url 'blog:tag' tag.slug %}" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm hover:bg-blue-100 hover:text-blue-700">
+                        {{ tag.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>
+{% endblock %}

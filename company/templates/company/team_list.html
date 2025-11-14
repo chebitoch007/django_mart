@@ -1,0 +1,70 @@
+<!-- ========== company/templates/company/team_list.html ========== -->
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}Our Team - ASAI{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-12">
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">Our Amazing Team</h1>
+        <p class="text-xl text-gray-600">Meet the people making ASAI great</p>
+    </div>
+
+    <!-- Department Filter -->
+    <div class="flex flex-wrap justify-center gap-3 mb-8">
+        <a href="{% url 'company:team' %}"
+           class="px-4 py-2 rounded-full {% if not selected_department %}bg-blue-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
+            All
+        </a>
+        {% for key, name in departments %}
+        <a href="?department={{ key }}"
+           class="px-4 py-2 rounded-full {% if selected_department == key %}bg-blue-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
+            {{ name }}
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Team Grid -->
+    <div class="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {% for member in team_members %}
+        <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition">
+            {% if member.photo %}
+            <img src="{{ member.photo.url }}" alt="{{ member.name }}" class="w-full h-64 object-cover">
+            {% else %}
+            <div class="w-full h-64 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                <span class="text-white text-5xl font-bold">{{ member.name.0 }}</span>
+            </div>
+            {% endif %}
+
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ member.name }}</h3>
+                <p class="text-blue-600 font-medium mb-4">{{ member.position }}</p>
+
+                {% if member.bio %}
+                <p class="text-gray-600 text-sm mb-4">{{ member.bio|truncatewords:20 }}</p>
+                {% endif %}
+
+                <div class="flex gap-3">
+                    {% if member.linkedin_url %}
+                    <a href="{{ member.linkedin_url }}" target="_blank" class="text-blue-600 hover:text-blue-700">
+                        <i class="fab fa-linkedin text-xl"></i>
+                    </a>
+                    {% endif %}
+                    {% if member.twitter_url %}
+                    <a href="{{ member.twitter_url }}" target="_blank" class="text-blue-400 hover:text-blue-500">
+                        <i class="fab fa-twitter text-xl"></i>
+                    </a>
+                    {% endif %}
+                    {% if member.email %}
+                    <a href="mailto:{{ member.email }}" class="text-gray-600 hover:text-gray-700">
+                        <i class="fas fa-envelope text-xl"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

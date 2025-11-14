@@ -1,4 +1,4 @@
-# store/admin.py
+# store/admin.py - COMPLETE FILE
 
 from django import forms
 from moneyed import Money
@@ -54,10 +54,42 @@ for model in [Category, Product, NewsletterSubscription, SearchLog,
         admin.site.unregister(model)
 
 
+# ===== BULK PRICE UPDATE FORM =====
+
+class BulkPriceUpdateForm(forms.Form):
+    """Form for updating multiple product prices at once"""
+
+    input_currency = forms.ChoiceField(
+        choices=[(c, c) for c in settings.CURRENCIES],
+        initial='USD',
+        label='From Currency'
+    )
+
+    target_currency = forms.ChoiceField(
+        choices=[(c, c) for c in settings.CURRENCIES],
+        initial=settings.DEFAULT_CURRENCY,
+        label='To Currency'
+    )
+
+    markup_percentage = forms.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        initial=0,
+        label='Markup %',
+        help_text='Add this percentage to the converted price (e.g., 20 for 20% markup)'
+    )
+
+    apply_to_discount = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='Also convert discount prices'
+    )
+
+
 # ===== QUICK EDIT FORM FOR INLINE EDITING =====
 
 class QuickEditProductForm(forms.ModelForm):
-    """Simplified form for quick product updates"""
+    """Simplified form for quick product updates with ALL fields"""
 
     # Currency conversion fields
     input_currency = forms.ChoiceField(
@@ -95,9 +127,8 @@ class QuickEditProductForm(forms.ModelForm):
         decimal_places=2,
         required=False,
         label='Shipping Cost',
-        help_text='Enter shipping cost (0 for free shipping)',
+        help_text='Enter shipping cost (0 for free shipping) in your selected Input Currency',
         widget=forms.NumberInput(attrs={
-            # --- CHANGED: Removed inline style ---
             'step': '0.01',
             'min': '0'
         })
@@ -115,34 +146,55 @@ class QuickEditProductForm(forms.ModelForm):
         model = Product
         fields = [
             'name', 'short_description', 'description',
+            'features', 'cta', 'seo_keywords',
             'input_currency', 'input_price', 'input_discount_price', 'target_currency',
             'stock', 'available', 'featured', 'category', 'brand',
             'shipping_cost', 'free_shipping',
             'supplier', 'supplier_url'
         ]
         widgets = {
-            # --- CHANGED: Removed all inline styles. Template CSS will handle this. ---
             'name': forms.TextInput(attrs={
-                'class': 'form-control' # Example class, template CSS targets IDs anyway
+                'class': 'form-control',
+                'maxlength': '200'
             }),
             'short_description': forms.Textarea(attrs={
                 'rows': 2,
+                'class': 'form-control',
+                'maxlength': '300',
+                'placeholder': 'Brief product summary (max 300 characters)'
             }),
             'description': forms.Textarea(attrs={
                 'rows': 4,
+                'class': 'form-control',
+                'placeholder': 'Full product description'
             }),
-            'stock': forms.NumberInput(),
+            'features': forms.Textarea(attrs={
+                'rows': 6,
+                'class': 'form-control feature-list-input',
+                'placeholder': '• Feature 1\n• Feature 2\n• Feature 3'
+            }),
+            'cta': forms.TextInput(attrs={
+                'class': 'form-control cta-input',
+                'maxlength': '200',
+                'placeholder': '🎮 Get yours today - Limited stock!'
+            }),
+            'seo_keywords': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': '500',
+                'placeholder': 'gaming, console, retro, portable'
+            }),
+            'stock': forms.NumberInput(attrs={'class': 'form-control'}),
             'supplier_url': forms.URLInput(attrs={
-                'placeholder': 'https://supplier.com/product'
+                'placeholder': 'https://supplier.com/product',
+                'class': 'form-control'
             }),
         }
-        # --- CHANGED: Removed modification comments ---
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Pre-fill with existing values if editing
         if self.instance and self.instance.pk:
+            # Pre-fill price fields
             if hasattr(self.instance.price, 'amount'):
                 self.fields['input_price'].initial = self.instance.price.amount
                 self.fields['input_currency'].initial = str(self.instance.price.currency)
@@ -150,83 +202,69 @@ class QuickEditProductForm(forms.ModelForm):
             if self.instance.discount_price and hasattr(self.instance.discount_price, 'amount'):
                 self.fields['input_discount_price'].initial = self.instance.discount_price.amount
 
+            # Pre-fill shipping cost
             if self.instance.shipping_cost:
-                self.fields['shipping_cost'].initial = self.instance.shipping_cost.amount
+                initial_input_curr = self.fields['input_currency'].initial or 'USD'
+                shipping_curr = str(self.instance.shipping_cost.currency)
+
+                if shipping_curr == initial_input_curr:
+                    self.fields['shipping_cost'].initial = self.instance.shipping_cost.amount
+                else:
+                    try:
+                        rate = get_exchange_rate(shipping_curr, initial_input_curr)
+                        converted_shipping = Decimal(str(self.instance.shipping_cost.amount)) * rate
+                        self.fields['shipping_cost'].initial = round(converted_shipping, 2)
+                    except Exception:
+                        self.fields['shipping_cost'].initial = self.instance.shipping_cost.amount
 
             self.fields['free_shipping'].initial = self.instance.free_shipping
 
     def save(self, commit=True):
         instance = super().save(commit=False)
 
-        # --- Currency conversion logic ---
+        # Currency conversion logic
         input_curr = self.cleaned_data.get('input_currency')
         target_curr = self.cleaned_data.get('target_currency')
         input_price = self.cleaned_data.get('input_price')
         input_discount = self.cleaned_data.get('input_discount_price')
-
-        if input_price:
-            if input_curr == target_curr:
-                converted_price = input_price
-            else:
-                rate = get_exchange_rate(input_curr, target_curr)
-                converted_price = Decimal(str(input_price)) * rate
-            instance.price = Money(converted_price, target_curr)
-
-        if input_discount:
-            if input_curr == target_curr:
-                converted_discount = input_discount
-            else:
-                rate = get_exchange_rate(input_curr, target_curr)
-                converted_discount = Decimal(str(input_discount)) * rate
-            instance.discount_price = Money(converted_discount, target_curr)
-
-        # --- Shipping logic ---
         shipping_cost = self.cleaned_data.get('shipping_cost')
         free_shipping = self.cleaned_data.get('free_shipping')
 
+        def convert_currency(amount, from_curr, to_curr):
+            if amount is None:
+                return None
+            if from_curr == to_curr:
+                return Decimal(str(amount))
+            try:
+                rate = get_exchange_rate(from_curr, to_curr)
+                return Decimal(str(amount)) * rate
+            except Exception:
+                return Decimal(str(amount))
+
+        # Convert prices
+        if input_price is not None:
+            converted_price = convert_currency(input_price, input_curr, target_curr)
+            instance.price = Money(converted_price, target_curr)
+
+        if input_discount is not None:
+            converted_discount = convert_currency(input_discount, input_curr, target_curr)
+            instance.discount_price = Money(converted_discount, target_curr)
+        else:
+            instance.discount_price = None
+
+        # Shipping logic
         if free_shipping:
-            instance.shipping_cost = Money(0, settings.DEFAULT_CURRENCY)
+            instance.shipping_cost = Money(0, target_curr)
             instance.free_shipping = True
         elif shipping_cost is not None:
-            instance.shipping_cost = Money(shipping_cost, settings.DEFAULT_CURRENCY)
+            converted_shipping = convert_currency(shipping_cost, input_curr, target_curr)
+            instance.shipping_cost = Money(converted_shipping, target_curr)
             instance.free_shipping = False
 
         if commit:
             instance.save()
 
         return instance
-
-
-# ===== BULK PRICE UPDATE FORM =====
-
-class BulkPriceUpdateForm(forms.Form):
-    """Form for updating multiple product prices at once"""
-
-    input_currency = forms.ChoiceField(
-        choices=[(c, c) for c in settings.CURRENCIES],
-        initial='USD',
-        label='From Currency'
-    )
-
-    target_currency = forms.ChoiceField(
-        choices=[(c, c) for c in settings.CURRENCIES],
-        initial=settings.DEFAULT_CURRENCY,
-        label='To Currency'
-    )
-
-    markup_percentage = forms.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        initial=0,
-        label='Markup %',
-        help_text='Add this percentage to the converted price (e.g., 20 for 20% markup)'
-    )
-
-    apply_to_discount = forms.BooleanField(
-        required=False,
-        initial=False,
-        label='Also convert discount prices'
-    )
 
 
 # ===== CUSTOM FILTERS =====
@@ -439,15 +477,15 @@ class ProductAdmin(admin.ModelAdmin):
     ]
 
     list_editable = ['available']
-    prepopulated_fields = {'slug': ('name',)}
 
     readonly_fields = [
         'rating', 'review_count', 'created', 'updated',
         'search_vector_info', 'product_images_preview', 'variants_preview',
-        'image_preview_large', 'price_conversion_calculator'
+        'image_preview_large', 'price_conversion_calculator',
+        'features_preview', 'marketing_preview'
     ]
 
-    search_fields = ['name', 'description', 'short_description', 'slug']
+    search_fields = ['name', 'description', 'short_description', 'slug', 'features', 'seo_keywords']
     autocomplete_fields = ['category', 'brand', 'supplier']
 
     actions = [
@@ -460,6 +498,10 @@ class ProductAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Basic Information', {
             'fields': ('category', 'brand', 'name', 'slug', 'short_description', 'description')
+        }),
+        ('✨ Product Features & Marketing', {
+            'fields': ('features', 'features_preview', 'cta', 'seo_keywords', 'marketing_preview'),
+            'description': 'Enhanced product details for better conversion and SEO'
         }),
         ('💰 Pricing & Currency Conversion', {
             'fields': ('price_conversion_calculator', 'price', 'discount_price')
@@ -493,6 +535,56 @@ class ProductAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+    def features_preview(self, obj):
+        """Display features as formatted bullet list"""
+        try:
+            features = obj.get_features_list()
+        except AttributeError:
+            features = [f.strip() for f in (obj.features or "").split('\n') if f.strip()]
+
+        if not features:
+            return format_html('<p style="color: #9ca3af;">No features added</p>')
+
+        html = '<div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">'
+        html += '<ul style="margin: 0; padding-left: 20px;">'
+        for feature in features:
+            # Remove bullet points from feature text
+            clean_feature = feature.lstrip('•-*').strip()
+            html += f'<li style="margin: 5px 0; color: #334155;">{clean_feature}</li>'
+        html += '</ul></div>'
+        return format_html(html)
+
+    features_preview.short_description = 'Features Preview'
+
+    def marketing_preview(self, obj):
+        """Display marketing fields preview"""
+        html = '<div style="background: #f0f9ff; padding: 20px; border-radius: 12px; border: 2px solid #3b82f6;">'
+
+        # CTA Preview
+        if obj.cta:
+            html += '<div style="margin-bottom: 15px;">'
+            html += '<strong style="color: #1e40af; display: block; margin-bottom: 8px;">📣 Call to Action:</strong>'
+            html += f'<div style="background: linear-gradient(135deg, #fef3c7, #fde68a); padding: 12px; border-radius: 8px; font-weight: 600; color: #92400e;">{obj.cta}</div>'
+            html += '</div>'
+
+        # SEO Keywords Preview
+        if obj.seo_keywords:
+            html += '<div>'
+            html += '<strong style="color: #1e40af; display: block; margin-bottom: 8px;">🔍 SEO Keywords:</strong>'
+            html += '<div style="display: flex; flex-wrap: wrap; gap: 6px;">'
+            keywords = [k.strip() for k in obj.seo_keywords.split(',') if k.strip()]
+            for keyword in keywords:
+                html += f'<span style="background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">{keyword}</span>'
+            html += '</div></div>'
+
+        if not obj.cta and not obj.seo_keywords:
+            html += '<p style="color: #64748b; margin: 0;">⚠️ No marketing content added yet</p>'
+
+        html += '</div>'
+        return format_html(html)
+
+    marketing_preview.short_description = 'Marketing Content Preview'
 
     def shipping_display(self, obj):
         """Display shipping cost with badge"""
@@ -557,7 +649,6 @@ class ProductAdmin(admin.ModelAdmin):
         if request.method == 'POST':
             form = BulkPriceUpdateForm(request.POST)
             if form.is_valid():
-                # --- POST Logic ---
                 product_ids_str = request.POST.get('product_ids')
                 if not product_ids_str:
                     messages.error(request, "No products were selected.")
@@ -599,24 +690,17 @@ class ProductAdmin(admin.ModelAdmin):
                     f'✅ Successfully updated prices for {updated_count} products from {input_curr} to {target_curr}'
                 )
                 return redirect('admin:store_product_changelist')
-
             else:
-                # --- Invalid POST Logic ---
-                # Form is invalid, get IDs from the POST to re-render
                 product_ids = request.POST.get('product_ids')
-
         else:
-            # --- GET Logic ---
             form = BulkPriceUpdateForm()
-            # Get the IDs from the URL query string
             product_ids = request.GET.get('ids')
 
-        # --- Shared Render Logic (for GET and invalid POST) ---
         context = {
             'form': form,
             'title': 'Bulk Price Update with Currency Conversion',
             'opts': self.model._meta,
-            'product_ids': product_ids,  # <-- Pass the IDs to the template
+            'product_ids': product_ids,
         }
 
         return render(request, 'admin/store/product/bulk_price_update.html', context)
@@ -653,7 +737,7 @@ class ProductAdmin(admin.ModelAdmin):
     category_link.admin_order_field = 'category__name'
 
     def price_display(self, obj):
-        """Display price with proper Money handling - BULLETPROOF VERSION"""
+        """Display price with proper Money handling"""
         if not obj.price or (hasattr(obj.price, 'amount') and obj.price.amount == 0):
             return format_html(
                 '<span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; '
@@ -836,13 +920,8 @@ class ProductAdmin(admin.ModelAdmin):
     def bulk_price_update(self, request, queryset):
         """Redirect to bulk price update page"""
         selected = queryset.values_list('id', flat=True)
-
-        # Use reverse() to find the correct URL by its name
         base_url = reverse('admin:store_product_bulkprice')
-
-        # Build the URL with the query parameters
         redirect_url = f"{base_url}?ids={','.join(map(str, selected))}"
-
         return redirect(redirect_url)
 
     @admin.action(description='💱 Convert all to KES')
@@ -866,9 +945,7 @@ class ProductAdmin(admin.ModelAdmin):
 
         self.message_user(request, f'✅ Converted {updated} products to KES')
 
-        # store/admin.py (ProductAdmin class)
-
-    @admin.action(description='📈 Apply 20%% markup')
+    @admin.action(description='📈 Apply 20% markup')
     def apply_markup(self, request, queryset):
         """Apply 20% markup to selected products"""
         updated = 0

@@ -1,0 +1,151 @@
+<!-- ========== company/templates/company/about.html ========== -->
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}About Us - ASAI{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-12">
+    <!-- Hero Section -->
+    <div class="text-center mb-16">
+        <h1 class="text-5xl font-bold text-gray-900 mb-4">About ASAI</h1>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">{{ company.tagline }}</p>
+    </div>
+
+    <!-- Company Description -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-12">
+        <div class="prose max-w-none">
+            <p class="text-lg text-gray-700 leading-relaxed">{{ company.description }}</p>
+        </div>
+    </div>
+
+    <!-- Mission & Vision -->
+    <div class="grid md:grid-cols-2 gap-8 mb-16">
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-8">
+            <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-bullseye text-white text-2xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Our Mission</h2>
+            <p class="text-gray-700 leading-relaxed">{{ company.mission }}</p>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-8">
+            <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-eye text-white text-2xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Our Vision</h2>
+            <p class="text-gray-700 leading-relaxed">{{ company.vision }}</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <div class="text-4xl font-bold text-blue-600 mb-2">10K+</div>
+            <div class="text-gray-600">Happy Customers</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <div class="text-4xl font-bold text-green-600 mb-2">5K+</div>
+            <div class="text-gray-600">Products</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <div class="text-4xl font-bold text-purple-600 mb-2">24/7</div>
+            <div class="text-gray-600">Support</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <div class="text-4xl font-bold text-orange-600 mb-2">99%</div>
+            <div class="text-gray-600">Satisfaction</div>
+        </div>
+    </div>
+
+    <!-- Team Preview -->
+    {% if team_members %}
+    <div class="mb-16">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-gray-900 mb-2">Meet Our Team</h2>
+            <p class="text-gray-600">The people behind ASAI's success</p>
+        </div>
+
+        <div class="grid md:grid-cols-4 gap-6 mb-8">
+            {% for member in team_members %}
+            <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition">
+                {% if member.photo %}
+                <img src="{{ member.photo.url }}" alt="{{ member.name }}" class="w-full h-48 object-cover">
+                {% else %}
+                <div class="w-full h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                    <span class="text-white text-4xl font-bold">{{ member.name.0 }}</span>
+                </div>
+                {% endif %}
+                <div class="p-4 text-center">
+                    <h3 class="font-semibold text-gray-900">{{ member.name }}</h3>
+                    <p class="text-sm text-gray-600">{{ member.position }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="text-center">
+            <a href="{% url 'company:team' %}" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700">
+                View Full Team
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Testimonials -->
+    {% if testimonials %}
+    <div class="mb-16">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-gray-900 mb-2">What Our Customers Say</h2>
+            <p class="text-gray-600">Real feedback from real people</p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6">
+            {% for testimonial in testimonials %}
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex mb-4">
+                    {% for i in "12345" %}
+                    <i class="fas fa-star {% if forloop.counter <= testimonial.rating %}text-yellow-400{% else %}text-gray-300{% endif %}"></i>
+                    {% endfor %}
+                </div>
+                <p class="text-gray-700 mb-4">"{{ testimonial.content }}"</p>
+                <div class="flex items-center">
+                    {% if testimonial.photo %}
+                    <img src="{{ testimonial.photo.url }}" alt="{{ testimonial.name }}" class="w-12 h-12 rounded-full mr-3">
+                    {% else %}
+                    <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold mr-3">
+                        {{ testimonial.name.0 }}
+                    </div>
+                    {% endif %}
+                    <div>
+                        <div class="font-semibold text-gray-900">{{ testimonial.name }}</div>
+                        {% if testimonial.company %}
+                        <div class="text-sm text-gray-600">{{ testimonial.company }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Partners -->
+    {% if partners %}
+    <div>
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-gray-900 mb-2">Our Partners</h2>
+            <p class="text-gray-600">Trusted by leading brands</p>
+        </div>
+
+        <div class="grid grid-cols-3 md:grid-cols-6 gap-6">
+            {% for partner in partners %}
+            <div class="bg-white rounded-lg shadow-md p-4 flex items-center justify-center hover:shadow-lg transition">
+                <img src="{{ partner.logo.url }}" alt="{{ partner.name }}" class="max-h-12 grayscale hover:grayscale-0 transition">
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

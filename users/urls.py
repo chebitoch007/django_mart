@@ -1,6 +1,6 @@
 # users/urls.py
 from .views import session_keepalive, CustomPasswordResetView, CustomPasswordResetConfirmView, \
-    remove_profile_image  # Import new view
+    ajax_update_profile_image, ajax_remove_profile_image  # Import new view
 from django.contrib.auth import views as auth_views
 from . import views
 from .views import (
@@ -53,8 +53,8 @@ urlpatterns = [
     path('address/<int:pk>/set-default/', set_default_address, name='set_default_address'),
 
     # Profile image update
-    path('profile/image/', views.update_profile_image, name='update_profile_image'),
-    path('profile/image/remove/', remove_profile_image, name='remove_profile_image'),
+    path('profile/image/', ajax_update_profile_image, name='ajax_update_profile_image'),
+    path('profile/image/remove/', ajax_remove_profile_image, name='ajax_remove_profile_image'),
 
     # Password management
     path('password-change/', CustomPasswordChangeView.as_view(), name='password_change'),

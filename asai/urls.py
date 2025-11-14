@@ -24,6 +24,11 @@ urlpatterns = [
     path('payment/', include('payment.urls', namespace='payment')),
     path('register/', RedirectView.as_view(pattern_name='users:register', permanent=True)),
     path('core/', include('core.urls')),
+
+    # ===== NEW APPS =====
+    path('support/', include('support.urls', namespace='support')),
+    path('company/', include('company.urls', namespace='company')),
+    path('blog/', include('blog.urls', namespace='blog')),
 ]
 
 if settings.DEBUG:

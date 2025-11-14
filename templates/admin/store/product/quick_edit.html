@@ -1,483 +1,810 @@
 {% extends "admin/base_site.html" %}
 {% load static %}
 
-{% block extrahead %}
+{% block extrastyle %}
 {{ block.super }}
 <style>
+    /* Modern Quick Edit Styles */
     .quick-edit-container {
-        max-width: 900px;
+        max-width: 1200px;
         margin: 20px auto;
-        background: white;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .quick-edit-header {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        padding: 24px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .quick-edit-header h1 {
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .quick-edit-header .back-link {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        padding: 8px 16px;
         border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        text-decoration: none;
+        transition: all 0.3s ease;
+        font-weight: 600;
+    }
+
+    .quick-edit-header .back-link:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .quick-edit-body {
         padding: 30px;
     }
 
+    /* Form Sections */
     .form-section {
-        margin-bottom: 30px;
-        padding: 20px;
-        background: #f9fafb;
-        border-radius: 6px;
+        margin-bottom: 32px;
+        padding: 24px;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
     }
 
-    .form-section h3 {
-        margin-top: 0;
-        color: #1f2937;
-        font-size: 18px;
-        margin-bottom: 15px;
-    }
-
-    .form-row {
+    .form-section-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #1e293b;
         margin-bottom: 20px;
-    }
-
-    .form-row label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: #374151;
-    }
-
-    /* --- CSS FIX: SPLIT RULES FOR INPUT/SELECT --- */
-
-    /* Common styles for form controls */
-    .form-row input,
-    .form-row select,
-    .form-row textarea {
-        width: 100%;
-        border: 1px solid #d1d5db;
-        border-radius: 6px;
-        font-size: 14px;
-        box-sizing: border-box; /* Ensures padding doesn't affect width */
-    }
-
-    /* Styles for inputs and textareas (with padding) */
-    .form-row input,
-    .form-row textarea {
-        padding: 10px;
-    }
-
-    /* Styles for selects (FIX for half-visible text) */
-    .form-row select {
-        height: 40px; /* Explicit height to match padded inputs */
-        padding: 0 10px; /* Horizontal padding only */
-        background-color: white; /* Ensure background is white */
-        -webkit-appearance: none; /* Optional: for more consistent styling */
-        -moz-appearance: none;
-        appearance: none;
-        /* Add a background arrow if appearance is removed */
-        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236B7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20128c3.6%203.6%207.8%205.4%2013%205.4s9.4-1.8%2013-5.4L287%2095.2c3.6-3.6%205.4-7.8%205.4-13%200-5-1.8-9.4-5.4-13z%22%2F%3E%3C%2Fsvg%3E');
-        background-repeat: no-repeat;
-        background-position: right 10px center;
-        background-size: 9px 9px;
-
-        /* --- CONTRAST FIX --- */
-        color: #374151; /* Explicitly set dark text color */
-        /* --- END CONTRAST FIX --- */
-    }
-
-    /* Target select[multiple] specifically if you use them */
-    .form-row select[multiple] {
-        height: auto; /* Let multiple-selects grow */
-        padding: 10px; /* Add padding back */
-        background-image: none; /* Remove arrow */
-    }
-
-    /* --- END CSS FIX --- */
-
-
-    .form-row textarea {
-        resize: vertical;
-        font-family: inherit;
-        min-height: 120px;
-    }
-
-    .help-text {
-        font-size: 12px;
-        color: #374151;
-        margin-top: 4px;
-        line-height: 1.4;
-    }
-
-    .form-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 15px 20px;
-    }
-
-    .grid-col-span-2 {
-        grid-column: 1 / -1;
-    }
-
-    .currency-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr 1fr;
-        gap: 15px;
-    }
-
-    .shipping-grid {
-        display: grid;
-        /* CHANGED: Make shipping cost col 1/3 and checkbox col 2/3 */
-        grid-template-columns: 1fr 2fr;
-        gap: 15px 20px;
-        align-items: start;
-    }
-
-    .checkbox-wrapper {
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 10px;
-        background: white;
-        border-radius: 6px;
-        border: 1px solid #e5e7eb;
-        margin-bottom: 10px;
-        cursor: pointer;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #e2e8f0;
     }
 
-    .form-row .checkbox-wrapper:last-child {
-        margin-bottom: 0;
+    .form-section-title i {
+        color: #3b82f6;
+        font-size: 1.4rem;
     }
 
-    .checkbox-wrapper input[type="checkbox"] {
-        width: 16px;
-        height: 16px;
-        margin: 0;
-        flex-shrink: 0;
-    }
-
-    .checkbox-wrapper span {
-        font-weight: 500;
-        color: #374151;
-        margin-bottom: 0;
-    }
-
-    .submit-row {
-        display: flex;
-        gap: 10px;
-        justify-content: flex-end;
-        margin-top: 30px;
-        padding-top: 20px;
-        border-top: 1px solid #e5e7eb;
-    }
-
-    .button {
-        padding: 10px 20px;
-        border-radius: 6px;
-        font-weight: 600;
-        text-decoration: none;
-        cursor: pointer;
-        border: none;
-        font-size: 14px;
-    }
-
-    .button-primary {
-        background: #3b82f6;
-        color: white;
-    }
-
-    .button-primary:hover {
-        background: #2563eb;
-    }
-
-    .button-secondary {
-        background: #e5e7eb;
-        color: #374151;
-    }
-
-    .button-secondary:hover {
-        background: #d1d5db;
-    }
-
-    .info-box {
-        background: #dbeafe;
-        border-left: 4px solid #3b82f6;
-        padding: 15px;
-        border-radius: 4px;
+    /* Form Fields */
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
         margin-bottom: 20px;
+    }
+
+    .form-row.full-width {
+        grid-template-columns: 1fr;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        color: #334155;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .form-group label .required {
+        color: #ef4444;
+        font-weight: 700;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group input[type="url"],
+    .form-group select,
+    .form-group textarea {
+        padding: 12px 16px;
+        border: 2px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: white;
+        /* --- CHANGED: Added !important to select --- */
+        width: 100% !important;
+        box-sizing: border-box;
+        color: #111827;
+    }
+
+    /* --- ADDED: Fix for Select2 widgets (for category, brand, supplier) --- */
+    .form-group .select2-container {
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    .form-group .select2-container .select2-selection {
+        padding: 6px; /* Adjust padding to match other inputs */
+        height: auto;
+        border: 2px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 1rem;
+    }
+
+    .form-group .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 28px; /* Align text vertically */
+    }
+
+    .form-group .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 48px; /* Match input height */
+    }
+    /* --- End of Select2 fixes --- */
+
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-group .select2-container.select2-container--focus .select2-selection {
+         border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-group textarea {
+        resize: vertical;
+        min-height: 120px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+    }
+
+    .form-group .help-text {
+        font-size: 0.85rem;
+        color: #475569;
+        margin-top: 4px;
+    }
+
+    /* Checkbox Styles */
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        background: white;
+        border: 2px solid #cbd5e1;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .checkbox-group:hover {
+        border-color: #3b82f6;
+        background: #eff6ff;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        accent-color: #3b82f6;
+        width: auto;
+    }
+
+    .checkbox-group label {
+        cursor: pointer;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+    }
+
+    /* Special Field Styles */
+    .currency-converter {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        padding: 20px;
+        border-radius: 10px;
+        border: 2px solid #3b82f6;
+    }
+
+    .feature-list-input {
+        background: #f0f9ff;
+        border: 2px solid #60a5fa;
+        font-family: 'Monaco', 'Courier New', monospace;
+    }
+
+    .cta-input {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border: 2px solid #f59e0b;
+        font-weight: 600;
+    }
+
+    /* Character Counter */
+    .char-counter {
+        font-size: 0.8rem;
+        color: #64748b;
+        text-align: right;
+        margin-top: 4px;
+    }
+
+    .char-counter.warning {
+        color: #f59e0b;
+        font-weight: 600;
+    }
+
+    .char-counter.danger {
+        color: #ef4444;
+        font-weight: 700;
+    }
+
+    /* Action Buttons */
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        padding: 24px 30px;
+        background: #f8fafc;
+        border-top: 2px solid #e2e8f0;
+    }
+
+    .btn {
+        padding: 14px 28px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-secondary {
+        background: #e2e8f0;
+        color: #334155;
+    }
+
+    .btn-secondary:hover {
+        background: #cbd5e1;
+    }
+
+    /* Info Badges */
+    .info-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: #dbeafe;
         color: #1e40af;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 12px;
     }
 
-    .conversion-preview {
-        background: #f0fdf4;
-        border: 1px solid #86efac;
-        padding: 15px;
-        border-radius: 6px;
-        margin-top: 15px;
+    /* Responsive */
+    @media (max-width: 768px) {
+        .quick-edit-container {
+            margin: 10px;
+        }
+
+        .quick-edit-header {
+            flex-direction: column;
+            gap: 12px;
+            text-align: center;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
     }
 
-    .conversion-preview h4 {
-        margin-top: 0;
-        color: #166534;
+    /* Feature Preview */
+    .feature-preview {
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 16px;
+        margin-top: 12px;
     }
 
-    .shipping-preview {
-        background: #fef3c7;
-        border: 1px solid #fbbf24;
-        padding: 15px;
-        border-radius: 6px;
-        margin-top: 15px;
+    .feature-preview-title {
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 12px;
+        font-size: 0.95rem;
     }
 
-    .shipping-preview h4 {
-        margin-top: 0;
-        color: #92400e;
+    .feature-preview ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .feature-preview li {
+        padding: 8px 0;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .feature-preview li:last-child {
+        border-bottom: none;
+    }
+
+    .feature-preview li i {
+        color: #10b981;
+        margin-top: 3px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="quick-edit-container">
-    <h1>⚡ Quick Edit: {{ product.name }}</h1>
-
-    <div class="info-box">
-        <strong>💡 Quick Edit Mode:</strong> Update product details and prices with automatic currency conversion.
-        All changes are saved immediately when you click "Save Changes".
+    <div class="quick-edit-header">
+        <h1>
+            <i class="fas fa-bolt"></i>
+            Quick Edit: {{ product.name|truncatewords:5 }}
+        </h1>
+        <a href="{% url 'admin:store_product_changelist' %}" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Products
+        </a>
     </div>
 
-    <form method="post" id="quick-edit-form">
+    <form method="post" class="quick-edit-form">
         {% csrf_token %}
 
-        <div class="form-section">
-            <h3>📝 Basic Information</h3>
+        <div class="quick-edit-body">
 
-            <div class="form-grid">
-                <div class="form-row grid-col-span-2">
-                    <label for="id_name">Product Name *</label>
-                    {{ form.name }}
-                    {% if form.name.help_text %}
-                    <p class="help-text">{{ form.name.help_text }}</p>
-                    {% endif %}
+            <div class="form-section">
+                <h2 class="form-section-title">
+                    <i class="fas fa-info-circle"></i>
+                    Basic Information
+                </h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.name.id_for_label }}">
+                            Product Name <span class="required">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <span class="error">{{ form.name.errors }}</span>
+                        {% endif %}
+                        <span class="help-text">{{ form.name.help_text }}</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.category.id_for_label }}">
+                            Category <span class="required">*</span>
+                        </label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                            <span class="error">{{ form.category.errors }}</span>
+                        {% endif %}
+                    </div>
                 </div>
 
-                <div class="form-row grid-col-span-2">
-                    <label for="id_short_description">Short Description</label>
-                    {{ form.short_description }}
-                    <p class="help-text">Brief product summary (shown in listings)</p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.brand.id_for_label }}">Brand</label>
+                        {{ form.brand }}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.stock.id_for_label }}">
+                            Stock Quantity <span class="required">*</span>
+                        </label>
+                        {{ form.stock }}
+                    </div>
                 </div>
 
-                <div class="form-row grid-col-span-2">
-                    <label for="id_description">Full Description</label>
-                    {{ form.description }}
-                    <p class="help-text">Detailed product information</p>
+                <div class="form-row full-width">
+                    <div class="form-group">
+                        <label for="{{ form.short_description.id_for_label }}">
+                            Short Description
+                        </label>
+                        {{ form.short_description }}
+                        <div class="char-counter" data-max="300" data-field="short_description">
+                            0 / 300 characters
+                        </div>
+                        <span class="help-text">Brief product summary (max 300 characters)</span>
+                    </div>
+                </div>
+
+                <div class="form-row full-width">
+                    <div class="form-group">
+                        <label for="{{ form.description.id_for_label }}">
+                            Full Description
+                        </label>
+                        {{ form.description }}
+                        <span class="help-text">Detailed product description</span>
+                    </div>
                 </div>
             </div>
+
+            <div class="form-section">
+                <h2 class="form-section-title">
+                    <i class="fas fa-star"></i>
+                    Product Features & Marketing
+                </h2>
+
+                <div class="info-badge">
+                    <i class="fas fa-lightbulb"></i>
+                    These fields enhance product pages and improve SEO
+                </div>
+
+                <div class="form-row full-width">
+                    <div class="form-group">
+                        <label for="{{ form.features.id_for_label }}">
+                            <i class="fas fa-check-circle"></i>
+                            Product Features
+                        </label>
+                        {{ form.features }}
+                        <span class="help-text">
+                            <strong>Enter one feature per line.</strong> These will display as bullet points on the product page.
+                            <br>Example:
+                            <code>• 500 built-in classic games<br>• 8-bit handheld console<br>• Rechargeable battery</code>
+                        </span>
+
+                        <div class="feature-preview" id="featuresPreview" style="display: none;">
+                            <div class="feature-preview-title">Preview:</div>
+                            <ul id="featuresList"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row full-width">
+                    <div class="form-group">
+                        <label for="{{ form.cta.id_for_label }}">
+                            <i class="fas fa-bullhorn"></i>
+                            Call to Action (CTA)
+                        </label>
+                        {{ form.cta }}
+                        <div class="char-counter" data-max="200" data-field="cta">
+                            0 / 200 characters
+                        </div>
+                        <span class="help-text">
+                            Compelling message to encourage purchases. Use emojis for impact!
+                            <br>Example: <code>🕹 Relive the classics — get your RetroPlay™ Console now!</code>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="form-row full-width">
+                    <div class="form-group">
+                        <label for="{{ form.seo_keywords.id_for_label }}">
+                            <i class="fas fa-search"></i>
+                            SEO Keywords
+                        </label>
+                        {{ form.seo_keywords }}
+                        <div class="char-counter" data-max="500" data-field="seo_keywords">
+                            0 / 500 characters
+                        </div>
+                        <span class="help-text">
+                            Comma-separated keywords for search engine optimization.
+                            <br>Example: <code>retro handheld game console, 8-bit mini game player, portable gaming device</code>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section currency-converter">
+                <h2 class="form-section-title">
+                    <i class="fas fa-dollar-sign"></i>
+                    Pricing & Currency
+                </h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.input_currency.id_for_label }}">
+                            Input Currency
+                        </label>
+                        {{ form.input_currency }}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.target_currency.id_for_label }}">
+                            Convert To
+                        </label>
+                        {{ form.target_currency }}
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.input_price.id_for_label }}">
+                            Regular Price
+                        </label>
+                        {{ form.input_price }}
+                        <span class="help-text">Enter price in your selected currency</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.input_discount_price.id_for_label }}">
+                            Discount Price
+                        </label>
+                        {{ form.input_discount_price }}
+                        <span class="help-text">Optional sale price</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2 class="form-section-title">
+                    <i class="fas fa-shipping-fast"></i>
+                    Shipping Information
+                </h2>
+
+                <div class.form-row>
+                    <div class="info-badge" style="background: #fffbeb; color: #b45309; border: 1px solid #fde68a;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Shipping cost is entered in the <strong>Input Currency</strong> (e.g., USD) and will be converted.
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.shipping_cost.id_for_label }}">
+                            Shipping Cost
+                        </label>
+                        {{ form.shipping_cost }}
+                        <span class="help-text">Enter in <strong>Input Currency</strong>. Leave as 0 for free shipping.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            {{ form.free_shipping }}
+                            <label for="{{ form.free_shipping.id_for_label }}">
+                                Free Shipping
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2 class="form-section-title">
+                    <i class="fas fa-boxes"></i>
+                    Supplier Information
+                </h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.supplier.id_for_label }}">
+                            Supplier
+                        </label>
+                        {{ form.supplier }}
+                    </div>
+                </div>
+
+                <div class="form-row full-width">
+                    <div class="form-group">
+                        <label for="{{ form.supplier_url.id_for_label }}">
+                            Supplier Product URL
+                        </label>
+                        {{ form.supplier_url }}
+                        <span class="help-text">Direct link to product on supplier's website</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2 class="form-section-title">
+                    <i class="fas fa-toggle-on"></i>
+                    Product Status
+                </h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            {{ form.available }}
+                            <label for="{{ form.available.id_for_label }}">
+                                Available for Purchase
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            {{ form.featured }}
+                            <label for="{{ form.featured.id_for_label }}">
+                                Featured Product
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
-        <div class="form-section">
-            <h3>💰 Pricing with Currency Conversion</h3>
-
-            <div class="currency-grid">
-                <div class="form-row">
-                    <label for="id_input_currency">From Currency</label>
-                    {{ form.input_currency }}
-                </div>
-
-                <div class="form-row">
-                    <label for="id_input_price">Price *</label>
-                    {{ form.input_price }}
-                </div>
-
-                <div class="form-row">
-                    <label for="id_input_discount_price">Discount Price</label>
-                    {{ form.input_discount_price }}
-                </div>
-
-                <div class="form-row">
-                    <label for="id_target_currency">Convert To</label>
-                    {{ form.target_currency }}
-                </div>
-            </div>
-
-            <div class="conversion-preview" id="conversion-preview" style="display: none;">
-                <h4>🔄 Conversion Preview</h4>
-                <p id="preview-text"></p>
-            </div>
-        </div>
-
-        <div class="form-section">
-            <h3>📦 Shipping Information</h3>
-
-            <div class="shipping-grid">
-                <div class="form-row">
-                    <label for="id_shipping_cost">Shipping Cost</label>
-                    {{ form.shipping_cost }}
-                    <p class="help-text">Cost in target currency</p>
-                </div>
-
-                <div class="form-row">
-                    <label>&nbsp;</label> <label class="checkbox-wrapper"> {{ form.free_shipping }}
-                        <span>Free Shipping (overrides cost)</span>
-                    </label>
-                    <p class="help-text">&nbsp;</p> </div>
-            </div>
-            <div class="shipping-preview" id="shipping-preview" style="display: none;">
-                <h4>🚚 Shipping Cost Preview</h4>
-                <p id="shipping-preview-text"></p>
-            </div>
-
-            <p class="help-text" style="margin-top: 10px;">
-                💡 <strong>Tip:</strong> Shipping cost will be automatically converted to the target currency ({{ form.target_currency.initial }}).
-                Check "Free Shipping" to set shipping cost to 0.
-            </p>
-        </div>
-
-        <div class="form-section">
-            <h3>🏷️ Classification</h3>
-
-            <div class="form-grid">
-                <div class="form-row">
-                    <label for="id_category">Category</label>
-                    {{ form.category }}
-                </div>
-
-                <div class="form-row">
-                    <label for="id_brand">Brand</label>
-                    {{ form.brand }}
-                </div>
-
-                <div class="form-row">
-                    <label for="id_stock">Stock Quantity</label>
-                    {{ form.stock }}
-                </div>
-
-                <div class="form-row">
-                    <label for="id_supplier">Supplier</label>
-                    {{ form.supplier }}
-                </div>
-
-                <div class="form-row grid-col-span-2">
-                    <label for="id_supplier_url">Supplier URL</label>
-                    {{ form.supplier_url }}
-                    <p class="help-text">Direct link to product on supplier's website</p>
-                </div>
-
-                <div class="form-row grid-col-span-2">
-                    <label>Status</label>
-                    <label class="checkbox-wrapper">
-                        {{ form.available }}
-                        <span>Available for Sale</span>
-                    </label>
-                    <label class="checkbox-wrapper">
-                        {{ form.featured }}
-                        <span>Featured Product</span>
-                    </label>
-                </div>
-            </div>
-        </div>
-
-        <div class="submit-row">
-            <a href="{% url 'admin:store_product_changelist' %}" class="button button-secondary">
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="window.history.back();">
+                <i class="fas fa-times"></i>
                 Cancel
-            </a>
-            <button type="submit" class="button button-primary">
-                💾 Save Changes
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i>
+                Save Changes
             </button>
         </div>
     </form>
 </div>
 
+<script src="https://kit.fontawesome.com/your-kit-id.js" crossorigin="anonymous"></script>
 <script>
-/* ... script is unchanged ... */
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('quick-edit-form');
-    const inputCurrency = document.getElementById('id_input_currency');
-    const targetCurrency = document.getElementById('id_target_currency');
-    const inputPrice = document.getElementById('id_input_price');
-    const inputDiscount = document.getElementById('id_input_discount_price');
-    const shippingCost = document.getElementById('id_shipping_cost');
-    const freeShipping = document.getElementById('id_free_shipping');
-    const preview = document.getElementById('conversion-preview');
-    const previewText = document.getElementById('preview-text');
-    const shippingPreview = document.getElementById('shipping-preview');
-    const shippingPreviewText = document.getElementById('shipping-preview-text');
 
-    // Exchange rates (same as before)
-    const exchangeRates = {
-        'USD': {'KES': 129.20, 'EUR': 0.93, 'GBP': 0.79, 'USD': 1.0, 'UGX': 3700, 'TZS': 2500},
-        'EUR': {'KES': 140.00, 'USD': 1.07, 'EUR': 1.0, 'GBP': 0.85, 'UGX': 4200, 'TZS': 2700},
-        'GBP': {'KES': 174.50, 'USD': 1.27, 'EUR': 1.18, 'GBP': 1.0, 'UGX': 4700, 'TZS': 3500},
-        'KES': {'USD': 0.0077, 'EUR': 0.0071, 'GBP': 0.00573, 'KES': 1.0, 'UGX': 27.30, 'TZS': 19.20},
-        'UGX': {'USD': 0.00027, 'EUR': 0.00024, 'GBP': 0.00021, 'KES': 0.0367, 'UGX': 1.0, 'TZS': 0.67},
-        'TZS': {'USD': 0.00040, 'EUR': 0.00037, 'GBP': 0.00029, 'KES': 0.052, 'UGX': 1.49, 'TZS': 1.0}
-    };
+    // Fallback for icons if FontAwesome isn't loaded
+    setTimeout(() => {
+        if (document.querySelector('.fa-bolt') && window.getComputedStyle(document.querySelector('.fa-bolt')).fontFamily.toLowerCase().includes('fontawesome')) {
+            // FontAwesome is loaded
+        } else {
+            // FontAwesome failed, use text fallbacks
+            document.querySelectorAll('.fas.fa-bolt').forEach(el => el.textContent = '⚡');
+            document.querySelectorAll('.fas.fa-arrow-left').forEach(el => el.textContent = '←');
+            document.querySelectorAll('.fas.fa-info-circle').forEach(el => el.textContent = 'ℹ️');
+            document.querySelectorAll('.fas.fa-star').forEach(el => el.textContent = '✨');
+            document.querySelectorAll('.fas.fa-check-circle').forEach(el => el.textContent = '✓');
+            document.querySelectorAll('.fas.fa-bullhorn').forEach(el => el.textContent = '📣');
+            document.querySelectorAll('.fas.fa-search').forEach(el => el.textContent = '🔍');
+            document.querySelectorAll('.fas.fa-dollar-sign').forEach(el => el.textContent = '💰');
+            document.querySelectorAll('.fas.fa-shipping-fast').forEach(el => el.textContent = '🚚');
+            document.querySelectorAll('.fas.fa-boxes').forEach(el => el.textContent = '📦');
+            document.querySelectorAll('.fas.fa-toggle-on').forEach(el => el.textContent = 'Toggle');
+            document.querySelectorAll('.fas.fa-times').forEach(el => el.textContent = 'X');
+            document.querySelectorAll('.fas.fa-save').forEach(el => el.textContent = 'Save');
+            document.querySelectorAll('.fas.fa-lightbulb').forEach(el => el.textContent = '💡');
+            document.querySelectorAll('.fas.fa-exclamation-triangle').forEach(el => el.textContent = '⚠️');
+        }
+    }, 500);
 
-    function updatePreview() {
-        const from = inputCurrency.value;
-        const to = targetCurrency.value;
-        const price = parseFloat(inputPrice.value);
-        const discount = parseFloat(inputDiscount.value);
 
-        if (!price || from === to) {
-            preview.style.display = 'none';
-            return;
+    // Character counter functionality
+    function updateCharCounter(fieldName, maxChars) {
+        const field = document.querySelector(`[name="${fieldName}"]`);
+        if (!field) return;
+
+        const counter = document.querySelector(`[data-field="${fieldName}"]`);
+        if (!counter) return;
+
+        function updateCount() {
+            const length = field.value.length;
+            counter.textContent = `${length} / ${maxChars} characters`;
+
+            counter.classList.remove('warning', 'danger');
+            if (length > maxChars) {
+                counter.classList.add('danger');
+            } else if (length > maxChars * 0.9) {
+                counter.classList.add('warning');
+            }
         }
 
-        const rate = exchangeRates[from][to];
-        const convertedPrice = (price * rate).toFixed(2);
-        const convertedDiscount = discount ? (discount * rate).toFixed(2) : null;
-
-        let previewHTML = `<strong>${price} ${from}</strong> = <strong style="color: #059669;">${convertedPrice} ${to}</strong>`;
-
-        if (convertedDiscount) {
-            previewHTML += `<br><strong>${discount} ${from}</strong> = <strong style="color: #dc2626;">${convertedDiscount} ${to}</strong> (discount)`;
-        }
-
-        previewText.innerHTML = previewHTML;
-        preview.style.display = 'block';
+        field.addEventListener('input', updateCount);
+        updateCount();
     }
 
-    function updateShippingPreview() {
-        const from = inputCurrency.value;
-        const to = targetCurrency.value;
-        const shipping = parseFloat(shippingCost.value);
-        const isFree = freeShipping.checked;
+    updateCharCounter('short_description', 300);
+    updateCharCounter('cta', 200);
+    updateCharCounter('seo_keywords', 500);
 
-        if (isFree) {
-            shippingPreviewText.innerHTML = '<strong style="color: #10b981;">✓ FREE SHIPPING</strong> - Shipping cost will be set to 0';
-            shippingPreview.style.display = 'block';
-            shippingCost.disabled = true;
-            shippingCost.style.opacity = '0.5';
-            return;
-        } else {
-            shippingCost.disabled = false;
-            shippingCost.style.opacity = '1';
-        }
+    // Live preview for features
+    const featuresField = document.querySelector('[name="features"]');
+    const featuresPreview = document.getElementById('featuresPreview');
+    const featuresList = document.getElementById('featuresList');
 
-        if (!shipping || shipping === 0) {
-            shippingPreview.style.display = 'none';
-            return;
-        }
+    if (featuresField && featuresPreview && featuresList) {
+        featuresField.addEventListener('input', function() {
+            const lines = this.value.split('\n').filter(line => line.trim());
+            const icon = '<i class="fas fa-check-circle"></i>'; // Use icon here
 
-        if (from === to) {
-            shippingPreviewText.innerHTML = `Shipping: <strong>${shipping} ${to}</strong> (no conversion needed)`;
-        } else {
-            const rate = exchangeRates[from][to];
-            const convertedShipping = (shipping * rate).toFixed(2);
-            shippingPreviewText.innerHTML = `<strong>${shipping} ${from}</strong> = <strong style="color: #f59e0b;">${convertedShipping} ${to}</strong> (shipping)`;
-        }
-
-        shippingPreview.style.display = 'block';
+            if (lines.length > 0) {
+                featuresPreview.style.display = 'block';
+                featuresList.innerHTML = lines.map(line => {
+                    const cleaned = line.replace(/^[•\-*]\s*/, '').trim();
+                    return `<li>${icon} ${cleaned}</li>`;
+                }).join('');
+            } else {
+                featuresPreview.style.display = 'none';
+            }
+        });
+        featuresField.dispatchEvent(new Event('input'));
     }
 
-    // Event listeners
-    inputPrice.addEventListener('input', updatePreview);
-    inputDiscount.addEventListener('input', updatePreview);
-    inputCurrency.addEventListener('change', function() {
-        updatePreview();
-        updateShippingPreview();
-    });
-    targetCurrency.addEventListener('change', function() {
-        updatePreview();
-        updateShippingPreview();
-    });
+    // Auto-sync free shipping checkbox with shipping cost
+    const shippingCostField = document.querySelector('[name="shipping_cost"]');
+    const freeShippingCheckbox = document.querySelector('[name="free_shipping"]');
 
-    shippingCost.addEventListener('input', updateShippingPreview);
-    freeShipping.addEventListener('change', updateShippingPreview);
+    if (shippingCostField && freeShippingCheckbox) {
 
-    // Initial previews
-    updatePreview();
-    updateShippingPreview();
+        function syncCheckboxToCost() {
+            if (freeShippingCheckbox.checked) {
+                shippingCostField.value = '0.00';
+                shippingCostField.disabled = true;
+            } else {
+                shippingCostField.disabled = false;
+            }
+        }
+
+        function syncCostToCheckbox() {
+            // Use parseFloat for decimal check
+            const cost = parseFloat(shippingCostField.value) || 0;
+            if (cost === 0) {
+                freeShippingCheckbox.checked = true;
+            } else {
+                freeShippingCheckbox.checked = false;
+            }
+        }
+
+        freeShippingCheckbox.addEventListener('change', syncCheckboxToCost);
+
+        shippingCostField.addEventListener('input', function() {
+            syncCostToCheckbox();
+            // Manually trigger the checkbox's 'change' event
+            // to run its logic (which disables the cost field if checked)
+            freeShippingCheckbox.dispatchEvent(new Event('change'));
+        });
+
+        // Run on initial page load
+        syncCostToCheckbox();
+        syncCheckboxToCost();
+    }
+
+    // Form validation
+    const form = document.querySelector('.quick-edit-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const name = document.querySelector('[name="name"]');
+
+            if (!name.value.trim()) {
+                e.preventDefault();
+                alert('Product name is required');
+                name.focus();
+                return false;
+            }
+
+            // Re-enable shipping cost field on submit if it was disabled
+            if (shippingCostField && shippingCostField.disabled) {
+                shippingCostField.disabled = false;
+            }
+        });
+    }
+
+    console.log('✅ Quick Edit initialized');
 });
 </script>
 {% endblock %}

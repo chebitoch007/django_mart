@@ -1,15 +1,17 @@
 # users/views.py
 
+from django.db import transaction
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from .forms import UnifiedProfileForm
+from django.core.exceptions import ValidationError
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sessions.models import Session
 from django.utils import timezone
-
 import logging  # For logging
 from django.conf import settings  # For ALLOWED_HOSTS
-from django.contrib.auth import update_session_auth_hash  # For session invalidation
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit # For rate limiting
-
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.views import PasswordResetView as AuthPasswordResetView
 from django.contrib.auth.forms import PasswordResetForm
@@ -22,7 +24,6 @@ from django.contrib.auth import logout as auth_logout, logout
 from django.urls import reverse
 import uuid
 from decimal import Decimal
-
 from .models import ActivityLog
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -30,7 +31,7 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
 # IMPORT UserProfileForm, REMOVE NotificationPreferencesForm
-from .forms import UserRegisterForm, ProfileUpdateForm, AccountDeletionForm, UserProfileForm
+from .forms import UserRegisterForm, AccountDeletionForm
 from .forms import AddressForm, PasswordChangeForm
 from .models import Profile, Address
 from orders.models import Order
@@ -50,7 +51,7 @@ def get_client_ip(request):
     """Helper to get the client's IP address."""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
+        ip = x_forwarded_for.split(',')[0].strip()
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
@@ -188,40 +189,251 @@ def register(request):
     })
 
 
-# REPLACED ProfileUpdateView with a function-based view
+def send_phone_change_notification(user, old_phone, new_phone, request):
+    """
+    Send email notification when phone number is changed.
+    Security measure to alert user of account changes.
+    """
+    try:
+        context = {
+            'user': user,
+            'old_phone': old_phone or 'Not set',
+            'new_phone': new_phone,
+            'ip_address': get_client_ip(request),
+            'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown'),
+            'timestamp': timezone.now()
+        }
+
+        subject = 'Phone Number Changed on Your Account'
+        html_message = render_to_string('users/emails/phone_change_notification.html', context)
+        plain_message = f"""
+        Hello {user.get_full_name()},
+
+        Your phone number has been changed.
+
+        Old number: {old_phone or 'Not set'}
+        New number: {new_phone}
+
+        If you did not make this change, please contact support immediately.
+
+        IP Address: {context['ip_address']}
+        Time: {context['timestamp']}
+        """
+
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=True  # Don't break if email fails
+        )
+
+        logger.info(f"Phone change notification sent to {user.email}")
+    except Exception as e:
+        logger.error(f"Failed to send phone change notification: {str(e)}")
+
+
 @login_required
+@transaction.atomic  # Ensure all-or-nothing database updates
 def profile_update_view(request):
-    # ensure profile exists
-    profile, created = Profile.objects.get_or_create(user=request.user)
+    """
+    Unified profile update view handling both User and Profile models.
+
+    Features:
+    - Single form for all profile data
+    - Atomic transactions
+    - Activity logging
+    - Phone change notifications
+    - Real-time validation
+    - AJAX support for image operations
+    """
+
+    # Ensure profile exists
+    profile, created = Profile.objects.select_for_update().get_or_create(user=request.user)
 
     if request.method == 'POST':
-        user_form = UserProfileForm(request.POST, instance=request.user)
-        profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=profile)
+        form = UnifiedProfileForm(request.POST, request.FILES, user=request.user)
 
-        if user_form.is_valid() and profile_form.is_valid():
-            user_form.save()
-            profile_form.save()
-            messages.success(request, 'Profile updated successfully')
-            return redirect('users:account')
+        if form.is_valid():
+            try:
+                # Save form data
+                user, profile, changed_fields = form.save(commit=True)
+
+                # Log activity with changed fields
+                if changed_fields:
+                    ActivityLog.objects.create(
+                        user=user,
+                        activity_type='profile_update',
+                        ip_address=get_client_ip(request),
+                        user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                        additional_info={
+                            'changed_fields': list(changed_fields.keys()),
+                            'changes': changed_fields
+                        }
+                    )
+
+                    logger.info(
+                        f"Profile updated for {user.email}. "
+                        f"Changed fields: {', '.join(changed_fields.keys())}"
+                    )
+
+                # Send notification if phone number changed
+                if form.has_phone_changed():
+                    old_phone = form.original_phone
+                    new_phone = form.cleaned_data.get('phone_number')
+
+                    # Send email notification (async in production)
+                    send_phone_change_notification(user, old_phone, new_phone, request)
+
+                    # Log phone change specifically
+                    ActivityLog.objects.create(
+                        user=user,
+                        activity_type='profile_update',
+                        ip_address=get_client_ip(request),
+                        user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                        additional_info={
+                            'change_type': 'phone_number',
+                            'old_value': old_phone,
+                            'new_value': new_phone
+                        }
+                    )
+
+                # Success message
+                messages.success(
+                    request,
+                    'Your profile has been updated successfully!'
+                )
+
+                # Redirect to account page
+                return redirect('users:account')
+
+            except Exception as e:
+                logger.error(
+                    f"Error updating profile for {request.user.email}: {str(e)}",
+                    exc_info=True
+                )
+                messages.error(
+                    request,
+                    'An error occurred while updating your profile. Please try again.'
+                )
+                # Rollback happens automatically due to @transaction.atomic
         else:
-            messages.error(request, 'Please correct the error(s) below.')
+            # Form validation failed
+            messages.error(
+                request,
+                'Please correct the errors below.'
+            )
+            logger.warning(
+                f"Profile update validation failed for {request.user.email}: "
+                f"{form.errors.as_json()}"
+            )
     else:
-        user_form = UserProfileForm(instance=request.user)
-        profile_form = ProfileUpdateForm(instance=profile)
+        # GET request - display form with current data
+        form = UnifiedProfileForm(user=request.user)
 
     context = {
-        'user_form': user_form,
-        'profile_form': profile_form
+        'form': form,
+        'profile': profile,
+        'has_custom_image': bool(profile.profile_image)
     }
+
     return render(request, 'users/profile_update.html', context)
+
 
 @require_http_methods(["POST"])
 @login_required
-def remove_profile_image(request):
-    """Handle profile image removal via AJAX"""
+@transaction.atomic
+def ajax_update_profile_image(request):
+    """
+    AJAX endpoint for updating profile image.
+    Allows real-time image upload without full form submission.
+
+    Returns JSON with success status and new image URL.
+    """
     try:
+        if not request.FILES.get('profile_image'):
+            return JsonResponse({
+                'success': False,
+                'error': 'No image file provided'
+            }, status=400)
+
         # Get or create profile
-        profile, created = Profile.objects.get_or_create(user=request.user)
+        profile = Profile.objects.select_for_update().get(user=request.user)
+
+        # Validate image using form field validator
+        from .forms import UnifiedProfileForm
+        form = UnifiedProfileForm(user=request.user)
+
+        # Create a temporary form to validate just the image
+        image_file = request.FILES['profile_image']
+
+        # Manual validation
+        try:
+            # Use form's clean_profile_image method
+            form.fields['profile_image'].clean(image_file)
+        except ValidationError as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e.message)
+            }, status=400)
+
+        # Delete old image if exists
+        if profile.profile_image:
+            try:
+                profile.profile_image.delete(save=False)
+            except Exception as e:
+                logger.warning(f"Could not delete old profile image: {e}")
+
+        # Save new image
+        profile.profile_image = image_file
+        profile.save(update_fields=['profile_image', 'last_updated'])
+
+        # Log activity
+        ActivityLog.objects.create(
+            user=request.user,
+            activity_type='profile_update',
+            ip_address=get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
+            additional_info={'action': 'profile_image_upload'}
+        )
+
+        logger.info(f"Profile image updated for {request.user.email}")
+
+        return JsonResponse({
+            'success': True,
+            'profile_image_url': profile.profile_image.url,
+            'message': 'Profile image updated successfully'
+        })
+
+    except Profile.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Profile not found'
+        }, status=404)
+    except Exception as e:
+        logger.error(
+            f"Error updating profile image for {request.user.email}: {str(e)}",
+            exc_info=True
+        )
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while uploading the image'
+        }, status=500)
+
+
+@require_http_methods(["POST"])
+@login_required
+@transaction.atomic
+def ajax_remove_profile_image(request):
+    """
+    AJAX endpoint for removing profile image.
+    Sets profile image to None, reverting to default.
+
+    Returns JSON with success status.
+    """
+    try:
+        profile = Profile.objects.select_for_update().get(user=request.user)
 
         # Check if there's a custom image to remove
         if not profile.profile_image:
@@ -238,9 +450,9 @@ def remove_profile_image(request):
 
         # Clear the profile_image field
         profile.profile_image = None
-        profile.save()
+        profile.save(update_fields=['profile_image', 'last_updated'])
 
-        # Log the activity
+        # Log activity
         ActivityLog.objects.create(
             user=request.user,
             activity_type='profile_update',
@@ -249,13 +461,23 @@ def remove_profile_image(request):
             additional_info={'action': 'profile_image_removed'}
         )
 
+        logger.info(f"Profile image removed for {request.user.email}")
+
         return JsonResponse({
             'success': True,
             'message': 'Profile picture removed successfully'
         })
 
+    except Profile.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Profile not found'
+        }, status=404)
     except Exception as e:
-        logger.error(f"Error removing profile image for {request.user.email}: {str(e)}")
+        logger.error(
+            f"Error removing profile image for {request.user.email}: {str(e)}",
+            exc_info=True
+        )
         return JsonResponse({
             'success': False,
             'error': 'An error occurred while removing the image'
@@ -607,54 +829,6 @@ def set_default_address(request, pk):
     return redirect('users:account')
 
 
-@require_http_methods(["POST"])
-@login_required
-def update_profile_image(request):
-    """Handle profile image upload via AJAX"""
-    try:
-        if not request.FILES.get('profile_image'):
-            return JsonResponse({
-                'success': False,
-                'error': 'No image file provided'
-            }, status=400)
-
-        # Get or create profile
-        profile, created = Profile.objects.get_or_create(user=request.user)
-
-        # Delete old image if exists
-        if profile.profile_image:
-            try:
-                profile.profile_image.delete(save=False)
-            except Exception as e:
-                logger.warning(f"Could not delete old profile image: {e}")
-
-        # Save new image
-        profile.profile_image = request.FILES['profile_image']
-        profile.save()
-
-        # Log the activity
-        ActivityLog.objects.create(
-            user=request.user,
-            activity_type='profile_update',
-            ip_address=get_client_ip(request),
-            user_agent=request.META.get('HTTP_USER_AGENT', ''),
-            additional_info={'action': 'profile_image_upload'}
-        )
-
-        return JsonResponse({
-            'success': True,
-            'profile_image_url': profile.profile_image.url,
-            'message': 'Profile image updated successfully'
-        })
-
-    except Exception as e:
-        logger.error(f"Error updating profile image for {request.user.email}: {str(e)}")
-        return JsonResponse({
-            'success': False,
-            'error': 'An error occurred while uploading the image'
-        }, status=500)
-
-
 class TermsView(TemplateView):
     template_name = "users/legal/terms.html"
     extra_context = {"effective_date": "2025-01-01"}
@@ -765,3 +939,64 @@ def delete_all_user_sessions(user):
                 s.delete()
     except Exception as e:
         logger.exception("Error deleting user sessions: %s", e)
+
+
+@login_required
+def export_profile_data(request):
+    '''
+    Export user's profile data in JSON format (GDPR compliance).
+    Allows users to download all their personal information.
+    '''
+    user = request.user
+    profile = getattr(user, 'profile', None)
+
+    data = {
+        'user_info': {
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'phone_number': user.phone_number,
+            'date_joined': user.date_joined.isoformat() if user.date_joined else None,
+        },
+        'profile': {
+            'bio': profile.bio if profile else '',
+            'date_of_birth': profile.date_of_birth.isoformat() if profile and profile.date_of_birth else None,
+            'preferred_language': profile.preferred_language if profile else '',
+            'email_notifications': profile.email_notifications if profile else True,
+            'sms_notifications': profile.sms_notifications if profile else False,
+            'marketing_optin': profile.marketing_optin if profile else False,
+        },
+        'addresses': [
+            {
+                'nickname': addr.nickname,
+                'street': addr.street_address,
+                'city': addr.city,
+                'country': str(addr.country),
+            }
+            for addr in user.addresses.all()
+        ],
+        'activity_logs': [
+            {
+                'activity': log.activity_type,
+                'timestamp': log.timestamp.isoformat(),
+            }
+            for log in user.activities.order_by('-timestamp')[:50]
+        ]
+    }
+
+    response = HttpResponse(
+        json.dumps(data, indent=2),
+        content_type='application/json'
+    )
+    response['Content-Disposition'] = f'attachment; filename="profile_data_{user.id}.json"'
+
+    # Log the data export
+    ActivityLog.objects.create(
+        user=user,
+        activity_type='profile_update',
+        ip_address=get_client_ip(request),
+        user_agent=request.META.get('HTTP_USER_AGENT', ''),
+        additional_info={'action': 'data_export'}
+    )
+
+    return response
