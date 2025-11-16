@@ -1,7 +1,7 @@
+// frontend/src/payments/ui.ts
 import { PaymentMethod, PaymentStatusType, ProcessingStage } from '@/payments/types/payment.js';
-import { getMethodDisplayName, isPaypalCurrencySupported } from './utils.js';
+import { getMethodDisplayName, isPaypalCurrencySupported, isPaystackCurrencySupported } from './utils.js';
 
-// Processing stages for different payment methods
 const processingStages: Record<PaymentMethod, ProcessingStage[]> = {
   mpesa: [
     { title: 'Connecting to M-Pesa', text: 'Establishing secure connection with Safaricom...' },
@@ -14,10 +14,15 @@ const processingStages: Record<PaymentMethod, ProcessingStage[]> = {
     { title: 'Connecting to PayPal', text: 'Establishing secure connection...' },
     { title: 'Processing Payment', text: 'Completing your PayPal transaction...' },
     { title: 'Finalizing Order', text: 'Confirming payment and updating your order...' }
+  ],
+  paystack: [
+    { title: 'Initializing Payment', text: 'Setting up secure payment with Paystack...' },
+    { title: 'Processing Transaction', text: 'Verifying your payment details...' },
+    { title: 'Confirming Payment', text: 'Finalizing your transaction...' },
+    { title: 'Updating Order', text: 'Completing your purchase...' }
   ]
 };
 
-// Payment method UI updates
 export function updatePaymentMethodUI(
   method: PaymentMethod,
   paymentTabs: NodeListOf<HTMLElement>,
@@ -36,7 +41,8 @@ export function updateSubmitButton(
 ): void {
   const buttonTexts: Record<PaymentMethod, { text: string; icon: string }> = {
     mpesa: { text: 'Pay with M-Pesa', icon: 'fas fa-mobile-alt' },
-    paypal: { text: 'Pay with PayPal', icon: 'fab fa-paypal' }
+    paypal: { text: 'Pay with PayPal', icon: 'fab fa-paypal' },
+    paystack: { text: 'Pay with Paystack', icon: 'fas fa-credit-card' }
   };
 
   const config = buttonTexts[method];
@@ -44,7 +50,6 @@ export function updateSubmitButton(
   submitIcon.className = config.icon;
 }
 
-// Currency tooltip management
 export function showCurrencyTooltip(
   method: PaymentMethod,
   currency: string,
@@ -53,6 +58,9 @@ export function showCurrencyTooltip(
 ): void {
   if (method === 'paypal' && !isPaypalCurrencySupported(currency)) {
     tooltipText.textContent = `Don't worry! PayPal doesn't support ${currency}, but we'll automatically convert your payment to USD at the current exchange rate.`;
+    currencyTooltip.style.display = 'flex';
+  } else if (method === 'paystack' && !isPaystackCurrencySupported(currency)) {
+    tooltipText.textContent = `Don't worry! Paystack doesn't support ${currency}, but we'll automatically convert your payment to a supported currency at the current exchange rate.`;
     currencyTooltip.style.display = 'flex';
   } else {
     hideCurrencyTooltip(currencyTooltip);
@@ -63,7 +71,6 @@ export function hideCurrencyTooltip(currencyTooltip: HTMLElement): void {
   currencyTooltip.style.display = 'none';
 }
 
-// Processing animation
 export function startProcessingAnimation(
   method: PaymentMethod,
   processingModal: HTMLElement,
@@ -94,7 +101,6 @@ export function stopProcessingAnimation(processingModal: HTMLElement): void {
   processingModal.classList.remove('active');
 }
 
-// Status and error messages
 export function showPaymentStatus(message: string, paymentStatus: HTMLElement): void {
   const span = paymentStatus.querySelector('span');
   if (span) span.textContent = message;
@@ -102,10 +108,15 @@ export function showPaymentStatus(message: string, paymentStatus: HTMLElement): 
   paymentStatus.style.display = 'flex';
 }
 
-export function showPaymentError(message: string, paymentErrors: HTMLElement): void {
+// ✅ FIXED: Added optional 'show' parameter with default value
+export function showPaymentError(
+  message: string,
+  paymentErrors: HTMLElement,
+  show: boolean = true
+): void {
   const span = paymentErrors.querySelector('span');
   if (span) span.textContent = message;
-  paymentErrors.style.display = 'flex';
+  paymentErrors.style.display = show ? 'flex' : 'none';
 }
 
 export function showPayPalStatus(message: string, type: PaymentStatusType): void {
@@ -137,7 +148,6 @@ export function clearPayPalStatus(): void {
   if (span) span.textContent = '';
 }
 
-// Input validation UI
 export function showInputError(input: HTMLElement, errorElement: HTMLElement, message: string): void {
   input.classList.add('input-error');
   input.classList.remove('input-success');
@@ -157,7 +167,6 @@ export function clearInputError(input: HTMLElement, errorElement: HTMLElement): 
   errorElement.classList.remove('show');
 }
 
-// Button state management
 export function setSubmitButtonState(loading: boolean, paymentSubmitButton: HTMLButtonElement): void {
   if (loading) {
     paymentSubmitButton.classList.add('loading');
@@ -166,4 +175,23 @@ export function setSubmitButtonState(loading: boolean, paymentSubmitButton: HTML
     paymentSubmitButton.classList.remove('loading');
     paymentSubmitButton.disabled = false;
   }
+}
+
+export function showPaystackStatus(message: string, type: PaymentStatusType): void {
+  const paystackStatus = document.getElementById('paystack-status');
+  if (!paystackStatus) return;
+
+  const span = paystackStatus.querySelector('span');
+  if (span) span.textContent = message;
+  paystackStatus.className = `payment-status ${type}`;
+  paystackStatus.style.display = 'flex';
+}
+
+export function clearPaystackStatus(): void {
+  const paystackStatus = document.getElementById('paystack-status');
+  if (!paystackStatus) return;
+
+  paystackStatus.style.display = 'none';
+  const span = paystackStatus.querySelector('span');
+  if (span) span.textContent = '';
 }

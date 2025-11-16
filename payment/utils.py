@@ -325,12 +325,27 @@ def is_currency_supported(currency, provider):
         return is_paypal_currency_supported(currency)
     elif provider == 'MPESA':
         return True  # all currencies converted to KES
+    elif provider == 'PAYSTACK':
+        from .paystack_utils import is_paystack_currency_supported
+        return is_paystack_currency_supported(currency)
     return False
 
 
 def get_prioritized_payment_methods(request):
-    """Prioritize M-Pesa in Kenya, otherwise PayPal first"""
+    """Prioritize payment methods based on location"""
     country = getattr(request, 'country', None)
+
+    # Nigeria - prioritize Paystack
+    if country == 'NG':
+        return ['paystack', 'paypal', 'mpesa']
+
+    # Kenya - prioritize M-Pesa
     if country == 'KE':
-        return ['mpesa', 'paypal']
-    return ['paypal', 'mpesa']
+        return ['mpesa', 'paystack', 'paypal']
+
+    # Ghana, South Africa - prioritize Paystack
+    if country in ['GH', 'ZA']:
+        return ['paystack', 'paypal', 'mpesa']
+
+    # Default
+    return ['paypal', 'paystack', 'mpesa']

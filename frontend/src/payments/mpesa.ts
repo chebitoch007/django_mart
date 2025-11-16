@@ -1,3 +1,4 @@
+// frontend/src/payments/mpesa.ts
 import { validatePhoneNumber, fetchWithTimeout } from './utils.js';
 import {
   setSubmitButtonState,
@@ -10,7 +11,6 @@ import { PaymentSystem } from './payments.js';
 import { MpesaResponse, PaymentResponse } from '@/payments/types/payment.ts';
 import { storage } from './storage.js';
 
-// ✅ Singleton state management
 class MpesaPaymentManager {
   private static instance: MpesaPaymentManager;
   private paymentInProgress: boolean = false;
@@ -69,7 +69,8 @@ class MpesaPaymentManager {
 
 const manager = MpesaPaymentManager.getInstance();
 
-export async function initializeMpesa(paymentSystem: PaymentSystem): Promise {
+// ✅ FIXED: Added Promise<boolean> return type
+export async function initializeMpesa(paymentSystem: PaymentSystem): Promise<boolean> {
   if (manager.isPaymentInProgress()) {
     console.warn('[MPESA] Payment already in progress');
     return false;
@@ -122,9 +123,7 @@ export async function initializeMpesa(paymentSystem: PaymentSystem): Promise {
       return false;
     }
 
-    // ✅ Mark payment as started
     manager.startPayment(data.checkout_request_id);
-
     paymentSystem.setState({ lastCheckoutRequestId: data.checkout_request_id });
 
     const hidden = document.getElementById('checkoutRequestId') as HTMLInputElement;
@@ -208,7 +207,6 @@ function pollMpesaPaymentStatus(checkoutRequestId: string, paymentSystem: Paymen
 }
 
 function finalizeMpesaPayment(checkoutRequestId: string, paymentSystem: PaymentSystem): void {
-  // ✅ Prevent duplicate finalization
   if (!manager.startFinalization()) {
     return;
   }

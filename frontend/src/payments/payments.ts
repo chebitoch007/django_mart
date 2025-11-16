@@ -1,14 +1,14 @@
-// frontend/src/payments/payments.ts
+// frontend/src/payments/payments.ts - FIXED VERSION
 
-import { storage } from './storage.js'; // ✅ IMPORTED safe storage
+import { storage } from './storage.js';
+import { initializePaystack, resetPaystackPaymentState, checkExistingPaystackPayment } from './paystack.js';
 import { initializeMpesa, resetMpesaPaymentState } from './mpesa.js';
 import { initializePayPal, cleanupPayPal, resetPayPalPaymentState } from './paypal.js';
 import {
   validatePhoneNumber,
   formatCurrency,
   saveFormState,
-  restoreFormState,
-  updateServerPaymentMethod
+  restoreFormState
 } from './utils.js';
 import {
   showPaymentStatus,
@@ -21,7 +21,8 @@ import {
   showCurrencyTooltip,
   hideCurrencyTooltip,
   showInputError,
-  clearInputError
+  clearInputError,
+  showPaystackStatus
 } from './ui.js';
 import { PaymentConfig, PaymentState, PaymentElements, PaymentMethod } from '@/payments/types/payment.js';
 
@@ -29,7 +30,6 @@ export class PaymentSystem {
   private config: PaymentConfig;
   private state: PaymentState;
   private elements: PaymentElements;
-  private formSubmitted: boolean = false; // Track M-Pesa submission
 
   constructor(config: PaymentConfig) {
     this.config = config;
@@ -44,38 +44,32 @@ export class PaymentSystem {
     };
 
     this.elements = {} as PaymentElements;
-    this.init();
-  }
-
-  private init(): void {
     this.cacheElements();
-    this.bindEvents();
+    this.addEventListeners();
     this.restoreState();
-    this.checkExistingPayment(); // Check if payment already in progress
-    this.initializePaymentMethod(this.state.currentMethod);
-  }
 
-  // ✅ NEW: Check if a payment is already in progress
-  private checkExistingPayment(): void {
-    // ✅ FIX: Use safe storage singleton
-    const existingCheckoutId = storage.getItem('lastCheckoutRequestId');
-    if (existingCheckoutId) {
-      console.warn('[PAYMENT] Found existing checkout request ID:', existingCheckoutId);
-      showPaymentStatus(
-        'You have a payment in progress. Please complete it or wait for it to expire.',
-        this.elements.paymentStatus
-      );
-    }
+    // Initialize the initial method
+    this.updatePaymentMethod(this.state.currentMethod);
+    this.updateAmounts();
+
+    // Check for existing payments
+    checkExistingPaystackPayment(this);
   }
 
   private cacheElements(): void {
+    const paymentForm = document.getElementById('paymentForm') as HTMLFormElement;
+    if (!paymentForm) {
+      console.error('Payment form element not found.');
+      return;
+    }
+
     this.elements = {
-      formAmount: document.getElementById('formAmount') as HTMLInputElement,
-      paymentForm: document.getElementById('paymentForm') as HTMLFormElement,
+      paymentForm: paymentForm,
       processingModal: document.getElementById('processingModal') as HTMLElement,
       modalTitle: document.getElementById('modalTitle') as HTMLElement,
       modalText: document.getElementById('modalText') as HTMLElement,
-      paymentStatus: document.getElementById('paymentStatus') as HTMLElement,
+      paymentStatus: document.getElementById('payment-status') as HTMLElement,
+      paystackStatus: document.getElementById('paystack-status') as HTMLElement,
       paymentErrors: document.getElementById('paymentErrors') as HTMLElement,
       selectedMethodInput: document.getElementById('selectedMethod') as HTMLInputElement,
       currencySelector: document.getElementById('currencySelector') as HTMLSelectElement,
@@ -88,365 +82,339 @@ export class PaymentSystem {
       submitIcon: document.getElementById('submitIcon') as HTMLElement,
       formCurrency: document.getElementById('formCurrency') as HTMLInputElement,
       formConversionRate: document.getElementById('formConversionRate') as HTMLInputElement,
-      mobileMoneySection: document.getElementById('mobileMoneySection') as HTMLElement,
+      formAmount: document.getElementById('formAmount') as HTMLInputElement,
+      mobileMoneySection: document.getElementById('mpesaSection') as HTMLElement,
+      paystackSection: document.getElementById('paystackSection') as HTMLElement,
       paypalSection: document.getElementById('paypalSection') as HTMLElement,
-      paymentTabs: document.querySelectorAll('.payment-tab'),
+      paymentTabs: document.querySelectorAll('.payment-tabs .payment-tab') as NodeListOf<HTMLElement>,
       phoneInput: document.getElementById('phoneNumber') as HTMLInputElement,
       phoneError: document.getElementById('phoneError') as HTMLElement,
       termsCheckbox: document.getElementById('termsAgreement') as HTMLInputElement,
       summaryToggle: document.getElementById('summaryToggle') as HTMLElement,
-      summaryContent: document.getElementById('summaryContent') as HTMLElement
+      summaryContent: document.getElementById('summaryContent') as HTMLElement,
+      paystackEmailInput: document.getElementById('paystackEmail') as HTMLInputElement,
+      paystackEmailError: document.getElementById('paystackEmailError') as HTMLElement
     };
   }
 
-  // ✅ NEW: Helper to check all payment states
-  private isPaymentInProgress(): boolean {
-    return this.formSubmitted || this.state.paypalProcessing;
-  }
-
-  private bindEvents(): void {
+  private addEventListeners(): void {
     // Payment method tabs
     this.elements.paymentTabs.forEach(tab => {
       tab.addEventListener('click', () => {
-        if (!tab.classList.contains('active')) {
-          this.switchPaymentMethod(tab.dataset.method as PaymentMethod);
-        }
+        const method = tab.getAttribute('data-method') as PaymentMethod;
+        this.updatePaymentMethod(method);
       });
     });
 
     // Currency selector
-    this.elements.currencySelector.addEventListener('change', (e) => {
-      this.handleCurrencyChange(e.target as HTMLSelectElement);
+    this.elements.currencySelector.addEventListener('change', () => this.updateAmounts());
+    this.elements.currencySelector.addEventListener('mouseover', () => {
+      showCurrencyTooltip(
+        this.state.currentMethod,
+        this.state.currentCurrency,
+        this.elements.currencyTooltip,
+        this.elements.tooltipText
+      );
+    });
+    this.elements.currencySelector.addEventListener('mouseout', () => {
+      hideCurrencyTooltip(this.elements.currencyTooltip);
     });
 
-    // Phone input validation
-    this.elements.phoneInput.addEventListener('input', (e) => {
-      this.handlePhoneInput((e.target as HTMLInputElement).value);
-    });
+    // Submit form
+    this.elements.paymentForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
 
-    // Terms agreement
-    this.elements.termsCheckbox.addEventListener('change', () => {
-      this.handleTermsChange();
-    });
+    // Summary toggle
+    this.elements.summaryToggle.addEventListener('click', () => this.toggleSummary());
 
-    // Form submission
-    this.elements.paymentForm.addEventListener('submit', (e) => {
-      this.handleFormSubmit(e);
-    });
+    // Input cleanup
+    if (this.elements.phoneInput) {
+      this.elements.phoneInput.addEventListener('input', () =>
+        clearInputError(this.elements.phoneInput, this.elements.phoneError)
+      );
+    }
+    if (this.elements.paystackEmailInput) {
+      this.elements.paystackEmailInput.addEventListener('input', () =>
+        clearInputError(this.elements.paystackEmailInput, this.elements.paystackEmailError)
+      );
+    }
 
-    // Mobile summary toggle
-    this.elements.summaryToggle.addEventListener('click', () => {
-      this.toggleSummary();
-    });
-
-    // Window resize for responsive behavior
-    window.addEventListener('resize', () => {
-      this.handleResize();
-    });
-
-    // ✅ FIX: Prevent accidental navigation during payment (M-Pesa or PayPal)
-    window.addEventListener('beforeunload', (e) => {
-      if (this.isPaymentInProgress()) {
-        e.preventDefault();
-        e.returnValue = 'Payment is in progress. Are you sure you want to leave?';
-        return e.returnValue;
-      }
-    });
-
-    // ✅ FIX: Clear storage on successful completion
-    window.addEventListener('unload', () => {
-      if (!this.isPaymentInProgress()) {
-        storage.removeItem('paymentFormState');
-      }
-    });
-
-    // ✅ FIX: Handle browser back button
-    window.addEventListener('popstate', (e) => {
-      if (this.isPaymentInProgress()) {
-        const confirmLeave = confirm('Payment is in progress. Are you sure you want to go back?');
-        if (!confirmLeave) {
-          // Push state again to stay on page
-          window.history.pushState(null, '', window.location.href);
-        }
-      }
-    });
+    this.initializeSummaryState();
   }
 
   private restoreState(): void {
     const savedState = restoreFormState();
-    this.state.currentMethod = savedState.method || 'mpesa';
-    this.state.currentCurrency = savedState.currency || this.config.defaultCurrency;
-
-    if (savedState.phone) {
+    if (savedState.method) {
+      this.state.currentMethod = savedState.method;
+    }
+    if (savedState.currency) {
+      this.state.currentCurrency = savedState.currency;
+      this.elements.currencySelector.value = savedState.currency;
+    }
+    if (savedState.phone && this.elements.phoneInput) {
       this.elements.phoneInput.value = savedState.phone;
     }
-    if (savedState.terms) {
-      this.elements.termsCheckbox.checked = true;
+    if (savedState.terms && this.elements.termsCheckbox) {
+      this.elements.termsCheckbox.checked = savedState.terms;
     }
   }
 
-  private switchPaymentMethod(method: PaymentMethod): void {
-    // Reset payment states when switching methods
-    resetMpesaPaymentState();
-    resetPayPalPaymentState();
+  private saveState(): void {
+    saveFormState({
+      method: this.state.currentMethod,
+      currency: this.state.currentCurrency,
+      phone: this.elements.phoneInput ? this.elements.phoneInput.value : undefined,
+      terms: this.elements.termsCheckbox ? this.elements.termsCheckbox.checked : undefined,
+    });
+  }
+
+  private updatePaymentMethod(method: PaymentMethod): void {
+    console.log(`[PaymentSystem] 🔀 updatePaymentMethod called: ${this.state.currentMethod} → ${method}`);
+
+    if (this.state.currentMethod === method) {
+      console.log(`[PaymentSystem] ⏭️  Method unchanged, skipping`);
+      return;
+    }
+
+    console.log(`[PaymentSystem] 🧹 Cleaning up previous method: ${this.state.currentMethod}`);
+
+    // Reset previous method
+    if (this.state.currentMethod === 'mpesa') {
+      console.log('[PaymentSystem] Resetting M-Pesa state');
+      resetMpesaPaymentState();
+    }
+    if (this.state.currentMethod === 'paypal') {
+      console.log('[PaymentSystem] Cleaning up PayPal');
+      cleanupPayPal();
+      this.setState({ paypalInitialized: false }); // *** THIS IS THE FIX ***
+    }
+    if (this.state.currentMethod === 'paystack') {
+      console.log('[PaymentSystem] Resetting Paystack state');
+      resetPaystackPaymentState();
+    }
 
     this.state.currentMethod = method;
-    this.state.paypalProcessing = false; // Explicitly reset PayPal state
-    this.formSubmitted = false; // Explicitly reset M-Pesa state
+    this.elements.selectedMethodInput.value = method;
+    this.state.processingStage = 0;
+
+    console.log(`[PaymentSystem] ✅ Current method updated to: ${method}`);
+
+    // Clear all error messages
+    const errorSpan = this.elements.paymentErrors.querySelector('span');
+    if (errorSpan) errorSpan.textContent = '';
+    this.elements.paymentErrors.style.display = 'none';
+    console.log('[PaymentSystem] 🧹 Error messages cleared');
+
+    // Show/hide sections
+    console.log('[PaymentSystem] 🎨 Updating section visibility...');
+    this.elements.mobileMoneySection.classList.toggle('active', method === 'mpesa');
+    this.elements.paypalSection.classList.toggle('active', method === 'paypal');
+    this.elements.paystackSection.classList.toggle('active', method === 'paystack');
+
+    console.log(`[PaymentSystem] Section visibility: M-Pesa=${this.elements.mobileMoneySection.style.display}, PayPal=${this.elements.paypalSection.style.display}, Paystack=${this.elements.paystackSection.style.display}`);
+
+    // Show/hide submit button
+    if (method === 'paypal') {
+      console.log('[PaymentSystem] 👁️  Hiding submit button for PayPal');
+      this.elements.paymentSubmitButton.style.display = 'none';
+    } else {
+      console.log('[PaymentSystem] 👁️  Showing submit button for', method);
+      this.elements.paymentSubmitButton.style.display = 'block';
+    }
 
     // Update UI
+    console.log('[PaymentSystem] 🎨 Updating UI elements...');
     updatePaymentMethodUI(method, this.elements.paymentTabs, this.elements.selectedMethodName);
     updateSubmitButton(method, this.elements.submitText, this.elements.submitIcon);
-    this.elements.selectedMethodInput.value = method;
 
-    // Handle section transitions
-    this.togglePaymentSections(method);
-
-
-    // Handle method-specific initialization
+    // Initialize method-specific logic
     if (method === 'paypal') {
-      showCurrencyTooltip(method, this.state.currentCurrency, this.elements.currencyTooltip, this.elements.tooltipText);
-      console.log("[PAYMENT] Initializing PayPal... (Terms check will happen in onInit)");
-      setTimeout(() => initializePayPal(this), 400);
-    }
-    else {
-      hideCurrencyTooltip(this.elements.currencyTooltip);
-      cleanupPayPal();
+      console.log('[PaymentSystem] 💳 Initializing PayPal...');
+      console.log('[PaymentSystem] PayPal initialized flag:', this.state.paypalInitialized);
+
+      // Clear PayPal status
+      const paypalStatus = document.getElementById('paypal-status');
+      if (paypalStatus) {
+        paypalStatus.style.display = 'none';
+        console.log('[PaymentSystem] PayPal status cleared');
+      }
+
+      // Initialize PayPal
+      initializePayPal(this);
+    } else if (method === 'paystack') {
+      console.log('[PaymentSystem] 💳 Switching to Paystack');
+
+      // Clear Paystack status
+      const paystackStatusEl = document.getElementById('paystack-status');
+      if (paystackStatusEl) {
+        paystackStatusEl.style.display = 'none';
+        console.log('[PaymentSystem] Paystack status cleared');
+      }
+    } else if (method === 'mpesa') {
+      console.log('[PaymentSystem] 📱 Switching to M-Pesa');
     }
 
-    // Update server and save state
-    saveFormState({
-      method: method,
-      currency: this.state.currentCurrency,
-      phone: this.elements.phoneInput.value,
-      terms: this.elements.termsCheckbox.checked
-    });
+    this.saveState();
+    console.log(`[PaymentSystem] ✅ Method switch complete: ${method}`);
   }
 
-  private togglePaymentSections(method: PaymentMethod): void {
-    if (method === 'paypal') {
-      this.elements.mobileMoneySection.classList.remove('active');
-      setTimeout(() => {
-        this.elements.mobileMoneySection.style.display = 'none';
-        this.elements.paypalSection.style.display = 'block';
-        setTimeout(() => this.elements.paypalSection.classList.add('active'), 50);
-      }, 300);
-    } else {
-      this.elements.paypalSection.classList.remove('active');
-      setTimeout(() => {
-        this.elements.paypalSection.style.display = 'none';
-        this.elements.mobileMoneySection.style.display = 'block';
-        setTimeout(() => this.elements.mobileMoneySection.classList.add('active'), 50);
-      }, 300);
-    }
-  }
-
-  private handleCurrencyChange(selector: HTMLSelectElement): void {
+  private updateAmounts(): void {
+    const selector = this.elements.currencySelector;
     const selectedOption = selector.options[selector.selectedIndex];
-    const currency = selectedOption.value;
-    const rate = parseFloat(selectedOption.dataset.rate || '1');
 
-    this.state.currentCurrency = currency;
+    const newCurrency = selectedOption.value;
+    const rate = parseFloat(selectedOption.getAttribute('data-rate') || '1');
+
+    this.state.currentCurrency = newCurrency;
     this.state.currentRate = rate;
 
-    this.elements.formCurrency.value = currency;
+    const cartTotal = parseFloat(this.config.cartTotalPrice);
+    this.state.currentConvertedAmount = cartTotal * rate;
+
+    const currency = this.config.currencySymbols[newCurrency] || newCurrency;
+
+    // Update hidden form fields
+    this.elements.formCurrency.value = newCurrency;
     this.elements.formConversionRate.value = rate.toString();
-
-    // Update amounts in UI
-    this.updateAmounts(rate, currency);
-
-    // Handle PayPal currency changes
-    if (this.state.currentMethod === 'paypal') {
-      this.state.paypalInitialized = false;
-      showCurrencyTooltip('paypal', currency, this.elements.currencyTooltip, this.elements.tooltipText);
-
-      setTimeout(() => initializePayPal(this), 500);
-    }
-
-    saveFormState({
-      method: this.state.currentMethod,
-      currency: currency,
-      phone: this.elements.phoneInput.value,
-      terms: this.elements.termsCheckbox.checked
-    });
-  }
-
-  private updateAmounts(rate: number, currency: string): void {
-    const symbol = this.config.currencySymbols[currency] || currency;
-    const baseTotal = parseFloat(this.config.cartTotalPrice);
-    this.state.currentConvertedAmount = baseTotal * rate;
-
-    // Update order items
-    document.querySelectorAll('.order-item').forEach(item => {
-      const basePrice = parseFloat((item as HTMLElement).dataset.price || '0');
-      const amountElement = item.querySelector('.item-amount');
-      if (amountElement) {
-        amountElement.textContent = formatCurrency(basePrice * rate, currency);
-      }
-    });
-
-    // Update summary
-    const subtotalElement = document.querySelector('.subtotal-amount');
-    const totalElement = document.querySelector('.total-amount');
-
-    if (subtotalElement) {
-      subtotalElement.textContent = formatCurrency(this.state.currentConvertedAmount, currency);
-    }
-    if (totalElement) {
-      totalElement.textContent = formatCurrency(this.state.currentConvertedAmount, currency);
-    }
-
-    // Update form values
     this.elements.formAmount.value = this.state.currentConvertedAmount.toFixed(2);
+
+    // Update amount inputs
     const amountInput = document.getElementById('amount') as HTMLInputElement;
     if (amountInput) {
-      amountInput.value = `${currency} ${formatCurrency(this.state.currentConvertedAmount, currency)}`;
+      amountInput.value = `${currency} ${formatCurrency(this.state.currentConvertedAmount, newCurrency)}`;
     }
 
-    // Update currency symbols
+    const paystackAmountInput = document.getElementById('paystackAmount') as HTMLInputElement;
+    if (paystackAmountInput) {
+      paystackAmountInput.value = `${currency} ${formatCurrency(this.state.currentConvertedAmount, newCurrency)}`;
+    }
+
+    // Update currency symbols in summary
     document.querySelectorAll('.currency-symbol').forEach(el => {
-      el.textContent = symbol;
+      el.textContent = currency;
     });
-  }
 
-  private handlePhoneInput(value: string): void {
-    if (value && validatePhoneNumber(value)) {
-      clearInputError(this.elements.phoneInput, this.elements.phoneError);
+    const convertedAmountStr = formatCurrency(this.state.currentConvertedAmount, newCurrency);
+    const subtotal = document.querySelector('.subtotal-amount');
+    const total = document.querySelector('.total-amount');
+    if (subtotal) subtotal.textContent = convertedAmountStr;
+    if (total) total.textContent = convertedAmountStr;
+
+    // Re-initialize PayPal if it's the current method
+    if (this.state.currentMethod === 'paypal') {
+      cleanupPayPal();
+      this.state.paypalInitialized = false;
+      initializePayPal(this);
     }
-    saveFormState({
-      method: this.state.currentMethod,
-      currency: this.state.currentCurrency,
-      phone: value,
-      terms: this.elements.termsCheckbox.checked
-    });
+
+    this.saveState();
   }
 
-  private handleTermsChange(): void {
-    saveFormState({
-      method: this.state.currentMethod,
-      currency: this.state.currentCurrency,
-      phone: this.elements.phoneInput.value,
-      terms: this.elements.termsCheckbox.checked
-    });
+  private validateForm(): boolean {
+    let isValid = true;
+
+    // Clear previous errors
+    showPaymentError('', this.elements.paymentErrors, false);
+
+    // 1. Terms check (required for all)
+    if (!this.elements.termsCheckbox.checked) {
+      showPaymentError('You must agree to the Terms of Service', this.elements.paymentErrors);
+      return false;
+    }
+
+    // 2. Method-specific validation
+    if (this.state.currentMethod === 'mpesa') {
+      const phoneNumber = this.elements.phoneInput.value;
+      const cleanPhone = validatePhoneNumber(phoneNumber);
+
+      if (!cleanPhone) {
+        showInputError(
+          this.elements.phoneInput,
+          this.elements.phoneError,
+          'Please enter a valid M-Pesa phone number (e.g., 712345678)'
+        );
+        isValid = false;
+      } else {
+        this.elements.phoneInput.value = cleanPhone;
+        clearInputError(this.elements.phoneInput, this.elements.phoneError);
+      }
+    }
+
+    if (this.state.currentMethod === 'paystack') {
+      const emailValue = this.elements.paystackEmailInput.value.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!emailValue || !emailRegex.test(emailValue)) {
+        showInputError(
+          this.elements.paystackEmailInput,
+          this.elements.paystackEmailError,
+          'Please enter a valid email address'
+        );
+        isValid = false;
+      } else {
+        clearInputError(this.elements.paystackEmailInput, this.elements.paystackEmailError);
+      }
+    }
+
+    // PayPal validation is handled by PayPal SDK
+    if (this.state.currentMethod === 'paypal') {
+      // Don't show error, PayPal handles its own flow
+      return true;
+    }
+
+    return isValid;
   }
 
   private async handleFormSubmit(e: Event): Promise<void> {
     e.preventDefault();
 
-    // Prevent double submission
-    if (this.formSubmitted) {
-      console.warn('[PAYMENT] Form already submitted, ignoring duplicate submission');
-      return;
-    }
-
-    // Hide previous errors
-    this.elements.paymentErrors.style.display = 'none';
-
-    // Validate form
     if (!this.validateForm()) {
       return;
     }
 
     const method = this.state.currentMethod;
 
-    // For PayPal, show message to use the PayPal button
-    if (method === 'paypal') {
-      const paypalContainer = document.getElementById('paypal-button-container');
-      if (paypalContainer) {
-        paypalContainer.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        });
-      }
-      return;
-    }
-
-    // Handle M-Pesa
     if (method === 'mpesa') {
-      this.formSubmitted = true;
-      const success = await initializeMpesa(this);
-      if (!success) {
-        this.formSubmitted = false; // Reset on failure
-      }
+      await initializeMpesa(this);
+    } else if (method === 'paystack') {
+      await initializePaystack(this);
+    } else if (method === 'paypal') {
+      // PayPal submission is handled by PayPal SDK buttons
+      // This should never be reached since submit button is hidden for PayPal
+      console.warn('PayPal form submitted directly - should use PayPal buttons');
     }
-  }
-
-  private validateForm(): boolean {
-    let isValid = true;
-
-    if (this.state.currentMethod === 'mpesa') {
-      const phoneValue = this.elements.phoneInput.value.trim();
-      if (!validatePhoneNumber(phoneValue)) {
-        showInputError(
-          this.elements.phoneInput,
-          this.elements.phoneError,
-          'Please enter a valid phone number (e.g. 712345678)'
-        );
-        isValid = false;
-      } else {
-        clearInputError(this.elements.phoneInput, this.elements.phoneError);
-      }
-    }
-
-    if (!this.elements.termsCheckbox.checked) {
-      showPaymentError('You must agree to the terms and conditions', this.elements.paymentErrors);
-      isValid = false;
-    }
-
-    return isValid;
   }
 
   private toggleSummary(): void {
-    const isCollapsed = this.elements.summaryContent.classList.contains('collapsed');
+    this.elements.summaryContent.classList.toggle('collapsed');
+    this.elements.summaryToggle.classList.toggle('collapsed');
 
-    if (isCollapsed) {
-      this.elements.summaryContent.classList.remove('collapsed');
-      this.elements.summaryToggle.classList.remove('collapsed');
-      const span = this.elements.summaryToggle.querySelector('span');
-      if (span) span.textContent = 'Hide Details';
-      const icon = this.elements.summaryToggle.querySelector('i');
-      if (icon) (icon as HTMLElement).style.transform = 'rotate(180deg)';
-    } else {
-      this.elements.summaryContent.classList.add('collapsed');
-      this.elements.summaryToggle.classList.add('collapsed');
-      const span = this.elements.summaryToggle.querySelector('span');
-      if (span) span.textContent = 'Show Details';
-      const icon = this.elements.summaryToggle.querySelector('i');
-      if (icon) (icon as HTMLElement).style.transform = 'rotate(0deg)';
+    const span = this.elements.summaryToggle.querySelector('span');
+    const icon = this.elements.summaryToggle.querySelector('i');
+
+    if (span) {
+      span.textContent = this.elements.summaryContent.classList.contains('collapsed')
+        ? 'Show Details'
+        : 'Hide Details';
+    }
+    if (icon) {
+      icon.classList.toggle('fa-chevron-down');
+      icon.classList.toggle('fa-chevron-up');
     }
   }
 
-  private handleResize(): void {
-    if (window.innerWidth <= 991 && !this.elements.summaryContent.classList.contains('collapsed')) {
-      if (!this.elements.summaryToggle.classList.contains('initialized')) {
-        this.elements.summaryContent.classList.add('collapsed');
-        this.elements.summaryToggle.classList.add('collapsed');
-        const span = this.elements.summaryToggle.querySelector('span');
-        if (span) span.textContent = 'Show Details';
-        this.elements.summaryToggle.classList.add('initialized');
-      }
-    } else if (window.innerWidth > 991) {
-      this.elements.summaryContent.classList.remove('collapsed');
-      this.elements.summaryToggle.classList.remove('collapsed');
-    }
-  }
-
-  // ❌ REMOVED redundant isPaypalCurrencySupported method
-
-  private initializePaymentMethod(method: PaymentMethod): void {
-    updatePaymentMethodUI(method, this.elements.paymentTabs, this.elements.selectedMethodName);
-    this.switchPaymentMethod(method);
-
-    // Initialize mobile summary
+  private initializeSummaryState(): void {
     if (window.innerWidth <= 991) {
       this.elements.summaryContent.classList.add('collapsed');
       this.elements.summaryToggle.classList.add('collapsed');
-      const span = this.elements.summaryToggle.querySelector('span');
-      if (span) span.textContent = 'Show Details';
+      const icon = this.elements.summaryToggle.querySelector('i');
+      if (icon) {
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+      }
     }
   }
 
-  // Public methods for other modules to access state
+  // Public methods
   public getState(): PaymentState {
     return { ...this.state };
   }
@@ -464,10 +432,8 @@ export class PaymentSystem {
   }
 }
 
-
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function () {
-  // require that template injected config exists
   if (typeof window.paymentConfig === 'undefined') {
     console.error('paymentConfig missing. Make sure checkout template injects it.');
     return;
@@ -475,18 +441,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const cfg = window.paymentConfig;
 
+  const currencySymbols: Record<string, string> = {
+    'USD': '$', 'EUR': '€', 'GBP': '£',
+    'KES': 'KSh', 'UGX': 'USh', 'TZS': 'TSh',
+    'NGN': '₦', 'GHS': 'GH₵'
+  };
+
   const config: PaymentConfig = {
     cartTotalPrice: cfg.cartTotalPrice,
     defaultCurrency: cfg.defaultCurrency,
     csrfToken: cfg.csrfToken,
-    currencySymbols: {
-      'USD': '$', 'EUR': '€', 'GBP': '£',
-      'KES': 'KSh', 'UGX': 'USh', 'TZS': 'TSh'
-    },
+    currencySymbols: currencySymbols,
     orderId: cfg.orderId,
     paypalClientId: cfg.paypalClientId,
-    urls: cfg.urls
+    paystackPublicKey: cfg.paystackPublicKey,
+    urls: cfg.urls,
+    currencyOptions: Array.from(document.getElementById('currencySelector')!.querySelectorAll('option')).map(option => ({
+      code: option.value,
+      name: option.textContent!.split(' - ')[1] || option.value,
+      symbol: currencySymbols[option.value] || option.value,
+      rate: parseFloat(option.getAttribute('data-rate') || '1'),
+    }))
   };
 
   window.paymentSystem = new PaymentSystem(config);
+
+  const symbol = config.currencySymbols[config.defaultCurrency] || config.defaultCurrency;
+  document.querySelectorAll('.currency-symbol').forEach(el => {
+    el.textContent = symbol;
+  });
 });

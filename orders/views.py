@@ -57,9 +57,15 @@ def create_order(request):
 
                 # Populate other fields
                 post_data['email'] = request.user.email
-                post_data['phone'] = saved_address.phone or getattr(request.user, 'phone_number', '')
+                # Get phone and normalize it to include '+' before validation
+                phone_number = saved_address.phone or getattr(request.user, 'phone_number', '')
+                if phone_number and not phone_number.startswith('+') and phone_number.isdigit():
+                    phone_number = '+' + phone_number
+                post_data['phone'] = phone_number
+
                 post_data['address'] = saved_address.street_address
                 post_data['city'] = saved_address.city
+
                 post_data['state'] = saved_address.state
                 post_data['postal_code'] = saved_address.postal_code
                 post_data['country'] = saved_address.country.code
@@ -104,6 +110,9 @@ def create_order(request):
                     products_to_update = []
 
                     # Process cart items
+                    base_currency = settings.DEFAULT_CURRENCY
+
+                    # Process cart items
                     for cart_item in cart.items.select_related('product'):
                         product = cart_item.product
 
@@ -114,28 +123,63 @@ def create_order(request):
                                 f"Only {product.stock} available."
                             )
 
-                        # Get current price
-                        current_price = product.get_display_price()
-                        if not isinstance(current_price, Money):
-                            current_price = Money(
-                                Decimal(str(current_price)),
-                                settings.DEFAULT_CURRENCY
-                            )
+                        # --- CURRENCY CONVERSION FIX ---
 
-                        # Subtotal
-                        order_subtotal += current_price * cart_item.quantity
+                        # 1. Get Product Price and convert to Base Currency
+                        current_price = product.price
 
-                        # Shipping
+                        if current_price.currency.code == base_currency:
+                            converted_price = current_price
+                        else:
+                            # Use same cache logic as CheckoutView
+                            cache_key = f"rate_{current_price.currency.code}_{base_currency}"
+                            rate = cache.get(cache_key)
+                            if rate is None:
+                                rate = get_exchange_rate(current_price.currency.code, base_currency)
+                                if rate is None:
+                                    raise ValueError(
+                                        f"Missing exchange rate: {current_price.currency.code} to {base_currency}")
+                                cache.set(cache_key, float(rate), settings.CURRENCY_CACHE_TIMEOUT)
+
+                            converted_price_amount = current_price.amount * Decimal(str(rate))
+                            converted_price = Money(converted_price_amount, base_currency)
+
+                        # 2. Add to Subtotal
+                        order_subtotal += converted_price * cart_item.quantity
+
+                        # 3. Get Shipping Cost and convert to Base Currency
+                        converted_shipping = Money(0, base_currency)
                         if not product.free_shipping and product.shipping_cost:
-                            order_shipping += product.shipping_cost * cart_item.quantity
+                            shipping_cost = product.shipping_cost
 
-                        # Prepare order item
+                            if shipping_cost.currency.code == base_currency:
+                                converted_shipping = shipping_cost
+                            else:
+                                # Use same cache logic
+                                cache_key_ship = f"rate_{shipping_cost.currency.code}_{base_currency}"
+                                rate_ship = cache.get(cache_key_ship)
+                                if rate_ship is None:
+                                    rate_ship = get_exchange_rate(shipping_cost.currency.code, base_currency)
+                                    if rate_ship is None:
+                                        raise ValueError(
+                                            f"Missing exchange rate: {shipping_cost.currency.code} to {base_currency}")
+                                    cache.set(cache_key_ship, float(rate_ship), settings.CURRENCY_CACHE_TIMEOUT)
+
+                                converted_shipping_amount = shipping_cost.amount * Decimal(str(rate_ship))
+                                converted_shipping = Money(converted_shipping_amount, base_currency)
+
+                        # 4. Add to Shipping Total
+                        order_shipping += converted_shipping * cart_item.quantity
+
+                        # 5. Prepare Order Item (saving the converted price)
                         items_to_create.append(OrderItem(
                             order=order,
                             product=product,
-                            price=current_price,
+                            price=converted_price,
                             quantity=cart_item.quantity,
                         ))
+
+                        # --- END FIX ---
 
                         # Prepare product stock update
                         product.stock -= cart_item.quantity
@@ -376,7 +420,7 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         return order
 
 
-class OrderSuccessView(TemplateView):
+class OrderSuccessView(LoginRequiredMixin, TemplateView): # <-- ADD LoginRequiredMixin
     """Display order confirmation after successful payment."""
     template_name = "orders/success.html"
 
@@ -386,10 +430,9 @@ class OrderSuccessView(TemplateView):
         context["order"] = get_object_or_404(
             Order,
             id=order_id,
-            user=self.request.user
+            user=self.request.user  # This query will now work
         )
         return context
-
 
 class CheckoutView(LoginRequiredMixin, TemplateView):
     """Payment checkout page with multi-currency and payment method selection."""
@@ -521,6 +564,7 @@ class CheckoutView(LoginRequiredMixin, TemplateView):
                 base_currency
             ),
             'PAYPAL_CLIENT_ID': settings.PAYPAL_CLIENT_ID,
+            'PAYSTACK_PUBLIC_KEY': settings.PAYSTACK_PUBLIC_KEY,
         })
 
         return context

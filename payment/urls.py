@@ -1,6 +1,6 @@
 # payment/urls.py
 from django.urls import path
-from . import views
+from . import views, paystack_views
 
 app_name = 'payment'
 
@@ -25,4 +25,10 @@ urlpatterns = [
 
     # --- Debugging / Internal Tools ---
     path('debug/<str:checkout_request_id>/', views.debug_payment, name='debug_payment'),
+
+    # --- Paystack ---
+    path('paystack/initialize/', paystack_views.initialize_paystack_payment, name='initialize_paystack'),
+    path('paystack/callback/', paystack_views.paystack_callback, name='paystack_callback'),
+    path('paystack/webhook/', paystack_views.paystack_webhook, name='paystack_webhook'),
+    path('paystack/status/', paystack_views.paystack_status, name='paystack_status'),
 ]

@@ -12,6 +12,7 @@ class Payment(models.Model):
     PROVIDER_CHOICES = (
         ('MPESA', 'M-Pesa'),
         ('PAYPAL', 'PayPal'),
+        ('PAYSTACK', 'Paystack'),
     )
 
     # Core fields

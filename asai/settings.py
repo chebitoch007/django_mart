@@ -62,7 +62,8 @@ PAYMENT_SETTINGS = {
 
 ENABLED_PAYMENT_METHODS = [
     'mpesa',
-    'paypal'
+    'paypal',
+    'paystack'
 ]
 
 # ================== Application Definition ==================
@@ -291,6 +292,10 @@ PAYPAL_API_URL = (
     "https://api-m.sandbox.paypal.com" if PAYPAL_TEST else "https://api-m.paypal.com"
 )
 
+# Paystack Configuration
+PAYSTACK_PUBLIC_KEY = env('PAYSTACK_PUBLIC_KEY')
+PAYSTACK_SECRET_KEY = env('PAYSTACK_SECRET_KEY')
+
 TRUSTED_IPS = [ip.strip() for ip in env("TRUSTED_IPS", default="127.0.0.1").split(",")]
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 
@@ -477,4 +482,4 @@ CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 ADMIN_URL = env("ADMIN_URL", default="admin")
 
-BASE_URL='https://0edc25bc75de.ngrok-free.app'
+BASE_URL='https://4106ab03b8d9.ngrok-free.app'

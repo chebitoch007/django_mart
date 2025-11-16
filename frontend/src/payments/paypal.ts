@@ -49,7 +49,6 @@ export function initializePayPal(paymentSystem: PaymentSystem): void {
       return;
     }
 
-
     let paypalCurrency = state.currentCurrency;
     let paypalAmount = state.currentConvertedAmount;
 
@@ -60,23 +59,40 @@ export function initializePayPal(paymentSystem: PaymentSystem): void {
       );
     }
 
-
-      paypalButtons = window.paypal!.Buttons({
+    paypalButtons = window.paypal!.Buttons({
       onInit: function (data: any, actions: any) {
-        actions.disable(); // Start disabled by default
+        console.log('[PayPal] onInit called, terms checkbox:', elements.termsCheckbox?.checked);
 
+        // Check initial state
         const enableCheck = () => {
-          if (elements.termsCheckbox && elements.termsCheckbox.checked) {
-            console.log('[PayPal] Terms checked, enabling buttons.');
+          const isChecked = elements.termsCheckbox?.checked || false;
+          console.log('[PayPal] Enable check - Terms checked:', isChecked);
+
+          if (isChecked) {
             actions.enable();
+            console.log('[PayPal] Buttons ENABLED');
           } else {
-            console.log('[PayPal] Terms unchecked, disabling buttons.');
             actions.disable();
+            console.log('[PayPal] Buttons DISABLED');
           }
         };
 
-        // Add the listener for future changes
-        elements.termsCheckbox?.addEventListener('change', enableCheck);
+        // Remove any existing listener to prevent duplicates
+        if (elements.termsCheckbox) {
+          // Clone the checkbox to remove all event listeners
+          const oldCheckbox = elements.termsCheckbox;
+          const newCheckbox = oldCheckbox.cloneNode(true) as HTMLInputElement;
+          oldCheckbox.parentNode?.replaceChild(newCheckbox, oldCheckbox);
+
+          // Update reference
+          elements.termsCheckbox = newCheckbox;
+
+          // Add new listener
+          elements.termsCheckbox.addEventListener('change', enableCheck);
+          console.log('[PayPal] Terms checkbox listener attached');
+        }
+
+        // Initial check
         enableCheck();
       },
 

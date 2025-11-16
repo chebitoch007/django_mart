@@ -1,7 +1,13 @@
-<!-- orders/templates/orders/checkout.html -->
-
 {% extends "store/base.html" %}
 {% load humanize static vite_tags %}
+
+
+{% block extra_head %}
+<!-- CRITICAL CSS - Inline for zero FOUC -->
+<style>
+:root{--primary-color:#3b82f6;--primary-hover:#2563eb;--success-color:#10b981;--error-color:#ef4444;--text-primary:#1f2937;--border-color:#e5e7eb;--background-light:#f9fafb;--shadow-lg:0 10px 15px -3px rgba(0,0,0,0.1)}*{box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;line-height:1.5;color:var(--text-primary)}.checkout-container{max-width:1400px;margin:0 auto;padding:20px}.checkout-layout{display:flex;flex-direction:column;gap:30px}@media (min-width:992px){.checkout-layout{flex-direction:row}}.payment-section{flex:2}.order-summary-section{flex:1}.payment-card{background:#fff;border-radius:16px;border:1px solid var(--border-color);padding:32px;box-shadow:var(--shadow-lg);position:relative;overflow:hidden}.payment-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--primary-color),#8b5cf6)}.payment-title{font-size:1.875rem;font-weight:700;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--border-color)}.payment-tabs{display:flex;gap:8px;margin-bottom:24px;padding:4px;background:var(--background-light);border-radius:12px}.payment-tab{flex:1;min-width:120px;padding:14px 16px;border-radius:8px;background:transparent;border:none;cursor:pointer;transition:all .3s;font-weight:600;color:#6b7280}.payment-tab.active{background:var(--primary-color);color:#fff}.submit-button{width:100%;padding:16px 24px;background:linear-gradient(135deg,var(--primary-color),var(--primary-hover));color:#fff;border:none;border-radius:12px;font-size:1.1rem;font-weight:600;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:12px}.submit-button:disabled{background:#9ca3af;cursor:not-allowed}.processing-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:all .3s;backdrop-filter:blur(4px)}.processing-modal.active{opacity:1;visibility:visible}@media (max-width:767px){.checkout-container{padding:12px}.payment-card{padding:20px 16px}.payment-title{font-size:1.4rem}}
+</style>
+{% endblock %}
 
 {% block extra_scripts %}
 <script>
@@ -10,809 +16,48 @@
       initiatePayment: "{% url 'payment:initiate_payment' %}",
       processPayment: "{% url 'payment:process_payment' order.id %}",
       mpesaStatus: "{% url 'payment:mpesa_status' %}",
-      orderSuccess: "{% url 'orders:success' order.id %}"
+      orderSuccess: "{% url 'orders:success' order.id %}",
+      initializePaystack: "{% url 'payment:initialize_paystack' %}",
+      paystackStatus: "{% url 'payment:paystack_status' %}"
     },
     cartTotalPrice: "{{ order.total.amount }}",
     defaultCurrency: "{{ order.total.currency.code }}",
     csrfToken: "{{ csrf_token }}",
     orderId: "{{ order.id }}",
-    paypalClientId: "{{ PAYPAL_CLIENT_ID }}"
+    paypalClientId: "{{ PAYPAL_CLIENT_ID }}",
+    paystackPublicKey: "{{ PAYSTACK_PUBLIC_KEY }}"
   };
 </script>
 
-<script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&commit=false&components=buttons"></script>
+<!-- Preload critical resources -->
+<link rel="preload" href="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&commit=false&components=buttons" as="script">
+<link rel="preload" href="https://js.paystack.co/v1/inline.js" as="script">
+<link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" as="style">
 
+<!-- Load external scripts -->
+<script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&commit=false&components=buttons" defer></script>
+<script src="https://js.paystack.co/v1/inline.js" defer></script>
+
+<!-- Load stylesheets -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/checkout.css' %}" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="{% static 'css/checkout.css' %}"></noscript>
+
 {% vite_asset 'src/payments/payments.ts' %}
 {% endblock %}
 
-
-
-
 {% block content %}
-<style>
-/* (Your CSS
-    /* Enhanced Checkout Page Styles */
-    :root {
-        --primary-color: #3b82f6;
-        --primary-hover: #2563eb;
-        --success-color: #10b981;
-        --error-color: #ef4444;
-        --warning-color: #f59e0b;
-        --text-primary: #1f2937;
-        --text-secondary: #6b7280;
-        --border-color: #e5e7eb;
-        --background-light: #f9fafb;
-        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }
-
-    .checkout-container {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-
-    .checkout-layout {
-        display: flex;
-        flex-direction: column;
-        gap: 30px;
-    }
-
-    @media (min-width: 992px) {
-        .checkout-layout {
-            flex-direction: row;
-        }
-    }
-
-    .payment-section {
-        flex: 2;
-    }
-
-    .order-summary-section {
-        flex: 1;
-    }
-
-    /* Enhanced Payment Card */
-    .payment-card {
-        background: white;
-        border-radius: 16px;
-        border: 1px solid var(--border-color);
-        padding: 32px;
-        box-shadow: var(--shadow-lg);
-        margin-bottom: 30px;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .payment-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, var(--primary-color), #8b5cf6);
-    }
-
-    .payment-title {
-        font-size: 1.875rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 28px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid var(--border-color);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .payment-title i {
-        color: var(--primary-color);
-    }
-
-    /* Enhanced Location Indicator */
-    .location-indicator {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 12px 16px;
-        background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
-        border-radius: 10px;
-        margin-bottom: 24px;
-        font-size: 0.9rem;
-        border: 1px solid #bae6fd;
-    }
-
-    .location-indicator i {
-        color: #0ea5e9;
-        font-size: 1.1rem;
-    }
-
-    /* Enhanced Currency Selector */
-    .currency-selector {
-        margin-bottom: 24px;
-    }
-
-    .currency-label {
-        display: block;
-        margin-bottom: 10px;
-        font-weight: 600;
-        color: var(--text-primary);
-        font-size: 0.9rem;
-    }
-
-    .currency-dropdown {
-        width: 100%;
-        padding: 12px 16px;
-        border: 2px solid var(--border-color);
-        border-radius: 10px;
-        background: white;
-        font-size: 1rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .currency-dropdown:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-
-    /* Enhanced Payment Tabs with Smooth Animations */
-    .payment-tabs {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 24px;
-        overflow-x: auto;
-        padding: 4px;
-        background: var(--background-light);
-        border-radius: 12px;
-    }
-
-    .payment-tab {
-        flex: 1;
-        min-width: 120px;
-        text-align: center;
-        padding: 14px 16px;
-        border-radius: 8px;
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        font-weight: 600;
-        color: var(--text-secondary);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 6px;
-        position: relative;
-        transform: scale(1);
-    }
-
-    .payment-tab:hover:not(.active) {
-        background: rgba(59, 130, 246, 0.05);
-        color: var(--primary-color);
-        transform: scale(1.02);
-    }
-
-    .payment-tab.active {
-        background: var(--primary-color);
-        color: white;
-        box-shadow: var(--shadow-md);
-        transform: scale(1.05);
-    }
-
-    .payment-tab i {
-        font-size: 1.2rem;
-        transition: transform 0.2s ease;
-    }
-
-    .payment-tab.active i {
-        transform: scale(1.1);
-    }
-
-    .payment-tab small {
-        font-weight: 500;
-        font-size: 0.75rem;
-        opacity: 0.9;
-    }
-
-    /* Enhanced Method Confirmation */
-    .method-confirmation {
-        background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);
-        border-left: 4px solid var(--success-color);
-        padding: 14px 18px;
-        margin-bottom: 24px;
-        border-radius: 0 10px 10px 0;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        animation: slideIn 0.3s ease-out;
-    }
-
-    .method-confirmation i {
-        color: var(--success-color);
-        font-size: 1.2rem;
-    }
-
-    @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateX(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-
-    /* Enhanced Form Layout - Side by Side on Desktop */
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 20px;
-        margin-bottom: 24px;
-    }
-
-    @media (min-width: 768px) {
-        .form-row {
-            grid-template-columns: 1fr 1fr;
-        }
-    }
-
-    .input-group {
-        position: relative;
-    }
-
-    .input-label {
-        display: block;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 8px;
-        font-size: 0.9rem;
-    }
-
-    .text-input, .phone-input {
-        width: 100%;
-        padding: 14px 16px;
-        border: 2px solid var(--border-color);
-        border-radius: 10px;
-        font-size: 1rem;
-        transition: all 0.2s ease;
-        background: white;
-    }
-
-    .text-input:focus, .phone-input:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-
-    .amount-input {
-        padding: 14px 16px;
-        background: var(--background-light);
-        border: 2px solid var(--border-color);
-        border-radius: 10px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        width: 100%;
-        text-align: center;
-    }
-
-    /* Enhanced Inline Validation */
-    .input-error {
-        border-color: var(--error-color) !important;
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
-        animation: shake 0.3s ease-in-out;
-    }
-
-    .input-success {
-        border-color: var(--success-color) !important;
-    }
-
-    .error-text {
-        color: var(--error-color);
-        font-size: 0.85rem;
-        margin-top: 6px;
-        display: none;
-        animation: slideDown 0.2s ease-out;
-    }
-
-    .error-text.show {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .error-text i {
-        font-size: 0.8rem;
-    }
-
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-5px); }
-        75% { transform: translateX(5px); }
-    }
-
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    /* Terms Agreement */
-    .terms-group {
-        margin: 24px 0;
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-    }
-
-    .terms-checkbox {
-        margin-top: 3px;
-        transform: scale(1.2);
-    }
-
-    .terms-label {
-        color: var(--text-secondary);
-        line-height: 1.5;
-        font-size: 0.9rem;
-    }
-
-    .terms-link {
-        color: var(--primary-color);
-        text-decoration: none;
-        font-weight: 500;
-    }
-
-    .terms-link:hover {
-        text-decoration: underline;
-    }
-
-    /* Enhanced Payment Button with Dynamic Text */
-    .submit-button {
-        width: 100%;
-        padding: 16px 24px;
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
-        color: white;
-        border: none;
-        border-radius: 12px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-        position: relative;
-        margin-top: 24px;
-        box-shadow: var(--shadow-md);
-    }
-
-    .submit-button:hover:not(:disabled) {
-        background: linear-gradient(135deg, var(--primary-hover) 0%, #1d4ed8 100%);
-        box-shadow: var(--shadow-lg);
-        transform: translateY(-2px);
-    }
-
-    .submit-button:disabled {
-        background: #9ca3af;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-    }
-
-    .submit-button.loading {
-        color: transparent;
-    }
-
-    .button-spinner {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        width: 22px;
-        height: 22px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-top-color: white;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-        display: none;
-    }
-
-    .submit-button.loading .button-spinner {
-        display: block;
-    }
-
-    /* Trust Badges */
-    .trust-badges {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-        margin-top: 16px;
-        padding: 12px;
-        background: var(--background-light);
-        border-radius: 8px;
-        opacity: 0.8;
-    }
-
-    .trust-badge {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.8rem;
-        color: var(--text-secondary);
-        font-weight: 500;
-    }
-
-    .trust-badge i {
-        font-size: 1.2rem;
-        color: var(--primary-color);
-    }
-
-    /* Enhanced Order Summary with Collapsible Mobile Version */
-    .summary-card {
-        background: white;
-        border-radius: 16px;
-        border: 1px solid var(--border-color);
-        box-shadow: var(--shadow-lg);
-        position: sticky;
-        top: 20px;
-        overflow: hidden;
-    }
-
-    .summary-header {
-        padding: 24px 24px 0;
-        display: flex;
-        align-items: center;
-        justify-content: between;
-    }
-
-    .summary-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        flex: 1;
-    }
-
-    .summary-toggle {
-        display: none;
-        background: none;
-        border: none;
-        color: var(--primary-color);
-        font-weight: 600;
-        cursor: pointer;
-        padding: 8px;
-        border-radius: 6px;
-        transition: background 0.2s ease;
-    }
-
-    .summary-toggle:hover {
-        background: rgba(59, 130, 246, 0.1);
-    }
-
-    .summary-content {
-        padding: 0 24px 24px;
-        transition: all 0.3s ease;
-    }
-
-    @media (max-width: 991px) {
-        .summary-card {
-            position: static;
-            margin-top: 20px;
-        }
-
-        .summary-toggle {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .summary-content.collapsed {
-            max-height: 0;
-            overflow: hidden;
-            padding: 0 24px;
-        }
-
-        .summary-toggle i {
-            transition: transform 0.2s ease;
-        }
-
-        .summary-toggle.collapsed i {
-            transform: rotate(180deg);
-        }
-    }
-
-    .order-items {
-        margin: 20px 0;
-    }
-
-    .order-item {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        padding: 12px 0;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .item-image {
-        width: 64px;
-        height: 64px;
-        border-radius: 10px;
-        object-fit: contain;
-        background: var(--background-light);
-        padding: 8px;
-        border: 1px solid var(--border-color);
-    }
-
-    .item-info {
-        flex: 1;
-    }
-
-    .item-name {
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 6px;
-        font-size: 0.95rem;
-    }
-
-    .item-quantity {
-        color: var(--text-secondary);
-        font-size: 0.85rem;
-    }
-
-    .item-price {
-        font-weight: 600;
-        color: var(--text-primary);
-        font-size: 1rem;
-    }
-
-    .summary-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 10px 0;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .summary-label {
-        color: var(--text-secondary);
-    }
-
-    .summary-value {
-        font-weight: 500;
-        color: var(--text-primary);
-    }
-
-    .summary-total {
-        display: flex;
-        justify-content: space-between;
-        padding: 20px 0;
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        background: var(--background-light);
-        margin: 16px -24px 0;
-        padding: 20px 24px;
-    }
-
-    /* Enhanced Processing Modal with Staged Messages */
-    .processing-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-        opacity: 0;
-        visibility: hidden;
-        transition: all 0.3s ease;
-        backdrop-filter: blur(4px);
-    }
-
-    .processing-modal.active {
-        opacity: 1;
-        visibility: visible;
-    }
-
-    .modal-content {
-        background: white;
-        border-radius: 20px;
-        padding: 48px;
-        text-align: center;
-        max-width: 500px;
-        width: 90%;
-        box-shadow: var(--shadow-lg);
-        transform: scale(0.9);
-        transition: transform 0.3s ease;
-    }
-
-    .processing-modal.active .modal-content {
-        transform: scale(1);
-    }
-
-    .spinner {
-        width: 64px;
-        height: 64px;
-        border: 4px solid rgba(59, 130, 246, 0.2);
-        border-top-color: var(--primary-color);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 24px;
-    }
-
-    .modal-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 12px;
-    }
-
-    .modal-text {
-        color: var(--text-secondary);
-        line-height: 1.6;
-        font-size: 1rem;
-    }
-
-    /* Currency Conversion Tooltip */
-    .currency-tooltip {
-        background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
-        border: 1px solid #fdba74;
-        border-radius: 10px;
-        padding: 12px 16px;
-        margin-top: 12px;
-        font-size: 0.9rem;
-        color: #9a3412;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        animation: slideIn 0.3s ease-out;
-    }
-
-    .currency-tooltip i {
-        color: var(--warning-color);
-        font-size: 1.1rem;
-    }
-
-    /* Payment Status Messages */
-    .payment-status {
-        padding: 16px 20px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        display: none;
-        align-items: center;
-        gap: 10px;
-        animation: slideIn 0.3s ease-out;
-    }
-
-    .payment-status i {
-        font-size: 1.1rem;
-    }
-
-    .payment-status.info {
-        background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
-        color: #1e40af;
-        border: 1px solid #93c5fd;
-    }
-
-    .payment-status.error {
-        background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
-        color: #dc2626;
-        border: 1px solid #fca5a5;
-    }
-
-    .payment-status.success {
-        background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);
-        color: #166534;
-        border: 1px solid #86efac;
-    }
-
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-
-    /* Responsive Improvements */
-    @media (max-width: 767px) {
-        .checkout-container {
-            padding: 12px;
-        }
-
-        .payment-card {
-            padding: 24px 16px;
-            margin-bottom: 20px;
-        }
-
-        .summary-card {
-            border-radius: 12px;
-        }
-
-        .payment-title {
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-        }
-
-        .payment-tabs {
-            gap: 4px;
-            padding: 2px;
-        }
-
-        .payment-tab {
-            min-width: 100px;
-            padding: 12px 8px;
-            font-size: 0.85rem;
-        }
-
-        .payment-tab small {
-            display: none;
-        }
-
-        .form-row {
-            gap: 16px;
-        }
-
-        .modal-content {
-            padding: 32px 24px;
-            margin: 20px;
-        }
-    }
-
-    /* PayPal specific styles */
-    #paypal-button-container-wrapper {
-        position: relative;
-        z-index: 1;
-        min-height: 55px;
-        margin-bottom: 20px;
-        border-radius: 10px;
-        overflow: hidden;
-    }
-
-    #paypal-button-container {
-        position: relative;
-        z-index: 1;
-    }
-
-    body > iframe[data-paypal-checkout] {
-        z-index: 9999 !important;
-    }
-
-    /* Form section transitions */
-    .payment-form-section {
-        margin-top: 20px;
-        opacity: 0;
-        transform: translateY(20px);
-        transition: all 0.3s ease;
-    }
-
-    .payment-form-section.active {
-        opacity: 1;
-        transform: translateY(0);
-    }
-</style>
-
 <div class="checkout-container">
   <div class="checkout-layout">
-    <!-- Payment Section -->
+
     <div class="payment-section">
       <div class="payment-card">
+
         <h2 class="payment-title">
           <i class="fas fa-credit-card"></i>
           Secure Payment
         </h2>
 
-        <!-- Geolocation Indicator -->
         <div class="location-indicator">
           <i class="fas fa-location-dot"></i>
           <span id="locationText">
@@ -831,7 +76,6 @@
           </span>
         </div>
 
-        <!-- Currency Selection -->
         <div class="currency-selector">
           <label class="currency-label">Payment Currency</label>
           <select class="currency-dropdown" id="currencySelector">
@@ -850,7 +94,6 @@
           </div>
         </div>
 
-        <!-- Payment Method Tabs -->
         <div class="payment-tabs">
           <button type="button" class="payment-tab active" data-method="mpesa">
             <i class="fas fa-mobile-alt"></i>
@@ -862,17 +105,21 @@
             <span>PayPal</span>
             <small>Credit & Debit Cards</small>
           </button>
+          <button type="button" class="payment-tab" data-method="paystack">
+            <i class="fas fa-credit-card"></i>
+            <span>Paystack</span>
+            <small>Card & Bank</small>
+          </button>
         </div>
 
-        <!-- Method Confirmation -->
         <div class="method-confirmation" id="methodConfirmation">
           <i class="fas fa-check-circle"></i>
           <span>You've selected to pay with <strong id="selectedMethodName">M-Pesa</strong></span>
         </div>
 
-        <!-- Payment Forms -->
         <form id="paymentForm" method="post" action="{% url 'payment:process_payment' order.id %}" novalidate>
           {% csrf_token %}
+
           <input type="hidden" id="checkoutRequestId" name="checkout_request_id" value="">
           <input type="hidden" name="order_id" value="{{ order.id }}" id="orderId">
           <input type="hidden" name="amount" id="formAmount" value="{{ order.total.amount }}">
@@ -880,8 +127,7 @@
           <input type="hidden" name="payment_method" id="selectedMethod" value="mpesa">
           <input type="hidden" name="conversion_rate" id="formConversionRate" value="1">
 
-          <!-- Mobile Money Section -->
-          <div class="payment-form-section active" id="mobileMoneySection">
+          <div class="payment-form-section active" id="mpesaSection">
             <div class="form-row">
               <div class="input-group">
                 <label class="input-label">Phone Number</label>
@@ -900,16 +146,15 @@
 
               <div class="input-group">
                 <label class="input-label">Amount to Pay</label>
-                  <input type="text"
-                         class="amount-input"
-                         id="amount"
-                         value="{{ default_currency_symbol }} {{ order.total.amount|floatformat:2|intcomma }}"
-                         readonly>
+                <input type="text"
+                       class="amount-input"
+                       id="amount"
+                       value="{{ default_currency_symbol }} {{ order.total.amount|floatformat:2|intcomma }}"
+                       readonly>
               </div>
             </div>
           </div>
 
-          <!-- Terms Agreement -->
           <div class="terms-group">
             <input type="checkbox" id="termsAgreement" class="terms-checkbox" required>
             <label for="termsAgreement" class="terms-label">
@@ -918,7 +163,6 @@
             </label>
           </div>
 
-          <!-- Status Messages -->
           <div id="paymentStatus" class="payment-status info" style="display: none;">
             <i class="fas fa-spinner fa-spin"></i>
             <span>Processing your payment...</span>
@@ -929,51 +173,162 @@
             <span>Please fix the errors below.</span>
           </div>
 
-          <!-- Submit Button -->
           <button type="submit" id="paymentSubmitButton" class="submit-button">
             <i class="fas fa-lock" id="submitIcon"></i>
             <span id="submitText">Pay with M-Pesa</span>
             <div class="button-spinner"></div>
           </button>
 
-          <!-- Trust Badges -->
           <div class="trust-badges">
-            <div class="trust-badge"><i class="fab fa-cc-visa"></i><span>Visa</span></div>
-            <div class="trust-badge"><i class="fab fa-cc-mastercard"></i><span>MasterCard</span></div>
-            <div class="trust-badge"><i class="fab fa-paypal"></i><span>PayPal</span></div>
-            <div class="trust-badge"><i class="fas fa-mobile-alt"></i><span>M-Pesa</span></div>
-            <div class="trust-badge"><i class="fas fa-shield-alt"></i><span>Secure</span></div>
+            <div class="trust-badge">
+              <i class="fab fa-cc-visa"></i>
+              <span>Visa</span>
+            </div>
+            <div class="trust-badge">
+              <i class="fab fa-cc-mastercard"></i>
+              <span>MasterCard</span>
+            </div>
+            <div class="trust-badge">
+              <i class="fab fa-paypal"></i>
+              <span>PayPal</span>
+            </div>
+            <div class="trust-badge">
+              <i class="fas fa-mobile-alt"></i>
+              <span>M-Pesa</span>
+            </div>
+            <div class="trust-badge">
+              <i class="fas fa-shield-alt"></i>
+              <span>Secure</span>
+            </div>
           </div>
         </form>
 
-        <!-- PayPal Section -->
-        <div id="paypalSection" class="payment-form-section" style="display: none;">
-          <h4 class="mb-3">Pay with PayPal</h4>
+        <div id="paypalSection" class="payment-form-section">
+          <h4 class="section-title">
+            <i class="fab fa-paypal"></i>
+            Pay with PayPal
+          </h4>
 
-          <div id="currencyTooltip" class="alert alert-info d-none">
-            <span id="tooltipText"></span>
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <div>
+              <strong>Secure Payment</strong>
+              <p>Complete your payment using PayPal. You can pay with your PayPal balance, credit card, or debit card.</p>
+            </div>
           </div>
 
-          <div id="paypal-button-container" class="mb-3"></div>
+          <div id="paypal-button-container-wrapper">
+            <div id="paypal-button-container"></div>
+          </div>
 
           <div id="paypal-status" class="payment-status info" style="display: none;">
             <i class="fas fa-spinner fa-spin"></i>
             <span class="status-message"></span>
           </div>
 
-          <div id="paypal-fallback" class="alert alert-warning text-center" style="display:none;">
-            Unable to load PayPal. Please refresh the page or choose another payment method.
+          <div id="paypal-fallback" class="alert alert-warning" style="display:none;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>Unable to load PayPal. Please refresh the page or choose another payment method.</span>
           </div>
 
           <input type="hidden" id="paypalOrderId" name="paypal_order_id" value="">
           <input type="hidden" id="paypalPayerId" name="paypal_payer_id" value="">
         </div>
+
+        <div id="paystackSection" class="payment-form-section">
+          <h4 class="section-title">
+            <i class="fas fa-credit-card"></i>
+            Pay with Paystack
+          </h4>
+
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <div>
+              <strong>Secure Payment</strong>
+              <p>Pay securely with your debit/credit card, bank account, or mobile money through Paystack's encrypted payment gateway.</p>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="input-group">
+              <label class="input-label">
+                <i class="fas fa-envelope"></i>
+                Email Address <span class="text-danger">*</span>
+              </label>
+              <input type="email"
+                     class="text-input"
+                     id="paystackEmail"
+                     name="paystack_email"
+                     placeholder="your@email.com"
+                     required
+                     autocomplete="email">
+              <div id="paystackEmailError" class="error-text">
+                <i class="fas fa-exclamation-circle"></i>
+                Please enter a valid email address
+              </div>
+              <small class="form-text">
+                Required for payment receipt and transaction confirmation
+              </small>
+            </div>
+
+            <div class="input-group">
+              <label class="input-label">Amount to Pay</label>
+              <input type="text"
+                     class="amount-input"
+                     id="paystackAmount"
+                     value="{{ default_currency_symbol }} {{ order.total.amount|floatformat:2|intcomma }}"
+                     readonly>
+            </div>
+          </div>
+
+          <div id="paystack-status" class="payment-status info" style="display: none;">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span class="status-message">Initializing payment...</span>
+          </div>
+
+          <div class="supported-methods">
+            <label>
+              <i class="fas fa-check-circle text-success"></i>
+              Supported Payment Methods:
+            </label>
+            <div class="payment-methods-grid">
+              <span class="payment-method-badge">
+                <i class="fas fa-credit-card"></i>
+                Cards
+              </span>
+              <span class="payment-method-badge">
+                <i class="fas fa-university"></i>
+                Bank Transfer
+              </span>
+              <span class="payment-method-badge">
+                <i class="fas fa-mobile-alt"></i>
+                USSD
+              </span>
+              <span class="payment-method-badge">
+                <i class="fas fa-wallet"></i>
+                Mobile Money
+              </span>
+            </div>
+          </div>
+
+          <div class="security-info">
+            <div class="security-badge">
+              <i class="fas fa-lock text-success"></i>
+              <span>256-bit SSL Encryption</span>
+            </div>
+            <div class="security-badge">
+              <i class="fas fa-shield-alt text-primary"></i>
+              <span>PCI DSS Compliant</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
-    <!-- Order Summary -->
     <div class="order-summary-section">
       <div class="summary-card">
+
         <div class="summary-header">
           <h2 class="summary-title">Order Summary</h2>
           <button type="button" class="summary-toggle" id="summaryToggle">
@@ -983,10 +338,13 @@
         </div>
 
         <div class="summary-content" id="summaryContent">
+
           <div class="order-items" id="orderItems">
             {% for item in order.items.all %}
             <div class="order-item" data-price="{{ item.total_price.amount }}">
-              <img src="{{ item.product.get_image_url }}" alt="{{ item.product.name }}" class="item-image">
+              <img src="{{ item.product.get_image_url }}"
+                   alt="{{ item.product.name }}"
+                   class="item-image">
               <div class="item-info">
                 <div class="item-name">{{ item.product.name }}</div>
                 <div class="item-quantity">Qty: {{ item.quantity }}</div>
@@ -1014,13 +372,14 @@
               <span class="total-amount">{{ order.total.amount|intcomma }}</span>
             </div>
           </div>
+
         </div>
       </div>
     </div>
+
   </div>
 </div>
 
-<!-- Processing Modal -->
 <div class="processing-modal" id="processingModal">
   <div class="modal-content">
     <div class="spinner"></div>
@@ -1028,4 +387,5 @@
     <p class="modal-text" id="modalText">Please wait while we complete your transaction</p>
   </div>
 </div>
+
 {% endblock %}

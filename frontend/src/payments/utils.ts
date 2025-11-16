@@ -82,7 +82,8 @@ export async function fetchWithTimeout(
 export function getMethodDisplayName(method: PaymentMethod): string {
   const methodNames: Record<PaymentMethod, string> = {
     'mpesa': 'M-Pesa',
-    'paypal': 'PayPal'
+    'paypal': 'PayPal',
+    'paystack': 'Paystack' // Add this
   };
   return methodNames[method] || method;
 }
@@ -91,4 +92,10 @@ export function getMethodDisplayName(method: PaymentMethod): string {
 export function isPaypalCurrencySupported(currency: string): boolean {
   const paypalSupportedCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY'];
   return paypalSupportedCurrencies.includes(currency);
+}
+
+// Check if Paystack supports currency
+export function isPaystackCurrencySupported(currency: string): boolean {
+  const paystackSupportedCurrencies = ['NGN', 'GHS', 'ZAR', 'USD', 'KES'];
+  return paystackSupportedCurrencies.includes(currency);
 }

@@ -848,13 +848,6 @@ class TemplateTestView(TemplateView):
         }
 
 
-def contact(request):
-    return render(request, 'store/contact.html', {'title': 'Contact Us'})
-
-
-def faq(request):
-    return render(request, 'store/faq.html', {'title': 'FAQs'})
-
 
 def shipping(request):
     return render(request, 'store/shipping.html', {'title': 'Shipping Policy'})

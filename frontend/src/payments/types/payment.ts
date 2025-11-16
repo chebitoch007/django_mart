@@ -57,14 +57,26 @@ interface PaymentConfig {
     processPayment: string;
     mpesaStatus: string;
     orderSuccess: string;
+    initializePaystack?: string; // Add this
+    paystackStatus?: string; // Add this
   };
   cartTotalPrice: string;
   defaultCurrency: string;
   csrfToken: string;
+  currencySymbols: Record<string, string>;
   orderId: string;
   paypalClientId: string;
-  currencySymbols: Record<string, string>;
+  paystackPublicKey: string;
+  currencyOptions: CurrencyOption[];
 }
+
+interface CurrencyOption {
+  code: string;
+  name: string;
+  symbol: string;
+  rate: number;
+}
+
 
 interface PaymentState {
   currentMethod: PaymentMethod;
@@ -74,16 +86,15 @@ interface PaymentState {
   paypalInitialized: boolean;
   paypalProcessing: boolean;
   processingStage: number;
-  lastCheckoutRequestId?: string;
 }
 
 interface PaymentElements {
-  formAmount: HTMLInputElement;
   paymentForm: HTMLFormElement;
   processingModal: HTMLElement;
   modalTitle: HTMLElement;
   modalText: HTMLElement;
   paymentStatus: HTMLElement;
+  paystackStatus: HTMLElement;
   paymentErrors: HTMLElement;
   selectedMethodInput: HTMLInputElement;
   currencySelector: HTMLSelectElement;
@@ -96,7 +107,9 @@ interface PaymentElements {
   submitIcon: HTMLElement;
   formCurrency: HTMLInputElement;
   formConversionRate: HTMLInputElement;
+  formAmount: HTMLInputElement;
   mobileMoneySection: HTMLElement;
+  paystackSection: HTMLElement;
   paypalSection: HTMLElement;
   paymentTabs: NodeListOf<HTMLElement>;
   phoneInput: HTMLInputElement;
@@ -104,9 +117,11 @@ interface PaymentElements {
   termsCheckbox: HTMLInputElement;
   summaryToggle: HTMLElement;
   summaryContent: HTMLElement;
+  paystackEmailInput: HTMLInputElement; // ✅ ADDED
+  paystackEmailError: HTMLElement; // ✅ ADDED
 }
 
-type PaymentMethod = 'mpesa' | 'paypal';
+type PaymentMethod = 'mpesa' | 'paypal' | 'paystack';
 type PaymentStatusType = 'info' | 'error' | 'success';
 
 interface ProcessingStage {
@@ -148,6 +163,5 @@ export type {
   ProcessingStage,
   MpesaResponse,
   PaymentResponse,
-  PayPalButtons,
-  PayPalButtonOptions
+  CurrencyOption
 };
