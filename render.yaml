@@ -1,4 +1,4 @@
-# render.yaml - Fixed for Docker Runtime
+# render.yaml - Final Fix
 databases:
   - name: asai-db
     plan: free
@@ -12,8 +12,7 @@ services:
     runtime: docker
     dockerContext: .
     plan: free
-    # We remove startCommand. The Dockerfile's CMD handles Gunicorn automatically.
-    [cite_start]# [cite: 4]
+    # Note: We rely on the Dockerfile's default CMD here, so no startCommand/dockerCommand needed.
 
     envVars:
       - key: DATABASE_URL
@@ -21,7 +20,7 @@ services:
           name: asai-db
           property: connectionString
 
-      # Manual Redis entry
+      # Manual Redis entry (Paste the redis:// URL in the dashboard)
       - key: REDIS_URL
         sync: false
       - key: CELERY_BROKER_URL
@@ -42,22 +41,20 @@ services:
     runtime: docker
     dockerContext: .
     plan: free
-    # FIXED: Use dockerCommand instead of startCommand for Docker runtimes
+    # We use dockerCommand to override the default CMD for the worker
     dockerCommand: celery -A asai worker -l info -c 2
 
     envVars:
-      # FIXED: Connect directly to DB, don't copy from Web
       - key: DATABASE_URL
         fromDatabase:
           name: asai-db
           property: connectionString
-      # FIXED: Ask for Redis URL manually (sync: false)
       - key: REDIS_URL
         sync: false
       - key: CELERY_BROKER_URL
         sync: false
       - key: DJANGO_SECRET_KEY
-        sync: false # Will ask you to paste the same key, or you can generate a new one
+        sync: false
       - key: USE_CLOUDFLARE_R2
         value: true
 
@@ -67,16 +64,14 @@ services:
     runtime: docker
     dockerContext: .
     plan: free
-    # FIXED: Use dockerCommand instead of startCommand
+    # We use dockerCommand to override the default CMD for the beat scheduler
     dockerCommand: celery -A asai beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 
     envVars:
-      # FIXED: Connect directly to DB
       - key: DATABASE_URL
         fromDatabase:
           name: asai-db
           property: connectionString
-      # FIXED: Ask for Redis URL manually
       - key: REDIS_URL
         sync: false
       - key: CELERY_BROKER_URL
