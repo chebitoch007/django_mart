@@ -1,7 +1,7 @@
-<!-- orders/templates/orders/success.html -->
+<!-- orders/templates/orders/success.html - FIXED -->
 
 {% extends 'store/base.html' %}
-{% load humanize %}
+{% load humanize currency_tags %}
 
 {% block content %}
 <style>
@@ -302,7 +302,10 @@
                     <i class="fas fa-money-bill-wave"></i>
                     Order Total
                 </span>
-                <span class="detail-value">{{ order.total }}</span>
+                <span class="detail-value">
+                    {# ✅ FIXED: Use convert_and_display template tag #}
+                    {% convert_and_display order.total %}
+                </span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">
@@ -317,6 +320,14 @@
                     Status
                 </span>
                 <span class="detail-value">{{ order.get_status_display }}</span>
+            </div>
+            {# ✅ ADDED: Currency info #}
+            <div class="detail-row">
+                <span class="detail-label">
+                    <i class="fas fa-coins"></i>
+                    Currency
+                </span>
+                <span class="detail-value">{{ order_currency }}</span>
             </div>
         </div>
 

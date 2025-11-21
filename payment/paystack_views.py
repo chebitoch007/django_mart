@@ -36,10 +36,11 @@ def initialize_paystack_payment(request):
     try:
         data = json.loads(request.body)
         order_id = data.get('order_id')
-        currency = data.get('currency', settings.DEFAULT_CURRENCY)
-        amount = data.get('amount')
+        # Get requested currency, default to settings if missing
+        requested_currency = data.get('currency', settings.DEFAULT_CURRENCY)
+        requested_amount = data.get('amount')
 
-        if not all([order_id, amount]):
+        if not all([order_id, requested_amount]):
             return JsonResponse({
                 'success': False,
                 'error': 'Missing required parameters'
@@ -54,21 +55,33 @@ def initialize_paystack_payment(request):
                 'error': f'Order already {order.status.lower()}'
             }, status=400)
 
-        # Validate currency
-        if not is_paystack_currency_supported(currency):
-            return JsonResponse({
-                'success': False,
-                'error': f'Currency {currency} not supported by Paystack'
-            }, status=400)
+        # --- ✅ CURRENCY HANDLING ---
+        # Check if the requested currency is actually supported by Paystack
+        if is_paystack_currency_supported(requested_currency):
+            # It is supported (e.g., KES), use the values sent from frontend
+            final_currency = requested_currency
+            final_amount = Decimal(str(requested_amount))
+        else:
+            # It is NOT supported (e.g., USD if disabled, EUR, GBP)
+            # Fallback to the Order's base currency (usually KES) stored in the DB
+            logger.info(f"Currency {requested_currency} not supported. Switching to Order Base Currency.")
 
-        # Create Money object
+            # Use 'order.total' directly (DjMoney field)
+            total_cost = order.total
+
+            if hasattr(total_cost, 'amount'):
+                final_amount = total_cost.amount
+                final_currency = str(total_cost.currency)
+            else:
+                final_amount = Decimal(total_cost)
+                final_currency = settings.DEFAULT_CURRENCY
+
+        # Create Money object for the payment record
         try:
-            amount_money = Money(Decimal(str(amount)), currency)
+            amount_money = Money(final_amount, final_currency)
         except Exception:
-            return JsonResponse({
-                'success': False,
-                'error': 'Invalid amount format'
-            }, status=400)
+            # Fallback if Money fails
+            amount_money = Money(Decimal(str(final_amount)), settings.DEFAULT_CURRENCY)
 
         # Get or create payment record
         from .views import get_or_create_payment_safe
@@ -87,7 +100,8 @@ def initialize_paystack_payment(request):
             order_id=order.id,
             metadata={
                 'customer_name': order.get_full_name(),
-                'phone': order.phone
+                'phone': order.phone,
+                'original_currency': requested_currency  # Track what the user saw
             }
         )
 
@@ -346,41 +360,56 @@ def handle_transfer_failed(data):
 @csrf_exempt
 @require_POST
 def paystack_status(request):
-    """Check Paystack payment status"""
+    """
+    Check Paystack payment status.
+    Verifies status with Paystack if local status is PENDING.
+    """
     try:
-        # <-- START CHANGED SECTION -->
-        # Add a check for an empty body
         if not request.body:
-            logger.warning("Paystack status check received empty body")
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Empty request body'
-            }, status=400)
+            return JsonResponse({'status': 'error', 'message': 'Empty body'}, status=400)
 
         data = json.loads(request.body)
         reference = data.get('reference')
 
         if not reference:
-            logger.warning("Paystack status check missing reference in JSON")
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Reference is required'
-            }, status=400)
+            return JsonResponse({'status': 'error', 'message': 'No reference'}, status=400)
 
-    except json.JSONDecodeError as e:
-        # Log the problematic body for debugging
-        logger.error(f"Invalid JSON in paystack_status: {e} - Body: {request.body[:200]}")
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Invalid JSON data'
-        }, status=400)
-    # <-- END CHANGED SECTION -->
-
-    try:
         payment = Payment.objects.get(
             transaction_id=reference,
             provider='PAYSTACK'
         )
+
+        # Verify with Paystack if pending
+        if payment.status == 'PENDING':
+            try:
+                logger.info(f"[Paystack] Actively verifying pending payment: {reference}")
+                result = verify_paystack_transaction(reference)
+
+                if result.get('success'):
+                    upstream_status = result.get('status')
+
+                    # Map Paystack status to our system
+                    if upstream_status == 'success':
+                        with transaction.atomic():
+                            payment.status = 'COMPLETED'
+                            payment.raw_response = result
+                            payment.save()
+
+                            order = payment.order
+                            if order.status == 'PENDING':
+                                order.mark_as_paid(payment_method='PAYSTACK')
+                                clear_cart_after_payment(order)
+                                logger.info(f"Order {order.id} marked as PAID via active verification")
+
+                    elif upstream_status in ['abandoned', 'failed', 'reversed']:
+                        payment.status = 'FAILED'
+                        payment.failure_type = 'PAYMENT_FAILED' if upstream_status == 'failed' else 'USER_CANCELLED'
+                        payment.result_description = f"Paystack status: {upstream_status}"
+                        payment.save()
+                        logger.info(f"Payment {payment.id} marked as {payment.status} (Paystack: {upstream_status})")
+
+            except Exception as e:
+                logger.error(f"[Paystack] Active verification error: {e}")
 
         return JsonResponse({
             'status': payment.status.lower(),

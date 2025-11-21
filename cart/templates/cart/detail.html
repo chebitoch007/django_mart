@@ -99,6 +99,7 @@
                             <div class="price-quantity-group">
                                 <div class="unit-price-block">
                                     <div class="price-primary">
+                                        {# ✅ FIXED: Display in user's currency #}
                                         {% convert_and_display item.product.get_display_price %}
                                     </div>
                                     {% if item.product.discount_price %}
@@ -144,7 +145,8 @@
 
                             <div class="item-actions">
                                 <div class="cart-item-total" id="total-{{ item.product.id }}" aria-live="polite">
-                                    {% convert_and_display item.total_price %}
+                                    {# ✅ FIXED: Display item total in user's currency #}
+                                    {% display_cart_item_total item user_currency %}
                                 </div>
 
                                 <form method="post" action="{% url 'cart:cart_remove' item.product.id %}"
@@ -199,7 +201,8 @@
                     <div class="summary-row">
                         <span>Subtotal:</span>
                         <span id="cart-subtotal" aria-live="polite">
-                            {% convert_and_display cart.total_price %}
+                            {# ✅ FIXED: Display in user's currency #}
+                            {% convert_and_display cart_total_in_currency %}
                         </span>
                     </div>
 
@@ -210,7 +213,8 @@
                             {% if cart.has_free_shipping %}
                                 <span style="color: #10b981; font-weight: 600;">FREE</span>
                             {% else %}
-                                {% convert_and_display cart.estimated_shipping %}
+                                {# ✅ FIXED: Display shipping in user's currency #}
+                                {% convert_and_display cart_shipping_in_currency %}
                             {% endif %}
                         </span>
                     </div>
@@ -223,7 +227,8 @@
                     <div class="summary-total-row" aria-live="polite">
                         <span>Total:</span>
                         <span id="cart-total">
-                            {% get_user_currency as user_curr %}{{ user_curr }} {{ cart.grand_total|floatformat:2 }}
+                            {# ✅ FIXED: Display grand total in user's currency #}
+                            {% convert_and_display cart_grand_total_in_currency %}
                         </span>
                     </div>
 

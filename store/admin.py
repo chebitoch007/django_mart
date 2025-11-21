@@ -945,7 +945,7 @@ class ProductAdmin(admin.ModelAdmin):
 
         self.message_user(request, f'✅ Converted {updated} products to KES')
 
-    @admin.action(description='📈 Apply 20% markup')
+    @admin.action(description='📈 Apply 20%% markup')
     def apply_markup(self, request, queryset):
         """Apply 20% markup to selected products"""
         updated = 0

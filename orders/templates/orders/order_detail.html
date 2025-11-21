@@ -1,7 +1,6 @@
 <!-- orders/templates/orders/order_detail.html - FIXED -->
 
-{% load humanize %}
-{% load static %}
+{% load humanize static currency_tags %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -844,38 +843,47 @@
 
         <!-- Order Info Grid -->
         <div class="order-info-grid">
-            <div class="info-card">
-                <div class="info-label">
-                    <i class="fas fa-calendar-alt"></i>
-                    Order Date
-                </div>
-                <div class="info-value">{{ order.created|date:"F j, Y H:i" }}</div>
-            </div>
-
-            <div class="info-card">
-                <div class="info-label">
-                    <i class="fas fa-user"></i>
-                    Customer
-                </div>
-                <div class="info-value">{{ order.get_full_name }}</div>
-            </div>
-
-            <div class="info-card">
-                <div class="info-label">
-                    <i class="fas fa-envelope"></i>
-                    Email Address
-                </div>
-                <div class="info-value">{{ order.email }}</div>
-            </div>
-
-            <div class="info-card">
-                <div class="info-label">
-                    <i class="fas fa-map-marker-alt"></i>
-                    Shipping Address
-                </div>
-                <div class="info-value">{{ order.address }}, {{ order.city }}, {{ order.country }}</div>
-            </div>
+    <div class="info-card">
+        <div class="info-label">
+            <i class="fas fa-calendar-alt"></i>
+            Order Date
         </div>
+        <div class="info-value">{{ order.created|date:"F j, Y H:i" }}</div>
+    </div>
+
+    <div class="info-card">
+        <div class="info-label">
+            <i class="fas fa-user"></i>
+            Customer
+        </div>
+        <div class="info-value">{{ order.get_full_name }}</div>
+    </div>
+
+    <div class="info-card">
+        <div class="info-label">
+            <i class="fas fa-envelope"></i>
+            Email Address
+        </div>
+        <div class="info-value">{{ order.email }}</div>
+    </div>
+
+    {# ✅ ADDED: Currency info card #}
+    <div class="info-card">
+        <div class="info-label">
+            <i class="fas fa-coins"></i>
+            Order Currency
+        </div>
+        <div class="info-value">{{ order.total.currency.code }}</div>
+    </div>
+
+    <div class="info-card">
+        <div class="info-label">
+            <i class="fas fa-map-marker-alt"></i>
+            Shipping Address
+        </div>
+        <div class="info-value">{{ order.address }}, {{ order.city }}, {{ order.country }}</div>
+    </div>
+</div>
 
         <!-- Order Items Section -->
         <div class="items-section">
@@ -897,39 +905,57 @@
                 {% for item in order.items.all %}
                 <tr>
                     <td class="product-cell" data-label="Product">
-                        <div class="product-image-wrapper">
-                            <img src="{{ item.product.get_image_url }}" alt="{{ item.product.name }}"
-                                 class="product-image">
-                        </div>
-                        <div class="product-info">
-                            <div class="product-name">{{ item.product.name }}</div>
-                            <div class="product-meta">
-                                {{ item.quantity }} × {{ item.price.currency }} {{ item.price.amount|floatformat:2|intcomma }}
-                            </div>
-                        </div>
-                    </td>
-                    <td class="text-right price-cell" data-label="Price">
-                        {{ item.price.currency }} {{ item.price.amount|floatformat:2|intcomma }}
-                    </td>
-                    <td class="text-center quantity-cell" data-label="Quantity">
-                        {{ item.quantity }}
-                    </td>
-                    <td class="text-right price-cell" data-label="Total">
-                        {{ item.total_price.currency }} {{ item.total_price.amount|floatformat:2|intcomma }}
-                    </td>
+    <div class="product-image-wrapper">
+        <img src="{{ item.product.get_image_url }}" alt="{{ item.product.name }}"
+             class="product-image">
+    </div>
+    <div class="product-info">
+        <div class="product-name">{{ item.product.name }}</div>
+        <div class="product-meta">
+            {# ✅ FIXED: Use convert_and_display #}
+            {{ item.quantity }} × {% convert_and_display item.price %}
+        </div>
+    </div>
+</td>
+<td class="text-right price-cell" data-label="Price">
+    {# ✅ FIXED: Use convert_and_display #}
+    {% convert_and_display item.price %}
+</td>
+<td class="text-center quantity-cell" data-label="Quantity">
+    {{ item.quantity }}
+</td>
+<td class="text-right price-cell" data-label="Total">
+    {# ✅ FIXED: Use convert_and_display #}
+    {% convert_and_display item.total_price %}
+</td>
                 </tr>
                 {% endfor %}
                 </tbody>
                 <tfoot>
-                <tr>
-                    <td colspan="3" class="text-right">Subtotal:</td>
-                    <td class="text-right">{{ order.total.currency }} {{ order.total.amount|floatformat:2|intcomma }}</td>
-                </tr>
-                <tr class="total-row">
-                    <td colspan="3" class="text-right">Total Amount:</td>
-                    <td class="text-right total-amount">{{ order.total.currency }} {{ order.total.amount|floatformat:2|intcomma }}</td>
-                </tr>
-                </tfoot>
+<tr>
+    <td colspan="3" class="text-right">Subtotal:</td>
+    <td class="text-right">
+        {# ✅ FIXED: Use convert_and_display #}
+        {% convert_and_display order.subtotal %}
+    </td>
+</tr>
+{% if order.shipping_cost and order.shipping_cost.amount > 0 %}
+<tr>
+    <td colspan="3" class="text-right">Shipping:</td>
+    <td class="text-right">
+        {# ✅ FIXED: Use convert_and_display #}
+        {% convert_and_display order.shipping_cost %}
+    </td>
+</tr>
+{% endif %}
+<tr class="total-row">
+    <td colspan="3" class="text-right">Total Amount:</td>
+    <td class="text-right total-amount">
+        {# ✅ FIXED: Use convert_and_display #}
+        {% convert_and_display order.total %}
+    </td>
+</tr>
+</tfoot>
             </table>
         </div>
 

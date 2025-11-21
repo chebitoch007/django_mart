@@ -1,12 +1,17 @@
 {% extends "store/base.html" %}
-{% load humanize static vite_tags %}
-
+{% load humanize static vite_tags currency_tags %}
 
 {% block extra_head %}
-<!-- CRITICAL CSS - Inline for zero FOUC -->
 <style>
-:root{--primary-color:#3b82f6;--primary-hover:#2563eb;--success-color:#10b981;--error-color:#ef4444;--text-primary:#1f2937;--border-color:#e5e7eb;--background-light:#f9fafb;--shadow-lg:0 10px 15px -3px rgba(0,0,0,0.1)}*{box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;line-height:1.5;color:var(--text-primary)}.checkout-container{max-width:1400px;margin:0 auto;padding:20px}.checkout-layout{display:flex;flex-direction:column;gap:30px}@media (min-width:992px){.checkout-layout{flex-direction:row}}.payment-section{flex:2}.order-summary-section{flex:1}.payment-card{background:#fff;border-radius:16px;border:1px solid var(--border-color);padding:32px;box-shadow:var(--shadow-lg);position:relative;overflow:hidden}.payment-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--primary-color),#8b5cf6)}.payment-title{font-size:1.875rem;font-weight:700;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--border-color)}.payment-tabs{display:flex;gap:8px;margin-bottom:24px;padding:4px;background:var(--background-light);border-radius:12px}.payment-tab{flex:1;min-width:120px;padding:14px 16px;border-radius:8px;background:transparent;border:none;cursor:pointer;transition:all .3s;font-weight:600;color:#6b7280}.payment-tab.active{background:var(--primary-color);color:#fff}.submit-button{width:100%;padding:16px 24px;background:linear-gradient(135deg,var(--primary-color),var(--primary-hover));color:#fff;border:none;border-radius:12px;font-size:1.1rem;font-weight:600;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:12px}.submit-button:disabled{background:#9ca3af;cursor:not-allowed}.processing-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:all .3s;backdrop-filter:blur(4px)}.processing-modal.active{opacity:1;visibility:visible}@media (max-width:767px){.checkout-container{padding:12px}.payment-card{padding:20px 16px}.payment-title{font-size:1.4rem}}
+:root{--primary:#3b82f6;--primary-hover:#2563eb;--success:#10b981;--error:#ef4444;--text:#1f2937;--border:#e5e7eb;--bg-light:#f9fafb;--shadow:0 10px 15px -3px rgba(0,0,0,0.1)}*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;color:var(--text)}.checkout-container{max-width:1400px;margin:0 auto;padding:20px}.checkout-layout{display:flex;flex-direction:column;gap:30px}@media (min-width:992px){.checkout-layout{flex-direction:row}}.payment-section{flex:2}.order-summary-section{flex:1}.payment-card,.summary-card{background:#fff;border-radius:16px;border:1px solid var(--border);padding:32px;box-shadow:var(--shadow);position:relative}.payment-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--primary),#8b5cf6)}.payment-title{font-size:1.875rem;font-weight:700;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}.payment-tabs{display:flex;gap:8px;margin:24px 0;padding:4px;background:var(--bg-light);border-radius:12px;overflow-x:auto}.payment-tab{flex:1;min-width:120px;padding:14px 16px;border-radius:8px;background:transparent;border:none;cursor:pointer;transition:all .3s;font-weight:600;color:#6b7280;display:flex;flex-direction:column;align-items:center;gap:6px}.payment-tab.active{background:var(--primary);color:#fff;box-shadow:0 4px 6px -1px rgba(0,0,0,.1)}.payment-tab:hover:not(.active){background:rgba(59,130,246,.05)}.submit-button{width:100%;padding:16px 24px;background:linear-gradient(135deg,var(--primary),var(--primary-hover));color:#fff;border:none;border-radius:12px;font-size:1.1rem;font-weight:600;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:12px;margin-top:24px}.submit-button:disabled{background:#9ca3af;cursor:not-allowed}.submit-button:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 15px -3px rgba(0,0,0,.2)}.processing-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;visibility:hidden;transition:all .3s;backdrop-filter:blur(4px)}.processing-modal.active{opacity:1;visibility:visible}.modal-content{background:#fff;border-radius:20px;padding:48px;text-align:center;max-width:500px;width:90%;box-shadow:0 20px 25px -5px rgba(0,0,0,.1)}.spinner{width:64px;height:64px;border:4px solid rgba(59,130,246,.2);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 24px}@keyframes spin{to{transform:rotate(360deg)}}.payment-form-section{display:none;margin-top:20px}.payment-form-section.active{display:block}@media (max-width:767px){.checkout-container{padding:12px}.payment-card,.summary-card{padding:20px 16px}.payment-title{font-size:1.4rem}.payment-tab{min-width:90px;padding:10px 8px;font-size:.8rem}.payment-tab small{display:none}}
 </style>
+
+<link rel="preconnect" href="https://www.paypal.com">
+<link rel="preconnect" href="https://js.paystack.co">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="dns-prefetch" href="//www.paypal.com">
+<link rel="dns-prefetch" href="//js.paystack.co">
+<link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
 {% endblock %}
 
 {% block extra_scripts %}
@@ -20,7 +25,8 @@
       initializePaystack: "{% url 'payment:initialize_paystack' %}",
       paystackStatus: "{% url 'payment:paystack_status' %}"
     },
-    cartTotalPrice: "{{ order.total.amount }}",
+    // ✅ FIXED: Use stringformat to ensure raw number (1250.50) not (1,250.50)
+    cartTotalPrice: "{{ order.total.amount|stringformat:'.2f' }}",
     defaultCurrency: "{{ order.total.currency.code }}",
     csrfToken: "{{ csrf_token }}",
     orderId: "{{ order.id }}",
@@ -29,25 +35,29 @@
   };
 </script>
 
-<!-- Preload critical resources -->
-<link rel="preload" href="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&commit=false&components=buttons" as="script">
-<link rel="preload" href="https://js.paystack.co/v1/inline.js" as="script">
-<link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" as="style">
-
-<!-- Load external scripts -->
 <script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&commit=false&components=buttons" defer></script>
 <script src="https://js.paystack.co/v1/inline.js" defer></script>
 
-<!-- Load stylesheets -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-<link rel="stylesheet" href="{% static 'css/checkout.css' %}" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" media="all">
+
+<link rel="preload" href="{% static 'css/checkout.css' %}" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="{% static 'css/checkout.css' %}"></noscript>
 
+{# Load the main TypeScript controller #}
 {% vite_asset 'src/payments/payments.ts' %}
 {% endblock %}
 
 {% block content %}
 <div class="checkout-container">
+  {# ✅ Display user's selected currency #}
+  <div class="currency-notice" style="background: #e0f2fe; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+    <i class="fas fa-info-circle" style="color: #0284c7;"></i>
+    <span style="color: #075985; font-weight: 500;">
+      Order Total: {% convert_and_display order.total %}
+      (You can change currency for payment if needed)
+    </span>
+  </div>
+
   <div class="checkout-layout">
 
     <div class="payment-section">
@@ -60,7 +70,7 @@
 
         <div class="location-indicator">
           <i class="fas fa-location-dot"></i>
-          <span id="locationText">
+          <span>
             {% if request.country_name %}
               Detected location: {{ request.country_name }}.
             {% else %}
@@ -120,9 +130,11 @@
         <form id="paymentForm" method="post" action="{% url 'payment:process_payment' order.id %}" novalidate>
           {% csrf_token %}
 
-          <input type="hidden" id="checkoutRequestId" name="checkout_request_id" value="">
+          <input type="hidden" id="checkoutRequestId" name="checkout_request_id">
           <input type="hidden" name="order_id" value="{{ order.id }}" id="orderId">
-          <input type="hidden" name="amount" id="formAmount" value="{{ order.total.amount }}">
+
+          {# ✅ FIXED: Use stringformat for hidden input value #}
+          <input type="hidden" name="amount" id="formAmount" value="{{ order.total.amount|stringformat:'.2f' }}">
           <input type="hidden" name="currency" id="formCurrency" value="{{ order.total.currency.code }}">
           <input type="hidden" name="payment_method" id="selectedMethod" value="mpesa">
           <input type="hidden" name="conversion_rate" id="formConversionRate" value="1">
@@ -149,10 +161,116 @@
                 <input type="text"
                        class="amount-input"
                        id="amount"
-                       value="{{ default_currency_symbol }} {{ order.total.amount|floatformat:2|intcomma }}"
+                       value="{% display_money order.total.amount order.total.currency.code %}"
                        readonly>
               </div>
             </div>
+          </div>
+
+          <div id="paystackSection" class="payment-form-section">
+            <h4 class="section-title">
+              <i class="fas fa-credit-card"></i>
+              Pay with Paystack
+            </h4>
+
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i>
+              <div>
+                <strong>Secure Payment</strong>
+                <p>Pay securely with your debit/credit card, bank account, or mobile money.</p>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="input-group">
+                <label class="input-label">
+                  <i class="fas fa-envelope"></i>
+                  Email Address <span class="text-danger">*</span>
+                </label>
+                <input type="email"
+                       class="text-input"
+                       id="paystackEmail"
+                       name="paystack_email"
+                       value="{{ order.email }}"
+                       placeholder="your@email.com"
+                       required
+                       autocomplete="email">
+                <div id="paystackEmailError" class="error-text">
+                  <i class="fas fa-exclamation-circle"></i>
+                  Please enter a valid email address
+                </div>
+                <small class="form-text">
+                  Required for payment receipt and transaction confirmation
+                </small>
+              </div>
+
+              <div class="input-group">
+                <label class="input-label">Amount to Pay</label>
+                <input type="text"
+                       class="amount-input"
+                       id="paystackAmount"
+                       value="{% display_money order.total.amount order.total.currency.code %}"
+                       readonly>
+              </div>
+            </div>
+
+            <div id="paystack-status" class="payment-status info" style="display: none;">
+              <i class="fas fa-spinner fa-spin"></i>
+              <span class="status-message">Initializing payment...</span>
+            </div>
+
+            <div class="supported-methods">
+              <label>
+                <i class="fas fa-check-circle text-success"></i>
+                Supported Payment Methods:
+              </label>
+              <div class="payment-methods-grid">
+                <span class="payment-method-badge">
+                  <i class="fas fa-credit-card"></i> Cards
+                </span>
+                <span class="payment-method-badge">
+                  <i class="fas fa-university"></i> Bank Transfer
+                </span>
+                <span class="payment-method-badge">
+                  <i class="fas fa-mobile-alt"></i> USSD
+                </span>
+                <span class="payment-method-badge">
+                  <i class="fas fa-wallet"></i> Mobile Money
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div id="paypalSection" class="payment-form-section">
+            <h4 class="section-title">
+              <i class="fab fa-paypal"></i>
+              Pay with PayPal
+            </h4>
+
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i>
+              <div>
+                <strong>Secure Payment</strong>
+                <p>Complete your payment using PayPal. You can pay with your PayPal balance, credit card, or debit card.</p>
+              </div>
+            </div>
+
+            <div id="paypal-button-container-wrapper">
+              <div id="paypal-button-container"></div>
+            </div>
+
+            <div id="paypal-status" class="payment-status info" style="display: none;">
+              <i class="fas fa-spinner fa-spin"></i>
+              <span class="status-message"></span>
+            </div>
+
+            <div id="paypal-fallback" class="alert alert-warning" style="display:none;">
+              <i class="fas fa-exclamation-triangle"></i>
+              <span>Unable to load PayPal. Please refresh or choose another payment method.</span>
+            </div>
+
+            <input type="hidden" id="paypalOrderId" name="paypal_order_id">
+            <input type="hidden" id="paypalPayerId" name="paypal_payer_id">
           </div>
 
           <div class="terms-group">
@@ -203,126 +321,6 @@
           </div>
         </form>
 
-        <div id="paypalSection" class="payment-form-section">
-          <h4 class="section-title">
-            <i class="fab fa-paypal"></i>
-            Pay with PayPal
-          </h4>
-
-          <div class="alert alert-info">
-            <i class="fas fa-info-circle"></i>
-            <div>
-              <strong>Secure Payment</strong>
-              <p>Complete your payment using PayPal. You can pay with your PayPal balance, credit card, or debit card.</p>
-            </div>
-          </div>
-
-          <div id="paypal-button-container-wrapper">
-            <div id="paypal-button-container"></div>
-          </div>
-
-          <div id="paypal-status" class="payment-status info" style="display: none;">
-            <i class="fas fa-spinner fa-spin"></i>
-            <span class="status-message"></span>
-          </div>
-
-          <div id="paypal-fallback" class="alert alert-warning" style="display:none;">
-            <i class="fas fa-exclamation-triangle"></i>
-            <span>Unable to load PayPal. Please refresh the page or choose another payment method.</span>
-          </div>
-
-          <input type="hidden" id="paypalOrderId" name="paypal_order_id" value="">
-          <input type="hidden" id="paypalPayerId" name="paypal_payer_id" value="">
-        </div>
-
-        <div id="paystackSection" class="payment-form-section">
-          <h4 class="section-title">
-            <i class="fas fa-credit-card"></i>
-            Pay with Paystack
-          </h4>
-
-          <div class="alert alert-info">
-            <i class="fas fa-info-circle"></i>
-            <div>
-              <strong>Secure Payment</strong>
-              <p>Pay securely with your debit/credit card, bank account, or mobile money through Paystack's encrypted payment gateway.</p>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="input-group">
-              <label class="input-label">
-                <i class="fas fa-envelope"></i>
-                Email Address <span class="text-danger">*</span>
-              </label>
-              <input type="email"
-                     class="text-input"
-                     id="paystackEmail"
-                     name="paystack_email"
-                     placeholder="your@email.com"
-                     required
-                     autocomplete="email">
-              <div id="paystackEmailError" class="error-text">
-                <i class="fas fa-exclamation-circle"></i>
-                Please enter a valid email address
-              </div>
-              <small class="form-text">
-                Required for payment receipt and transaction confirmation
-              </small>
-            </div>
-
-            <div class="input-group">
-              <label class="input-label">Amount to Pay</label>
-              <input type="text"
-                     class="amount-input"
-                     id="paystackAmount"
-                     value="{{ default_currency_symbol }} {{ order.total.amount|floatformat:2|intcomma }}"
-                     readonly>
-            </div>
-          </div>
-
-          <div id="paystack-status" class="payment-status info" style="display: none;">
-            <i class="fas fa-spinner fa-spin"></i>
-            <span class="status-message">Initializing payment...</span>
-          </div>
-
-          <div class="supported-methods">
-            <label>
-              <i class="fas fa-check-circle text-success"></i>
-              Supported Payment Methods:
-            </label>
-            <div class="payment-methods-grid">
-              <span class="payment-method-badge">
-                <i class="fas fa-credit-card"></i>
-                Cards
-              </span>
-              <span class="payment-method-badge">
-                <i class="fas fa-university"></i>
-                Bank Transfer
-              </span>
-              <span class="payment-method-badge">
-                <i class="fas fa-mobile-alt"></i>
-                USSD
-              </span>
-              <span class="payment-method-badge">
-                <i class="fas fa-wallet"></i>
-                Mobile Money
-              </span>
-            </div>
-          </div>
-
-          <div class="security-info">
-            <div class="security-badge">
-              <i class="fas fa-lock text-success"></i>
-              <span>256-bit SSL Encryption</span>
-            </div>
-            <div class="security-badge">
-              <i class="fas fa-shield-alt text-primary"></i>
-              <span>PCI DSS Compliant</span>
-            </div>
-          </div>
-        </div>
-
       </div>
     </div>
 
@@ -339,19 +337,20 @@
 
         <div class="summary-content" id="summaryContent">
 
-          <div class="order-items" id="orderItems">
+          <div class="order-items">
             {% for item in order.items.all %}
-            <div class="order-item" data-price="{{ item.total_price.amount }}">
+            <div class="order-item">
               <img src="{{ item.product.get_image_url }}"
                    alt="{{ item.product.name }}"
-                   class="item-image">
+                   class="item-image"
+                   loading="lazy">
               <div class="item-info">
                 <div class="item-name">{{ item.product.name }}</div>
                 <div class="item-quantity">Qty: {{ item.quantity }}</div>
               </div>
               <div class="item-price">
-                <span class="currency-symbol">{{ item.total_price.currency.symbol }}</span>
-                <span class="item-amount">{{ item.total_price.amount|intcomma }}</span>
+                {# ✅ Display in order's currency #}
+                {% convert_and_display item.total_price %}
               </div>
             </div>
             {% endfor %}
@@ -360,16 +359,25 @@
           <div class="summary-row">
             <div class="summary-label">Subtotal</div>
             <div class="summary-value">
-              <span class="currency-symbol">{{ order.total.currency.symbol }}</span>
-              <span class="subtotal-amount">{{ order.total.amount|intcomma }}</span>
+              {# ✅ Display in order's currency #}
+              {% convert_and_display order.subtotal %}
             </div>
           </div>
 
-          <div class="summary-total">
+          {% if order.shipping_cost.amount > 0 %}
+          <div class="summary-row">
+            <div class="summary-label">Shipping</div>
+            <div class="summary-value">
+              {% convert_and_display order.shipping_cost %}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="summary-total-row">
             <div>Total</div>
             <div>
-              <span class="currency-symbol">{{ order.total.currency.symbol }}</span>
-              <span class="total-amount">{{ order.total.amount|intcomma }}</span>
+              {# ✅ Display in order's currency #}
+              <strong>{% convert_and_display order.total %}</strong>
             </div>
           </div>
 

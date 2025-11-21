@@ -213,8 +213,8 @@ class OrderAdmin(admin.ModelAdmin):
     ]
 
     inlines = [OrderItemInline, PaymentInline]
-
     readonly_fields = [
+        'id',
         'created',
         'updated',
         'total_cost_display',

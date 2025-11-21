@@ -1,4 +1,4 @@
-// frontend/src/payments/payments.ts - FIXED VERSION
+// frontend/src/payments/payments.ts
 
 import { storage } from './storage.js';
 import { initializePaystack, resetPaystackPaymentState, checkExistingPaystackPayment } from './paystack.js';
@@ -8,7 +8,9 @@ import {
   validatePhoneNumber,
   formatCurrency,
   saveFormState,
-  restoreFormState
+  restoreFormState,
+  validateEmail,
+  isPaystackCurrencySupported
 } from './utils.js';
 import {
   showPaymentStatus,
@@ -21,8 +23,7 @@ import {
   showCurrencyTooltip,
   hideCurrencyTooltip,
   showInputError,
-  clearInputError,
-  showPaystackStatus
+  clearInputError
 } from './ui.js';
 import { PaymentConfig, PaymentState, PaymentElements, PaymentMethod } from '@/payments/types/payment.js';
 
@@ -30,14 +31,27 @@ export class PaymentSystem {
   private config: PaymentConfig;
   private state: PaymentState;
   private elements: PaymentElements;
+  private isTransitioning: boolean = false;
+  private originalTermsCheckbox: HTMLInputElement | null = null;
 
   constructor(config: PaymentConfig) {
     this.config = config;
+
+    // ✅ CRITICAL FIX: robust parsing of the cart total
+    const rawTotal = config.cartTotalPrice.toString().replace(/,/g, '');
+    const baseAmount = parseFloat(rawTotal);
+
+    console.log('[PaymentSystem] 🔧 Initializing with:', {
+      rawInput: config.cartTotalPrice,
+      parsedAmount: baseAmount,
+      defaultCurrency: config.defaultCurrency
+    });
+
     this.state = {
       currentMethod: 'mpesa',
       currentCurrency: config.defaultCurrency,
       currentRate: 1,
-      currentConvertedAmount: parseFloat(config.cartTotalPrice),
+      currentConvertedAmount: baseAmount,
       paypalInitialized: false,
       paypalProcessing: false,
       processingStage: 0
@@ -45,10 +59,14 @@ export class PaymentSystem {
 
     this.elements = {} as PaymentElements;
     this.cacheElements();
+
+    // Store original checkbox reference before any modifications
+    this.originalTermsCheckbox = this.elements.termsCheckbox;
+
     this.addEventListeners();
     this.restoreState();
 
-    // Initialize the initial method
+    // Initialize the initial method and force a calculation check
     this.updatePaymentMethod(this.state.currentMethod);
     this.updateAmounts();
 
@@ -126,16 +144,40 @@ export class PaymentSystem {
     // Summary toggle
     this.elements.summaryToggle.addEventListener('click', () => this.toggleSummary());
 
-    // Input cleanup
+    // Input cleanup with real-time validation
     if (this.elements.phoneInput) {
-      this.elements.phoneInput.addEventListener('input', () =>
-        clearInputError(this.elements.phoneInput, this.elements.phoneError)
-      );
+      this.elements.phoneInput.addEventListener('input', () => {
+        clearInputError(this.elements.phoneInput, this.elements.phoneError);
+      });
+      this.elements.phoneInput.addEventListener('blur', () => {
+        if (this.state.currentMethod === 'mpesa' && this.elements.phoneInput.value.trim()) {
+          const phone = validatePhoneNumber(this.elements.phoneInput.value.trim());
+          if (!phone) {
+            showInputError(
+              this.elements.phoneInput,
+              this.elements.phoneError,
+              'Please enter a valid M-Pesa phone number (e.g., 712345678)'
+            );
+          }
+        }
+      });
     }
+
     if (this.elements.paystackEmailInput) {
-      this.elements.paystackEmailInput.addEventListener('input', () =>
-        clearInputError(this.elements.paystackEmailInput, this.elements.paystackEmailError)
-      );
+      this.elements.paystackEmailInput.addEventListener('input', () => {
+        clearInputError(this.elements.paystackEmailInput, this.elements.paystackEmailError);
+      });
+      this.elements.paystackEmailInput.addEventListener('blur', () => {
+        if (this.state.currentMethod === 'paystack' && this.elements.paystackEmailInput.value.trim()) {
+          if (!validateEmail(this.elements.paystackEmailInput.value.trim())) {
+            showInputError(
+              this.elements.paystackEmailInput,
+              this.elements.paystackEmailError,
+              'Please enter a valid email address'
+            );
+          }
+        }
+      });
     }
 
     this.initializeSummaryState();
@@ -146,49 +188,121 @@ export class PaymentSystem {
     if (savedState.method) {
       this.state.currentMethod = savedState.method;
     }
-    if (savedState.currency) {
+    // Only restore currency if it exists in the dropdown options
+    if (savedState.currency && this.elements.currencySelector.querySelector(`option[value="${savedState.currency}"]`)) {
       this.state.currentCurrency = savedState.currency;
       this.elements.currencySelector.value = savedState.currency;
     }
     if (savedState.phone && this.elements.phoneInput) {
       this.elements.phoneInput.value = savedState.phone;
     }
-    if (savedState.terms && this.elements.termsCheckbox) {
+    if (savedState.email && this.elements.paystackEmailInput) {
+      this.elements.paystackEmailInput.value = savedState.email;
+    }
+    if (typeof savedState.terms === 'boolean' && this.elements.termsCheckbox) {
       this.elements.termsCheckbox.checked = savedState.terms;
     }
   }
 
   private saveState(): void {
+    // Always use the original checkbox reference for state
+    const termsChecked = this.originalTermsCheckbox ? this.originalTermsCheckbox.checked : this.elements.termsCheckbox?.checked;
+
     saveFormState({
       method: this.state.currentMethod,
       currency: this.state.currentCurrency,
       phone: this.elements.phoneInput ? this.elements.phoneInput.value : undefined,
-      terms: this.elements.termsCheckbox ? this.elements.termsCheckbox.checked : undefined,
+      email: this.elements.paystackEmailInput ? this.elements.paystackEmailInput.value : undefined,
+      terms: termsChecked,
     });
   }
 
+  /**
+   * Enforce Currency Compatibility
+   */
+  private enforceProviderCurrency(method: PaymentMethod): void {
+    const currentCurrency = this.elements.currencySelector.value;
+    let targetCurrency = currentCurrency;
+
+    // --- M-Pesa Logic ---
+    if (method === 'mpesa' && currentCurrency !== 'KES') {
+      if (this.elements.currencySelector.querySelector('option[value="KES"]')) {
+        targetCurrency = 'KES';
+        console.log('[PaymentSystem] 💱 Auto-switching to KES for M-Pesa');
+      }
+    }
+
+    // --- PayPal Logic ---
+    if (method === 'paypal' && currentCurrency === 'KES') {
+      if (this.elements.currencySelector.querySelector('option[value="USD"]')) {
+        targetCurrency = 'USD';
+      } else if (this.elements.currencySelector.querySelector('option[value="EUR"]')) {
+        targetCurrency = 'EUR';
+      }
+
+      if (targetCurrency !== 'KES') {
+        console.log(`[PaymentSystem] 💱 Auto-switching to ${targetCurrency} for PayPal`);
+      }
+    }
+
+    // --- Paystack Logic ---
+    if (method === 'paystack') {
+      if (!isPaystackCurrencySupported(currentCurrency)) {
+        console.log(`[PaymentSystem] ⚠️ ${currentCurrency} not supported by Paystack.`);
+
+        if (this.elements.currencySelector.querySelector('option[value="KES"]')) {
+          targetCurrency = 'KES';
+        }
+        else if (this.elements.currencySelector.querySelector(`option[value="${this.config.defaultCurrency}"]`)) {
+          targetCurrency = this.config.defaultCurrency;
+        }
+      }
+    }
+
+    // Apply switch if needed
+    if (targetCurrency !== currentCurrency) {
+      this.elements.currencySelector.value = targetCurrency;
+      // Flash the tooltip
+      if (this.elements.currencyTooltip && this.elements.tooltipText) {
+        this.elements.tooltipText.innerHTML = `<i class="fas fa-info-circle"></i> Switched to <b>${targetCurrency}</b> for ${method} compatibility`;
+        this.elements.currencyTooltip.style.display = 'flex';
+        this.elements.currencyTooltip.classList.add('active');
+        setTimeout(() => {
+          this.elements.currencyTooltip.style.display = 'none';
+          this.elements.currencyTooltip.classList.remove('active');
+        }, 4000);
+      }
+      this.updateAmounts();
+    }
+  }
+
   private updatePaymentMethod(method: PaymentMethod): void {
+    // Prevent concurrent transitions
+    if (this.isTransitioning) return;
+
     console.log(`[PaymentSystem] 🔀 updatePaymentMethod called: ${this.state.currentMethod} → ${method}`);
 
-    if (this.state.currentMethod === method) {
-      console.log(`[PaymentSystem] ⏭️  Method unchanged, skipping`);
+    // Even if method is unchanged, we check currency compatibility
+    if (this.state.currentMethod === method && this.state.processingStage === 0) {
+      this.enforceProviderCurrency(method);
       return;
     }
 
-    console.log(`[PaymentSystem] 🧹 Cleaning up previous method: ${this.state.currentMethod}`);
+    this.isTransitioning = true;
 
-    // Reset previous method
+    // ✅ FIX 1: Read state from the LIVE element (this.elements.termsCheckbox),
+    // NOT this.originalTermsCheckbox (which might be a dead DOM node).
+    const termsWasChecked = this.elements.termsCheckbox ? this.elements.termsCheckbox.checked : false;
+
+    // Cleanup previous method
     if (this.state.currentMethod === 'mpesa') {
-      console.log('[PaymentSystem] Resetting M-Pesa state');
       resetMpesaPaymentState();
     }
     if (this.state.currentMethod === 'paypal') {
-      console.log('[PaymentSystem] Cleaning up PayPal');
       cleanupPayPal();
-      this.setState({ paypalInitialized: false }); // *** THIS IS THE FIX ***
+      this.state.paypalInitialized = false;
     }
     if (this.state.currentMethod === 'paystack') {
-      console.log('[PaymentSystem] Resetting Paystack state');
       resetPaystackPaymentState();
     }
 
@@ -196,65 +310,63 @@ export class PaymentSystem {
     this.elements.selectedMethodInput.value = method;
     this.state.processingStage = 0;
 
-    console.log(`[PaymentSystem] ✅ Current method updated to: ${method}`);
-
     // Clear all error messages
     const errorSpan = this.elements.paymentErrors.querySelector('span');
     if (errorSpan) errorSpan.textContent = '';
     this.elements.paymentErrors.style.display = 'none';
-    console.log('[PaymentSystem] 🧹 Error messages cleared');
 
-    // Show/hide sections
-    console.log('[PaymentSystem] 🎨 Updating section visibility...');
-    this.elements.mobileMoneySection.classList.toggle('active', method === 'mpesa');
-    this.elements.paypalSection.classList.toggle('active', method === 'paypal');
-    this.elements.paystackSection.classList.toggle('active', method === 'paystack');
+    // Hide all sections first
+    this.elements.mobileMoneySection.classList.remove('active');
+    this.elements.paypalSection.classList.remove('active');
+    this.elements.paystackSection.classList.remove('active');
 
-    console.log(`[PaymentSystem] Section visibility: M-Pesa=${this.elements.mobileMoneySection.style.display}, PayPal=${this.elements.paypalSection.style.display}, Paystack=${this.elements.paystackSection.style.display}`);
+    // Show the selected section
+    if (method === 'mpesa') {
+      this.elements.mobileMoneySection.classList.add('active');
+    } else if (method === 'paypal') {
+      this.elements.paypalSection.classList.add('active');
+    } else if (method === 'paystack') {
+      this.elements.paystackSection.classList.add('active');
+    }
 
     // Show/hide submit button
     if (method === 'paypal') {
-      console.log('[PaymentSystem] 👁️  Hiding submit button for PayPal');
       this.elements.paymentSubmitButton.style.display = 'none';
     } else {
-      console.log('[PaymentSystem] 👁️  Showing submit button for', method);
       this.elements.paymentSubmitButton.style.display = 'block';
     }
 
     // Update UI
-    console.log('[PaymentSystem] 🎨 Updating UI elements...');
     updatePaymentMethodUI(method, this.elements.paymentTabs, this.elements.selectedMethodName);
     updateSubmitButton(method, this.elements.submitText, this.elements.submitIcon);
 
+    // ✅ FIX 2: Apply state to the LIVE element
+    if (this.elements.termsCheckbox) {
+      this.elements.termsCheckbox.checked = termsWasChecked;
+    }
+
+    // Check Currency Compatibility
+    this.enforceProviderCurrency(method);
+
     // Initialize method-specific logic
     if (method === 'paypal') {
-      console.log('[PaymentSystem] 💳 Initializing PayPal...');
-      console.log('[PaymentSystem] PayPal initialized flag:', this.state.paypalInitialized);
-
-      // Clear PayPal status
       const paypalStatus = document.getElementById('paypal-status');
       if (paypalStatus) {
         paypalStatus.style.display = 'none';
-        console.log('[PaymentSystem] PayPal status cleared');
       }
-
-      // Initialize PayPal
-      initializePayPal(this);
-    } else if (method === 'paystack') {
-      console.log('[PaymentSystem] 💳 Switching to Paystack');
-
-      // Clear Paystack status
-      const paystackStatusEl = document.getElementById('paystack-status');
-      if (paystackStatusEl) {
-        paystackStatusEl.style.display = 'none';
-        console.log('[PaymentSystem] Paystack status cleared');
+      setTimeout(() => {
+        initializePayPal(this);
+        this.isTransitioning = false;
+      }, 100);
+    } else {
+      if (method === 'paystack') {
+        const paystackStatusEl = document.getElementById('paystack-status');
+        if (paystackStatusEl) paystackStatusEl.style.display = 'none';
       }
-    } else if (method === 'mpesa') {
-      console.log('[PaymentSystem] 📱 Switching to M-Pesa');
+      this.isTransitioning = false;
     }
 
     this.saveState();
-    console.log(`[PaymentSystem] ✅ Method switch complete: ${method}`);
   }
 
   private updateAmounts(): void {
@@ -264,13 +376,19 @@ export class PaymentSystem {
     const newCurrency = selectedOption.value;
     const rate = parseFloat(selectedOption.getAttribute('data-rate') || '1');
 
+    const baseAmount = parseFloat(this.config.cartTotalPrice.toString().replace(/,/g, ''));
+
+    console.log('[PaymentSystem] 💱 Calculation:', {
+      base: baseAmount,
+      rate: rate,
+      target: newCurrency,
+    });
+
     this.state.currentCurrency = newCurrency;
     this.state.currentRate = rate;
+    this.state.currentConvertedAmount = baseAmount * rate;
 
-    const cartTotal = parseFloat(this.config.cartTotalPrice);
-    this.state.currentConvertedAmount = cartTotal * rate;
-
-    const currency = this.config.currencySymbols[newCurrency] || newCurrency;
+    const currencySymbol = this.config.currencySymbols[newCurrency] || newCurrency;
 
     // Update hidden form fields
     this.elements.formCurrency.value = newCurrency;
@@ -278,32 +396,38 @@ export class PaymentSystem {
     this.elements.formAmount.value = this.state.currentConvertedAmount.toFixed(2);
 
     // Update amount inputs
+    const formattedPrice = `${currencySymbol} ${formatCurrency(this.state.currentConvertedAmount, newCurrency)}`;
+
     const amountInput = document.getElementById('amount') as HTMLInputElement;
     if (amountInput) {
-      amountInput.value = `${currency} ${formatCurrency(this.state.currentConvertedAmount, newCurrency)}`;
+      amountInput.value = formattedPrice;
     }
 
     const paystackAmountInput = document.getElementById('paystackAmount') as HTMLInputElement;
     if (paystackAmountInput) {
-      paystackAmountInput.value = `${currency} ${formatCurrency(this.state.currentConvertedAmount, newCurrency)}`;
+      paystackAmountInput.value = formattedPrice;
     }
 
     // Update currency symbols in summary
     document.querySelectorAll('.currency-symbol').forEach(el => {
-      el.textContent = currency;
+      el.textContent = currencySymbol;
     });
 
+    // Update summary totals
     const convertedAmountStr = formatCurrency(this.state.currentConvertedAmount, newCurrency);
     const subtotal = document.querySelector('.subtotal-amount');
     const total = document.querySelector('.total-amount');
     if (subtotal) subtotal.textContent = convertedAmountStr;
     if (total) total.textContent = convertedAmountStr;
 
-    // Re-initialize PayPal if it's the current method
-    if (this.state.currentMethod === 'paypal') {
+    // Re-initialize PayPal if needed
+    if (this.state.currentMethod === 'paypal' && this.state.paypalInitialized) {
+      console.log('[PaymentSystem] 🔄 Currency changed, re-initializing PayPal...');
       cleanupPayPal();
       this.state.paypalInitialized = false;
-      initializePayPal(this);
+      setTimeout(() => {
+        initializePayPal(this);
+      }, 100);
     }
 
     this.saveState();
@@ -315,15 +439,18 @@ export class PaymentSystem {
     // Clear previous errors
     showPaymentError('', this.elements.paymentErrors, false);
 
+    // Get the current checkbox state
+    const currentCheckbox = this.originalTermsCheckbox || this.elements.termsCheckbox;
+
     // 1. Terms check (required for all)
-    if (!this.elements.termsCheckbox.checked) {
+    if (!currentCheckbox || !currentCheckbox.checked) {
       showPaymentError('You must agree to the Terms of Service', this.elements.paymentErrors);
       return false;
     }
 
     // 2. Method-specific validation
     if (this.state.currentMethod === 'mpesa') {
-      const phoneNumber = this.elements.phoneInput.value;
+      const phoneNumber = this.elements.phoneInput.value.trim();
       const cleanPhone = validatePhoneNumber(phoneNumber);
 
       if (!cleanPhone) {
@@ -341,9 +468,8 @@ export class PaymentSystem {
 
     if (this.state.currentMethod === 'paystack') {
       const emailValue = this.elements.paystackEmailInput.value.trim();
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-      if (!emailValue || !emailRegex.test(emailValue)) {
+      if (!emailValue || !validateEmail(emailValue)) {
         showInputError(
           this.elements.paystackEmailInput,
           this.elements.paystackEmailError,
@@ -355,9 +481,7 @@ export class PaymentSystem {
       }
     }
 
-    // PayPal validation is handled by PayPal SDK
     if (this.state.currentMethod === 'paypal') {
-      // Don't show error, PayPal handles its own flow
       return true;
     }
 
@@ -378,8 +502,6 @@ export class PaymentSystem {
     } else if (method === 'paystack') {
       await initializePaystack(this);
     } else if (method === 'paypal') {
-      // PayPal submission is handled by PayPal SDK buttons
-      // This should never be reached since submit button is hidden for PayPal
       console.warn('PayPal form submitted directly - should use PayPal buttons');
     }
   }
@@ -430,9 +552,12 @@ export class PaymentSystem {
   public getConfig(): PaymentConfig {
     return { ...this.config };
   }
+
+  public getOriginalTermsCheckbox(): HTMLInputElement | null {
+    return this.originalTermsCheckbox;
+  }
 }
 
-// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof window.paymentConfig === 'undefined') {
     console.error('paymentConfig missing. Make sure checkout template injects it.');

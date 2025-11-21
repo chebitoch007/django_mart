@@ -1,7 +1,4 @@
-// ===================================================================
-// UPDATED: utils.ts - Replace localStorage with safe storage
-// ===================================================================
-
+// frontend/src/payments/utils.ts - FULLY FIXED VERSION
 
 import { PaymentMethod } from '@/payments/types/payment.js';
 import { storage } from './storage.js';
@@ -18,6 +15,13 @@ export function validatePhoneNumber(phoneNumber: string): string | false {
   return `254${match[1]}`;
 }
 
+// Email validation
+export function validateEmail(email: string): boolean {
+  if (!email) return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+}
+
 // Currency formatting
 export function formatCurrency(amount: number, currency: string): string {
   const decimalPlaces = currency === 'UGX' || currency === 'TZS' ? 0 : 2;
@@ -27,11 +31,12 @@ export function formatCurrency(amount: number, currency: string): string {
   });
 }
 
-// Form state management - NOW USING SAFE STORAGE
+// Form state management
 interface FormState {
   method?: PaymentMethod;
   currency?: string;
   phone?: string;
+  email?: string;
   terms?: boolean;
 }
 
@@ -69,7 +74,7 @@ export async function fetchWithTimeout(
     });
     clearTimeout(timeout);
     return response;
-  } catch (error) {
+  } catch (error: any) {
     clearTimeout(timeout);
     if (error.name === 'AbortError') {
       throw new Error('Request timed out. Please check your connection.');
@@ -83,19 +88,54 @@ export function getMethodDisplayName(method: PaymentMethod): string {
   const methodNames: Record<PaymentMethod, string> = {
     'mpesa': 'M-Pesa',
     'paypal': 'PayPal',
-    'paystack': 'Paystack' // Add this
+    'paystack': 'Paystack'
   };
   return methodNames[method] || method;
 }
 
 // Check if PayPal supports currency
 export function isPaypalCurrencySupported(currency: string): boolean {
-  const paypalSupportedCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY'];
-  return paypalSupportedCurrencies.includes(currency);
+  const paypalSupportedCurrencies = [
+    'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF',
+    'HKD', 'SGD', 'SEK', 'DKK', 'PLN', 'NOK', 'HUF',
+    'CZK', 'ILS', 'MXN', 'NZD', 'BRL', 'PHP', 'TWD',
+    'THB', 'TRY', 'RUB', 'CNY', 'INR', 'MYR'
+  ];
+  return paypalSupportedCurrencies.includes(currency.toUpperCase());
 }
 
 // Check if Paystack supports currency
 export function isPaystackCurrencySupported(currency: string): boolean {
   const paystackSupportedCurrencies = ['NGN', 'GHS', 'ZAR', 'USD', 'KES'];
-  return paystackSupportedCurrencies.includes(currency);
+  return paystackSupportedCurrencies.includes(currency.toUpperCase());
+}
+
+// Amount validation
+export function validateAmount(amount: number): boolean {
+  return amount > 0 && amount < 10000000; // Reasonable upper limit
+}
+
+// Input sanitization
+export function sanitizeInput(input: string): string {
+  return input.trim().replace(/[<>]/g, '');
+}
+
+// Debounce function for input validation
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  return function executedFunction(...args: Parameters<T>) {
+    const later = () => {
+      timeout = null;
+      func(...args);
+    };
+
+    if (timeout !== null) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(later, wait);
+  };
 }

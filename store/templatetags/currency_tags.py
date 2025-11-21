@@ -1,4 +1,4 @@
-# store/templatetags/currency_tags.py
+# store/templatetags/currency_tags.py - COMPLETE WITH CART SUPPORT
 from django import template
 from django.conf import settings
 from decimal import Decimal
@@ -166,4 +166,45 @@ def convert_and_display(context, price):
         return str(price)
 
 
+@register.simple_tag
+def display_cart_item_total(cart_item, currency):
+    """
+    ✅ NEW: Display cart item total in specified currency
+    Usage: {% display_cart_item_total item user_currency %}
+    """
+    try:
+        # Call the cart item's method to get price in target currency
+        total_price = cart_item.get_total_price_in_currency(currency)
 
+        # Format and display
+        amount = total_price.amount
+        format_config = settings.CURRENCY_FORMATS.get(currency, {})
+        decimal_places = format_config.get('decimal_places', 2)
+        symbol = settings.CURRENCY_SYMBOLS.get(currency, currency)
+        formatted_amount = f"{amount:,.{decimal_places}f}"
+
+        return f"{symbol} {formatted_amount}"
+
+    except Exception as e:
+        logger.error(f"Cart item total display error: {e}")
+        return ""
+
+
+@register.simple_tag
+def display_money(amount, currency):
+    """
+    ✅ NEW: Display a raw amount in a specific currency
+    Usage: {% display_money cart.total_price.amount user_currency %}
+    """
+    try:
+        amount_decimal = Decimal(str(amount))
+        format_config = settings.CURRENCY_FORMATS.get(currency, {})
+        decimal_places = format_config.get('decimal_places', 2)
+        symbol = settings.CURRENCY_SYMBOLS.get(currency, currency)
+        formatted_amount = f"{amount_decimal:,.{decimal_places}f}"
+
+        return f"{symbol} {formatted_amount}"
+
+    except Exception as e:
+        logger.error(f"Money display error: {e}")
+        return ""

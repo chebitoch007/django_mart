@@ -1,58 +1,22 @@
-// frontend/src/payments/paystack.ts
+// frontend/src/payments/paystack.ts - FULLY FIXED VERSION
 
-import { fetchWithTimeout } from './utils.js';
+import { fetchWithTimeout, validateEmail } from './utils.js';
 import {
   setSubmitButtonState,
   startProcessingAnimation,
   stopProcessingAnimation,
   showPaymentError,
-  showPaymentStatus,
   showPaystackStatus,
-  clearPaystackStatus
+  clearPaystackStatus,
+  showInputError
 } from './ui.js';
 import { PaymentSystem } from './payments.js';
 import { storage } from './storage.js';
-
-// Paystack types
-interface PaystackPopup {
-  setup(config: PaystackConfig): void;
-  resumeTransaction(accessCode: string): void;
-  newTransaction(config: PaystackConfig): void;
-  openIframe(): void;
-}
-
-interface PaystackConfig {
-  key: string;
-  email: string;
-  amount: number;
-  currency: string;
-  ref: string;
-  onClose: () => void;
-  callback: (response: PaystackResponse) => void;
-}
-
-interface PaystackResponse {
-  reference: string;
-  status: string;
-  message: string;
-  trans: string;
-  transaction: string;
-  trxref: string;
-}
-
-declare global {
-  interface Window {
-    PaystackPop?: {
-      setup(config: PaystackConfig): PaystackPopup;
-    };
-  }
-}
 
 class PaystackPaymentManager {
   private static instance: PaystackPaymentManager;
   private paymentInProgress: boolean = false;
   private currentReference: string | null = null;
-  private popup: PaystackPopup | null = null;
 
   private constructor() {}
 
@@ -61,15 +25,6 @@ class PaystackPaymentManager {
       PaystackPaymentManager.instance = new PaystackPaymentManager();
     }
     return PaystackPaymentManager.instance;
-  }
-
-  getPopup(): PaystackPopup | null {
-    return this.popup;
-  }
-
-  setPopup(popup: PaystackPopup): void {
-    this.popup = popup;
-    this.paymentInProgress = true;
   }
 
   getCurrentReference(): string | null {
@@ -84,16 +39,18 @@ class PaystackPaymentManager {
     return this.paymentInProgress;
   }
 
+  setPaymentInProgress(inProgress: boolean): void {
+    this.paymentInProgress = inProgress;
+  }
+
   reset(): void {
     this.paymentInProgress = false;
     this.currentReference = null;
-    this.popup = null;
     storage.removeItem('lastPaystackReference');
   }
 }
 
 const manager = PaystackPaymentManager.getInstance();
-
 
 export async function initializePaystack(paymentSystem: PaymentSystem): Promise<boolean> {
   const state = paymentSystem.getState();
@@ -108,7 +65,7 @@ export async function initializePaystack(paymentSystem: PaymentSystem): Promise<
   if (span) span.textContent = '';
   elements.paymentErrors.style.display = 'none';
 
-  // Get validated email from the input field
+  // Get and validate email from the input field
   const emailInput = elements.paystackEmailInput;
 
   if (!emailInput) {
@@ -121,15 +78,22 @@ export async function initializePaystack(paymentSystem: PaymentSystem): Promise<
 
   if (!email) {
     console.warn('[PAYSTACK] ⚠️ Email is empty');
-    showPaymentError('A valid email address is required for Paystack payment.', elements.paymentErrors);
+    showInputError(
+      emailInput,
+      elements.paystackEmailError,
+      'A valid email address is required for Paystack payment.'
+    );
     emailInput.focus();
     return false;
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
+  if (!validateEmail(email)) {
     console.warn('[PAYSTACK] ⚠️ Email format invalid:', email);
-    showPaymentError('Please enter a valid email address.', elements.paymentErrors);
+    showInputError(
+      emailInput,
+      elements.paystackEmailError,
+      'Please enter a valid email address.'
+    );
     emailInput.focus();
     return false;
   }
@@ -159,34 +123,35 @@ export async function initializePaystack(paymentSystem: PaymentSystem): Promise<
 
     const data = await response.json();
 
-    // *** THIS IS THE FIX ***
-    // We check for the authorization_url provided by the backend.
     if (response.ok && data.success && data.authorization_url) {
-
       console.log('[PAYSTACK] ✅ Backend initialization successful. Redirecting...');
       showPaystackStatus('Redirecting to secure payment page...', 'success');
 
-      // Save reference in storage in case user returns without paying
+      // Save reference in storage
       if (data.reference) {
         manager.setCurrentReference(data.reference);
         storage.setItem('lastPaystackReference', data.reference);
       }
 
-      // Redirect user to the Paystack hosted payment page.
-      window.location.href = data.authorization_url;
+      // Save email to form state for potential retry
+      const currentFormState = storage.getItem('paymentFormState');
+      const formState = currentFormState ? JSON.parse(currentFormState) : {};
+      formState.email = email;
+      storage.setItem('paymentFormState', JSON.stringify(formState));
 
-      // We return a promise that never resolves, because the page is about to unload.
-      return new Promise(() => {});
+      // Redirect user to the Paystack hosted payment page
+      setTimeout(() => {
+        window.location.href = data.authorization_url;
+      }, 500);
 
+      return new Promise(() => {}); // Never resolves as page will redirect
     } else {
-      // Handle error from our backend
-      const message = data.error_message || data.message || 'Failed to initialize Paystack payment.';
+      const message = data.error || data.error_message || data.message || 'Failed to initialize Paystack payment.';
       showPaymentError(message, elements.paymentErrors);
       setSubmitButtonState(false, elements.paymentSubmitButton);
       manager.reset();
       return false;
     }
-
   } catch (error) {
     console.error('[PAYSTACK] Initialization error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Network error during payment initialization.';
@@ -197,14 +162,11 @@ export async function initializePaystack(paymentSystem: PaymentSystem): Promise<
   }
 }
 
-// Function to verify payment status with the backend
-// <-- MODIFIED: Added retryCount parameter -->
 export async function verifyPaystackPayment(
   reference: string,
   paymentSystem: PaymentSystem,
   retryCount: number = 0
 ): Promise<void> {
-  // <-- MODIFIED: Added max retries -->
   const MAX_RETRIES = 20; // 20 retries * 3s = 60 seconds
   const elements = paymentSystem.getElements();
   const config = paymentSystem.getConfig();
@@ -232,51 +194,51 @@ export async function verifyPaystackPayment(
 
     if (data.status === 'completed' && data.order_id) {
       // Payment verified successfully
+      console.log('[PAYSTACK] ✅ Payment completed!');
       stopProcessingAnimation(elements.processingModal);
       showPaystackStatus('Payment verified! Redirecting...', 'success');
       manager.reset();
 
+      // Clear storage
+      storage.removeItem('paymentFormState');
+      storage.removeItem('lastCheckoutRequestId');
+      storage.removeItem('lastPaystackReference');
+
       setTimeout(() => {
         window.location.href = config.urls.orderSuccess.replace(config.orderId, data.order_id);
       }, 1500);
-
     } else if (data.status === 'failed') {
       // Payment failed
+      console.log('[PAYSTACK] ❌ Payment failed');
       stopProcessingAnimation(elements.processingModal);
       setSubmitButtonState(false, elements.paymentSubmitButton);
       manager.reset();
       showPaymentError(data.message || 'Payment verification failed. Please try again.', elements.paymentErrors);
-
     } else if (data.status === 'pending' || data.status === 'processing') {
-
-      // <-- MODIFIED: Added retry limit logic -->
       if (retryCount >= MAX_RETRIES) {
-        // Give up
-        console.warn('[PAYSTACK] Polling timeout. Recommending user to check history.');
+        // Give up after max retries
+        console.warn('[PAYSTACK] ⏱️ Polling timeout. Payment still processing.');
         stopProcessingAnimation(elements.processingModal);
         setSubmitButtonState(false, elements.paymentSubmitButton);
         manager.reset();
-        // Show a more helpful message
         showPaymentError(
-          'Payment is still processing. We will update your order history once confirmed. Please contact support if this persists.',
+          'Payment is still processing. We will update your order once confirmed. Please check your order history or contact support if this persists.',
           elements.paymentErrors
         );
       } else {
         // Still processing - poll again after 3 seconds
-        console.log('[PAYSTACK] Payment still processing, polling again...');
-        setTimeout(() => verifyPaystackPayment(reference, paymentSystem, retryCount + 1), 3000); // Pass incremented count
+        console.log('[PAYSTACK] ⏳ Payment still processing, polling again...');
+        setTimeout(() => verifyPaystackPayment(reference, paymentSystem, retryCount + 1), 3000);
       }
-      // <-- END MODIFICATION -->
-
     } else {
       // Unknown status
+      console.error('[PAYSTACK] ❓ Unknown status:', data.status);
       stopProcessingAnimation(elements.processingModal);
       setSubmitButtonState(false, elements.paymentSubmitButton);
       manager.reset();
       const errorMsg = data.message || 'Unable to verify payment status. Please contact support.';
       showPaymentError(errorMsg, elements.paymentErrors);
     }
-
   } catch (error) {
     console.error('[PAYSTACK] Verification error:', error);
     stopProcessingAnimation(elements.processingModal);
@@ -289,13 +251,12 @@ export async function verifyPaystackPayment(
 
 export function resetPaystackPaymentState(): void {
   manager.reset();
-  storage.removeItem('lastPaystackReference');
   console.info('[PAYSTACK] Payment state reset');
 }
 
-// Check for existing payment on page load
 export function checkExistingPaystackPayment(paymentSystem: PaymentSystem): void {
   const existingReference = storage.getItem('lastPaystackReference');
+
   if (existingReference) {
     console.warn('[PAYSTACK] Found existing payment reference:', existingReference);
     const elements = paymentSystem.getElements();
@@ -308,7 +269,6 @@ export function checkExistingPaystackPayment(paymentSystem: PaymentSystem): void
 
     // Verify the payment status
     setTimeout(() => {
-      // <-- MODIFIED: Pass initial retry count -->
       verifyPaystackPayment(existingReference, paymentSystem, 0);
     }, 1000);
   }

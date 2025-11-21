@@ -14,8 +14,11 @@ class PaystackClient:
     """Paystack API client with connection pooling and retry logic"""
 
     def __init__(self):
-        self.secret_key = settings.PAYSTACK_SECRET_KEY
-        self.public_key = settings.PAYSTACK_PUBLIC_KEY
+        # ✅ FIX: Add .strip() to remove invisible whitespace/newlines
+        # and ensure it's treated as a string
+        self.secret_key = str(settings.PAYSTACK_SECRET_KEY).strip()
+        self.public_key = str(settings.PAYSTACK_PUBLIC_KEY).strip()
+
         self.api_url = "https://api.paystack.co"
         self.timeout = 30
         self.max_retries = 3
@@ -23,10 +26,16 @@ class PaystackClient:
 
     def _get_headers(self):
         """Get request headers with authorization"""
+        # ✅ DEBUG: Print first 10 chars to console (safe to log)
+        # This helps confirm you are loading the TEST key (sk_test_...)
+        masked_key = f"{self.secret_key[:10]}..." if self.secret_key else "MISSING"
+        logger.info(f"Paystack Auth Header using key: {masked_key}")
+
         return {
             'Authorization': f'Bearer {self.secret_key}',
             'Content-Type': 'application/json',
         }
+
 
     def _make_request(self, method, endpoint, data=None, retry_count=0):
         """Make API request with retry logic"""
@@ -90,8 +99,8 @@ def initialize_paystack_transaction(amount, email, order_id, metadata=None):
 
         # Validate currency
         if not is_paystack_currency_supported(currency):
-            logger.warning(f"Unsupported currency {currency}, defaulting to NGN")
-            currency = 'NGN'
+            logger.warning(f"Unsupported currency {currency}, reverting to default: {settings.DEFAULT_CURRENCY}")
+            currency = settings.DEFAULT_CURRENCY
 
         # Convert to smallest currency unit (kobo for NGN, cents for others)
         amount_in_minor = int(amount_value * 100)
@@ -192,7 +201,6 @@ def is_paystack_currency_supported(currency):
         'NGN',  # Nigerian Naira
         'GHS',  # Ghanaian Cedi
         'ZAR',  # South African Rand
-        'USD',  # US Dollar
         'KES',  # Kenyan Shilling
     }
     return currency.upper() in supported

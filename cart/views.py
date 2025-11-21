@@ -1,4 +1,4 @@
-# cart/views.py - PERFECT CURRENCY HANDLING
+# cart/views.py - FIXED FOR CURRENCY CONSISTENCY
 
 import json
 from django.db import transaction
@@ -6,28 +6,29 @@ from django.dispatch.dispatcher import logger
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
-from djmoney.money import Money
 from store.models import Product
 from .forms import CartAddProductForm
 from .models import CartItem
 from .utils import get_cart
 from django.conf import settings
 from decimal import Decimal
+from core.utils import get_exchange_rate
 
 
-def format_money_for_display(money_obj, request):
+def get_user_currency(request):
+    """Get user's selected currency from session"""
+    return request.session.get('user_currency', settings.DEFAULT_CURRENCY)
+
+
+def format_money_for_display(money_obj, target_currency):
     """
-    Format Money object for display with user's selected currency.
+    ✅ FIXED: Format Money object for display in target currency.
     Returns formatted string like "KES 1,234.56" or "$1,234.56"
     """
     if not money_obj:
-        user_currency = request.session.get('user_currency', settings.DEFAULT_CURRENCY)
-        return f"{user_currency} 0.00"
+        return f"{target_currency} 0.00"
 
-    # Get user's selected currency
-    user_currency = request.session.get('user_currency', settings.DEFAULT_CURRENCY)
-
-    # Extract source currency and amount
+    # Get source currency and amount
     if hasattr(money_obj, 'currency'):
         source_currency = str(money_obj.currency)
         amount = money_obj.amount
@@ -36,34 +37,33 @@ def format_money_for_display(money_obj, request):
         amount = Decimal(str(money_obj))
 
     # Convert if needed
-    if source_currency != user_currency:
+    if source_currency != target_currency:
         try:
-            from core.utils import get_exchange_rate
-            rate = get_exchange_rate(source_currency, user_currency)
+            rate = get_exchange_rate(source_currency, target_currency)
             amount = Decimal(str(amount)) * rate
         except Exception as e:
             logger.error(f"Currency conversion error: {e}")
             # Fall back to original
-            user_currency = source_currency
+            target_currency = source_currency
 
     # Format with currency configuration
-    format_config = settings.CURRENCY_FORMATS.get(user_currency, {})
+    format_config = settings.CURRENCY_FORMATS.get(target_currency, {})
     decimal_places = format_config.get('decimal_places', 2)
-    symbol = settings.CURRENCY_SYMBOLS.get(user_currency, user_currency)
+    symbol = settings.CURRENCY_SYMBOLS.get(target_currency, target_currency)
 
     # Format the number with commas
     formatted_amount = f"{amount:,.{decimal_places}f}"
 
     # Return with symbol/code
-    symbol_before = ['$', '£', '€', '¥'].count(symbol) > 0
-    if symbol_before:
-        return f"{symbol}{formatted_amount}"
-    else:
-        return f"{user_currency} {formatted_amount}"
+    return f"{symbol} {formatted_amount}"
 
 
 def cart_detail(request):
+    """
+    ✅ FIXED: Display cart with user's selected currency
+    """
     cart = get_cart(request)
+    user_currency = get_user_currency(request)
     cart_has_stock_issues = False
 
     # Check stock availability
@@ -78,13 +78,22 @@ def cart_detail(request):
             return redirect('cart:cart_detail')
         return redirect('orders:create_order')
 
-    return render(request, 'cart/detail.html', {
+    # ✅ Pass currency-aware totals to template
+    context = {
         'cart': cart,
-        'cart_has_stock_issues': cart_has_stock_issues
-    })
+        'cart_has_stock_issues': cart_has_stock_issues,
+        'user_currency': user_currency,
+        # Pre-calculate totals in user's currency
+        'cart_total_in_currency': cart.get_total_price_in_currency(user_currency),
+        'cart_shipping_in_currency': cart.get_estimated_shipping_in_currency(user_currency),
+        'cart_grand_total_in_currency': cart.get_grand_total_in_currency(user_currency),
+    }
+
+    return render(request, 'cart/detail.html', context)
 
 
 def cart_add(request, product_id):
+    """Add product to cart"""
     product = get_object_or_404(Product, id=product_id)
     form = CartAddProductForm(request.POST or None)
     response_data = {'success': False, 'message': '', 'cart_total_items': 0}
@@ -127,19 +136,26 @@ def cart_add(request, product_id):
 
 
 def cart_remove(request, product_id):
+    """
+    ✅ FIXED: Remove product with currency-aware response
+    """
     product = get_object_or_404(Product, id=product_id)
     cart = get_cart(request)
+    user_currency = get_user_currency(request)
     response_data = {'success': False, 'message': 'Item not in cart'}
 
     try:
         item = cart.items.get(product=product)
         item.delete()
 
-        # Return formatted prices
+        # ✅ Return prices in user's currency
         response_data = {
             'success': True,
             'cart_total_items': cart.total_items,
-            'cart_total_price': format_money_for_display(cart.total_price, request),
+            'cart_total_price': format_money_for_display(
+                cart.get_total_price_in_currency(user_currency),
+                user_currency
+            ),
             'HX-Trigger': json.dumps({
                 'cartUpdated': {'cart_total_items': cart.total_items}
             })
@@ -153,6 +169,7 @@ def cart_remove(request, product_id):
 
 
 def cart_clear(request):
+    """Clear cart"""
     cart = get_cart(request)
     cart.clear()
 
@@ -168,8 +185,12 @@ def cart_clear(request):
 
 @require_POST
 def cart_update(request, product_id):
+    """
+    ✅ FIXED: Update cart item with currency-aware response
+    """
     product = get_object_or_404(Product, id=product_id)
     cart = get_cart(request)
+    user_currency = get_user_currency(request)
     response_data = {'success': False, 'message': 'Item not found in cart'}
 
     try:
@@ -192,7 +213,10 @@ def cart_update(request, product_id):
             removed_item = True
             response_data = {
                 'success': True,
-                'cart_total_price': format_money_for_display(cart.total_price, request),
+                'cart_total_price': format_money_for_display(
+                    cart.get_total_price_in_currency(user_currency),
+                    user_currency
+                ),
                 'cart_total_items': cart.total_items,
                 'message': 'Item removed from cart',
                 'HX-Trigger': json.dumps({'cartUpdated': {'cart_total_items': cart.total_items}})
@@ -201,11 +225,17 @@ def cart_update(request, product_id):
             item.quantity = quantity
             item.save()
 
-            # Return formatted prices
+            # ✅ Return prices in user's currency
             response_data = {
                 'success': True,
-                'item_total': format_money_for_display(item.total_price, request),
-                'cart_total_price': format_money_for_display(cart.total_price, request),
+                'item_total': format_money_for_display(
+                    item.get_total_price_in_currency(user_currency),
+                    user_currency
+                ),
+                'cart_total_price': format_money_for_display(
+                    cart.get_total_price_in_currency(user_currency),
+                    user_currency
+                ),
                 'cart_total_items': cart.total_items,
                 'item_quantity': quantity,
                 'product_stock': product.stock,
@@ -220,9 +250,17 @@ def cart_update(request, product_id):
 
 
 def cart_total(request):
+    """
+    ✅ FIXED: Return cart totals in user's currency
+    """
     cart = get_cart(request)
+    user_currency = get_user_currency(request)
+
     return JsonResponse({
         'success': True,
         'cart_total_items': cart.total_items,
-        'cart_total_price': format_money_for_display(cart.total_price, request)
+        'cart_total_price': format_money_for_display(
+            cart.get_total_price_in_currency(user_currency),
+            user_currency
+        )
     })

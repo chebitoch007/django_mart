@@ -137,34 +137,77 @@ class Order(models.Model):
     # --- Totals ---
     @property
     def subtotal(self):
-        """Get subtotal (sum of all item totals, excluding shipping)."""
-        from decimal import Decimal
-        items = self.items.all()
-        subtotal = sum(
-            (item.price.amount * item.quantity for item in items),
-            Decimal('0.00')
-        )
-        return Money(subtotal, self.total.currency)
+        """
+        Get subtotal (sum of all item totals, excluding shipping).
+        ✅ FIXED: Explicitly handles currency conversion to match Order currency.
+        """
+        from core.utils import convert_money
+
+        target_currency = self.total.currency
+        subtotal_accumulated = Money(0, target_currency)
+
+        for item in self.items.all():
+            item_total = item.total_price
+
+            # Check if currencies match; if not, convert
+            if item_total.currency == target_currency:
+                subtotal_accumulated += item_total
+            else:
+                # Use util to convert amount
+                converted_amount = convert_money(
+                    item_total.amount,
+                    str(item_total.currency),
+                    str(target_currency)
+                )
+                subtotal_accumulated += Money(converted_amount, target_currency)
+
+        return subtotal_accumulated
 
     @property
     def total_cost(self):
         """Get total including shipping."""
-        from decimal import Decimal
-        subtotal = self.subtotal.amount
-        shipping = self.shipping_cost.amount if self.shipping_cost else Decimal('0.00')
-        return Money(subtotal + shipping, self.total.currency)
+        # Check shipping currency matches subtotal/order currency
+        shipping = self.shipping_cost
+        subtotal = self.subtotal
+
+        if shipping.currency != subtotal.currency:
+            from core.utils import convert_money
+            converted_shipping_amount = convert_money(
+                shipping.amount,
+                str(shipping.currency),
+                str(subtotal.currency)
+            )
+            shipping = Money(converted_shipping_amount, subtotal.currency)
+
+        return subtotal + shipping
 
     def calculate_shipping(self):
-        """Calculate total shipping cost for all non-free-shipping items."""
-        from decimal import Decimal
-        total_shipping = Decimal('0.00')
+        """
+        Calculate total shipping cost for all non-free-shipping items.
+        ✅ FIXED: Returns Money in the order's currency, converting if necessary.
+        """
+        from core.utils import convert_money
+
+        target_currency = self.total.currency
+        total_shipping = Money(0, target_currency)
 
         for item in self.items.select_related('product'):
             product = item.product
             if not product.free_shipping and product.shipping_cost:
-                total_shipping += product.shipping_cost.amount * item.quantity
+                cost = product.shipping_cost
 
-        return Money(total_shipping, settings.DEFAULT_CURRENCY)
+                # Handle currency conversion for shipping cost
+                if cost.currency != target_currency:
+                    converted_amount = convert_money(
+                        cost.amount,
+                        str(cost.currency),
+                        str(target_currency)
+                    )
+                    cost = Money(converted_amount, target_currency)
+
+                total_shipping += cost * item.quantity
+
+        return total_shipping
 
     # --- Payment + Status Helpers ---
     @property
@@ -172,8 +215,8 @@ class Order(models.Model):
         """Check if order can still be paid (within expiry period)."""
         expiry_days = getattr(settings, 'ORDER_EXPIRY_DAYS', 7)
         return (
-            self.status == 'PENDING'
-            and (timezone.now() - self.created).days < expiry_days
+                self.status == 'PENDING'
+                and (timezone.now() - self.created).days < expiry_days
         )
 
     @transaction.atomic
