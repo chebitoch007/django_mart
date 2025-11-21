@@ -12,7 +12,8 @@ services:
     runtime: docker
     dockerContext: .
     plan: free
-    # Note: We rely on the Dockerfile's default CMD here, so no startCommand/dockerCommand needed.
+    # Tell Render to run our script
+    dockerCommand: ./entrypoint.sh
 
     envVars:
       - key: DATABASE_URL
@@ -20,7 +21,7 @@ services:
           name: asai-db
           property: connectionString
 
-      # Manual Redis entry (Paste the redis:// URL in the dashboard)
+      # Manual Redis entry
       - key: REDIS_URL
         sync: false
       - key: CELERY_BROKER_URL
@@ -35,13 +36,20 @@ services:
       - key: USE_CLOUDFLARE_R2
         value: true
 
-  # 2. ASAI Celery Worker
+      # Superuser Configuration (The script reads these)
+      - key: DJANGO_SUPERUSER_USERNAME
+        value: admin
+      - key: DJANGO_SUPERUSER_EMAIL
+        value: admin@example.com
+      - key: DJANGO_SUPERUSER_PASSWORD
+        generateValue: true # Render will generate a password for you
+
+  # 2. ASAI Celery Worker (Keep as is)
   - type: worker
     name: asai-worker
     runtime: docker
     dockerContext: .
     plan: free
-    # We use dockerCommand to override the default CMD for the worker
     dockerCommand: celery -A asai worker -l info -c 2
 
     envVars:
@@ -58,13 +66,12 @@ services:
       - key: USE_CLOUDFLARE_R2
         value: true
 
-  # 3. ASAI Celery Beat
+  # 3. ASAI Celery Beat (Keep as is)
   - type: worker
     name: asai-beat
     runtime: docker
     dockerContext: .
     plan: free
-    # We use dockerCommand to override the default CMD for the beat scheduler
     dockerCommand: celery -A asai beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 
     envVars:
