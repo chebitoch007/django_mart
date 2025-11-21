@@ -1,30 +1,109 @@
-services:
-  - type: web
-    name: asai-web
-    runtime: docker
-    env: docker
-    plan: free
-    buildCommand: |
-      pip install -r requirements.txt
-      python manage.py collectstatic --noinput
-    startCommand: gunicorn asai.wsgi_prod:application --bind 0.0.0.0:$PORT
-    envVars:
-      - key: DJANGO_SECRET_KEY
-        generateValue: true
-      - key: DJANGO_DEBUG
-        value: false
-      - key: DJANGO_ALLOWED_HOSTS
-        value: asai.onrender.com
-      - key: DATABASE_URL
-        fromDatabase:
-          name: asai-db
-          property: connectionString
-      - key: USE_CLOUDFLARE_R2
-        value: true
-      # Add other environment variables as needed
-
+# render.yaml - Complete Blueprint for Django, Postgres, Redis, and Celery
 databases:
   - name: asai-db
     plan: free
     databaseName: djangomartdb
     user: chebitoch
+
+redis:
+  - name: asai-redis
+    plan: free
+    # ipAllowList is left empty to allow connections from other Render services (Web/Celery)
+
+services:
+  # 1. ASAI Web Service (Handles HTTP requests)
+  - type: web
+    name: asai-web
+    runtime: docker
+    dockerContext: . # Build context is the current directory
+    plan: free
+
+    # We remove buildCommand from render.yaml because the Dockerfile handles the build.
+    buildCommand: ""
+
+    # Override Dockerfile's CMD to run Gunicorn on the correct $PORT
+    startCommand: gunicorn asai.wsgi_prod:application --bind 0.0.0.0:$PORT --workers 4 --threads 2
+
+    envVars:
+      # Link to Postgres DB
+      - key: DATABASE_URL
+        fromDatabase:
+          name: asai-db
+          property: connectionString
+      # Link to Redis for Celery Broker/Backend & Django Cache
+      - key: REDIS_URL # Used by Django Cache in settings.py
+        fromService:
+          type: redis
+          name: asai-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL # Used by Celery in settings/celery.py
+        fromService:
+          type: redis
+          name: asai-redis
+          property: connectionString
+
+      # Core Django Variables
+      - key: DJANGO_SECRET_KEY
+        generateValue: true # Generates a unique secret key for production
+      - key: DJANGO_DEBUG
+        value: false
+      - key: DJANGO_ALLOWED_HOSTS
+        value: asai-web.onrender.com
+      - key: USE_CLOUDFLARE_R2
+        value: true
+      # You MUST manually add AWS/PAYPAL/MPESA keys on the Render dashboard for production!
+
+  # 2. ASAI Celery Worker (Executes background tasks)
+  - type: worker
+    name: asai-worker
+    runtime: docker
+    dockerContext: .
+    plan: free
+
+    # No build needed, as the image is built by the first service's deploy trigger
+    buildCommand: ""
+
+    # Start the Celery Worker process
+    startCommand: celery -A asai worker -l info -c 2 # -c 2 limits concurrency for free tier
+
+    envVars:
+      # Inherit all essential environment variables from the web service
+      - key: DATABASE_URL
+        fromService:
+          name: asai-web
+          property: DATABASE_URL
+      - key: REDIS_URL
+        fromService:
+          name: asai-web
+          property: REDIS_URL
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: asai-web
+          property: CELERY_BROKER_URL
+
+  # 3. ASAI Celery Beat (Manages scheduled periodic tasks)
+  - type: worker
+    name: asai-beat
+    runtime: docker
+    dockerContext: .
+    plan: free
+
+    buildCommand: ""
+
+    # Start the Celery Beat process using the database scheduler
+    startCommand: celery -A asai beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+    envVars:
+      # Inherit all essential environment variables from the web service
+      - key: DATABASE_URL
+        fromService:
+          name: asai-web
+          property: DATABASE_URL
+      - key: REDIS_URL
+        fromService:
+          name: asai-web
+          property: REDIS_URL
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: asai-web
+          property: CELERY_BROKER_URL
