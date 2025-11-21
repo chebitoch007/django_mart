@@ -1,4 +1,4 @@
-# render.yaml - Corrected Blueprint
+# render.yaml - Fixed for Docker Runtime
 databases:
   - name: asai-db
     plan: free
@@ -12,8 +12,8 @@ services:
     runtime: docker
     dockerContext: .
     plan: free
-    buildCommand: ""
-    startCommand: gunicorn asai.wsgi_prod:application --bind 0.0.0.0:$PORT --workers 4 --threads 2
+    # We remove startCommand. The Dockerfile's CMD handles Gunicorn automatically.
+    [cite_start]# [cite: 4]
 
     envVars:
       - key: DATABASE_URL
@@ -21,7 +21,7 @@ services:
           name: asai-db
           property: connectionString
 
-      # We removed the automatic link. You will paste the Redis URL manually on the dashboard.
+      # Manual Redis entry
       - key: REDIS_URL
         sync: false
       - key: CELERY_BROKER_URL
@@ -42,22 +42,24 @@ services:
     runtime: docker
     dockerContext: .
     plan: free
-    buildCommand: ""
-    startCommand: celery -A asai worker -l info -c 2
+    # FIXED: Use dockerCommand instead of startCommand for Docker runtimes
+    dockerCommand: celery -A asai worker -l info -c 2
 
     envVars:
+      # FIXED: Connect directly to DB, don't copy from Web
       - key: DATABASE_URL
-        fromService:
-          name: asai-web
-          property: DATABASE_URL
+        fromDatabase:
+          name: asai-db
+          property: connectionString
+      # FIXED: Ask for Redis URL manually (sync: false)
       - key: REDIS_URL
-        fromService:
-          name: asai-web
-          property: REDIS_URL
+        sync: false
       - key: CELERY_BROKER_URL
-        fromService:
-          name: asai-web
-          property: CELERY_BROKER_URL
+        sync: false
+      - key: DJANGO_SECRET_KEY
+        sync: false # Will ask you to paste the same key, or you can generate a new one
+      - key: USE_CLOUDFLARE_R2
+        value: true
 
   # 3. ASAI Celery Beat
   - type: worker
@@ -65,19 +67,19 @@ services:
     runtime: docker
     dockerContext: .
     plan: free
-    buildCommand: ""
-    startCommand: celery -A asai beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    # FIXED: Use dockerCommand instead of startCommand
+    dockerCommand: celery -A asai beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 
     envVars:
+      # FIXED: Connect directly to DB
       - key: DATABASE_URL
-        fromService:
-          name: asai-web
-          property: DATABASE_URL
+        fromDatabase:
+          name: asai-db
+          property: connectionString
+      # FIXED: Ask for Redis URL manually
       - key: REDIS_URL
-        fromService:
-          name: asai-web
-          property: REDIS_URL
+        sync: false
       - key: CELERY_BROKER_URL
-        fromService:
-          name: asai-web
-          property: CELERY_BROKER_URL
+        sync: false
+      - key: DJANGO_SECRET_KEY
+        sync: false
