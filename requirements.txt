@@ -91,11 +91,9 @@ monotonic==1.6
 more-itertools==8.10.0
 multidict==6.6.4
 netifaces==0.11.0
-numpy==1.26.4
 oauthlib==3.2.0
 olefile==0.46
 packaging==25.0
-pandas==2.3.1
 paramiko==2.9.3
 paypalrestsdk==1.13.3
 pexpect==4.8.0
@@ -107,7 +105,6 @@ psutil==7.0.0
 psycopg2-binary==2.9.10
 ptyprocess==0.7.0
 py-moneyed==3.0
-pyarrow==19.0.1
 pycountry==24.6.1
 pycparser==2.22
 pydantic_core==2.33.2
@@ -139,7 +136,6 @@ stripe==12.4.0
 tornado==6.5.2
 typing-inspection==0.4.1
 typing_extensions==4.15.0
-tzdata==2025.2
 urllib3==2.2.3
 uvicorn==0.38.0
 vine==5.1.0
