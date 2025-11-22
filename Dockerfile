@@ -18,13 +18,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set working directory
 WORKDIR /app
 
-# Install Python dependencies first for layer caching
+# Install Python dependencies
 COPY requirements.txt .
+# REMOVED "pip cache purge" because PIP_NO_CACHE_DIR=on is already set
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip cache purge
+    pip install --no-cache-dir -r requirements.txt
 
-# Copy application code with .dockerignore support
+# Copy application code
 COPY . .
 
 # Collect static files
