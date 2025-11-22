@@ -28,7 +28,9 @@ COPY . .
 
 # Collect static files
 # FIX: We export a dummy secret key just for this command so settings.py doesn't crash
-RUN DJANGO_SECRET_KEY=build-only-dummy-key python manage.py collectstatic --noinput
+RUN DJANGO_SECRET_KEY=build-only-dummy-key \
+    DATABASE_URL=sqlite:///dummy.db \
+    python manage.py collectstatic --noinput \
 
 # Run application
 CMD ["gunicorn", "asai.wsgi_prod:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--threads", "2"]
