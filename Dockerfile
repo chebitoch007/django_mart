@@ -20,7 +20,6 @@ WORKDIR /app
 
 # Install Python dependencies
 COPY requirements.txt .
-# REMOVED "pip cache purge" because PIP_NO_CACHE_DIR=on is already set
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
@@ -28,7 +27,8 @@ RUN pip install --upgrade pip && \
 COPY . .
 
 # Collect static files
-RUN python manage.py collectstatic --noinput
+# FIX: We export a dummy secret key just for this command so settings.py doesn't crash
+RUN DJANGO_SECRET_KEY=build-only-dummy-key python manage.py collectstatic --noinput
 
 # Run application
 CMD ["gunicorn", "asai.wsgi_prod:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--threads", "2"]
